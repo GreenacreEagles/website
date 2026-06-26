@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Greenacre Eagles FC placeholder mark</title>
+  <desc id="desc">A green and black shield mark for the rebuilt Greenacre Eagles website.</desc>
+  <rect width="512" height="512" fill="#06120d"/>
+  <path d="M256 48L432 112V242C432 352 358 436 256 464C154 436 80 352 80 242V112L256 48Z" fill="#087f45"/>
+  <path d="M256 76L404 130V244C404 336 344 407 256 434C168 407 108 336 108 244V130L256 76Z" fill="#0b1712"/>
+  <path d="M151 253C186 183 232 151 302 132C282 166 278 197 292 225C312 216 333 211 359 210C329 232 306 262 292 303C260 276 220 260 151 253Z" fill="#9bd33f"/>
+  <path d="M157 286C207 291 250 309 290 342C306 318 325 298 350 279C321 280 294 289 268 306C239 292 204 285 157 286Z" fill="#ffffff"/>
+  <path d="M210 357H302" stroke="#f4c542" stroke-width="18" stroke-linecap="round"/>
+  <path d="M187 386H325" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+</svg>

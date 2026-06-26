@@ -1,0 +1,31 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import TeamCard from "@components/TeamCard.astro";
+import { bySortOrder } from "@lib/content";
+
+const teams = bySortOrder(await getCollection("teams"));
+---
+
+<BaseLayout title="Teams" description="Explore Greenacre Eagles FC team information, training placeholders, coaches, and squad pathways.">
+  <section class="section-pad bg-eagles-ink text-white">
+    <div class="section-shell">
+      <p class="text-sm font-black uppercase text-eagles-lime">Teams</p>
+      <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Every squad has a place</h1>
+      <p class="mt-6 max-w-3xl text-xl leading-9 text-white/75">Senior, reserve, and junior content is managed through the teams collection so admins can update coach names, training details, and team photos.</p>
+    </div>
+  </section>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <SectionHeading eyebrow="Squads" title="Greenacre Eagles teams" intro="Replace placeholders with confirmed team information as registrations and squads are finalised." />
+        <ButtonLink href="/join/" variant="secondary">Register interest</ButtonLink>
+      </div>
+      <div class="mt-10 grid gap-5 lg:grid-cols-3">
+        {teams.map((team) => <TeamCard team={team} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

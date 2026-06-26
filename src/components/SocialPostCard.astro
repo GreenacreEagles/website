@@ -1,0 +1,39 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Icon from "@components/Icon.astro";
+import { formatDate } from "@lib/content";
+
+interface Props {
+  post: CollectionEntry<"social-posts">;
+}
+
+const { post } = Astro.props;
+const iconName =
+  post.data.platform === "Instagram"
+    ? "camera"
+    : post.data.platform === "TikTok"
+      ? "music"
+      : post.data.platform === "Facebook"
+        ? "message"
+        : post.data.platform === "YouTube"
+          ? "circlePlay"
+          : "play";
+---
+
+<article class="dark-surface overflow-hidden">
+  <div class="relative">
+    <img src={post.data.thumbnail ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-56 w-full object-cover opacity-90" loading="lazy" />
+    <div class="absolute left-4 top-4 inline-flex items-center gap-2 bg-eagles-ink/85 px-3 py-2 text-sm font-black text-white" style="border-radius:8px">
+      <Icon name={iconName} class="h-4 w-4 text-eagles-lime" />
+      {post.data.platform}
+    </div>
+  </div>
+  <div class="p-5">
+    <p class="text-sm font-bold text-eagles-lime">{formatDate(post.data.date)}</p>
+    <h3 class="mt-2 font-display text-2xl font-black uppercase leading-none">{post.data.title}</h3>
+    <p class="mt-3 text-base leading-7 text-white/70">{post.data.caption}</p>
+    <a class="mt-5 inline-flex items-center gap-2 text-sm font-black text-eagles-gold hover:text-white" href={post.data.postUrl} target="_blank" rel="noreferrer">
+      View post <Icon name="arrowUpRight" class="h-4 w-4" />
+    </a>
+  </div>
+</article>

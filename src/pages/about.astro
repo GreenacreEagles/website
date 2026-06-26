@@ -1,0 +1,52 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import Icon from "@components/Icon.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import { site } from "@data/site";
+---
+
+<BaseLayout title="About" description="Learn about Greenacre Eagles FC, a proud community football club in the Bankstown District Amateur Football Association.">
+  <section class="bg-eagles-ink text-white">
+    <div class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+      <div>
+        <p class="text-sm font-black uppercase text-eagles-lime">{site.location}</p>
+        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">About the Eagles</h1>
+        <p class="mt-6 text-xl leading-9 text-white/80">
+          Greenacre Eagles FC is a community football club built around local pride, player development, family involvement, and competitive ambition.
+        </p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+          <ButtonLink href="/teams/">View teams</ButtonLink>
+          <ButtonLink href="/volunteer/" variant="light">Help the club</ButtonLink>
+        </div>
+      </div>
+      <img src="/media/generated/eagles-hero.png" alt="" class="h-full min-h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
+    </div>
+  </section>
+
+  <section class="section-pad bg-white">
+    <div class="section-shell grid gap-12 lg:grid-cols-[.8fr_1.2fr]">
+      <SectionHeading eyebrow="Club story" title="A modern community club with a Premier League mindset" intro="The site copy is ready for the club to refine with exact history, committee details, honours, and future goals." />
+      <div class="grid gap-6 text-lg leading-8 text-eagles-ink/70">
+        <p>
+          The Eagles represent Greenacre within BDAFA and give local players a place to compete, learn, and belong. The club colours of green, black, and white carry a simple message: pride in place and respect for the game.
+        </p>
+        <p>
+          After a District League premiership and promotion into the Bankstown Premier League, the club has an opportunity to present itself with the same energy online that it wants to show on the pitch.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <SectionHeading eyebrow="Values" title="What the club stands for" intro="These values are editable content candidates once the club confirms final wording." />
+      <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <article class="surface p-5"><Icon name="trophy" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Ambition</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Compete with standards and prepare players for bigger moments.</p></article>
+        <article class="surface p-5"><Icon name="users" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Belonging</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Make families and players feel welcome across every age group.</p></article>
+        <article class="surface p-5"><Icon name="heartHandshake" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Service</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Celebrate the volunteers and sponsors who keep the club moving.</p></article>
+        <article class="surface p-5"><Icon name="shield" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Pride</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Represent Greenacre with respect, effort, and connection.</p></article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

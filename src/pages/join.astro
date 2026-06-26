@@ -1,0 +1,37 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import FormPanel from "@components/FormPanel.astro";
+import Icon from "@components/Icon.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+---
+
+<BaseLayout title="Join or Register" description="Register interest to play, join a Greenacre Eagles FC team, or connect with the club.">
+  <section class="section-pad bg-eagles-ink text-white">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+      <div>
+        <p class="text-sm font-black uppercase text-eagles-lime">Join the club</p>
+        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Pull on green, black, and white</h1>
+        <p class="mt-6 text-xl leading-9 text-white/75">A clear registration interest page for players, parents, and families while official registration links are finalised.</p>
+        <div class="mt-8"><ButtonLink href="/teams/" variant="light">Explore teams</ButtonLink></div>
+      </div>
+      <img src="/media/placeholders/juniors.svg" alt="" class="h-full min-h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
+    </div>
+  </section>
+  <section class="section-pad bg-white">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr]">
+      <div>
+        <SectionHeading eyebrow="Pathway" title="How to get started" intro="Once the club provides the official PlayFootball registration link, this page can send players directly there." />
+        <div class="mt-8 grid gap-4">
+          {["Choose the team or age group that fits", "Send an expression of interest", "The club confirms training and registration details"].map((step) => (
+            <div class="flex gap-3 border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+              <Icon name="checkCircle" class="mt-1 h-5 w-5 shrink-0 text-eagles-green" />
+              <p class="font-bold text-eagles-ink">{step}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <FormPanel title="Register interest" intro="Send player, parent, and team details so the club can follow up." intent="Player registration interest" />
+    </div>
+  </section>
+</BaseLayout>

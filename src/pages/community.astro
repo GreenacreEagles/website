@@ -1,0 +1,30 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import FundraiserCard from "@components/FundraiserCard.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+
+const fundraisers = await getCollection("fundraisers");
+---
+
+<BaseLayout title="Community and Fundraising" description="Greenacre Eagles FC community support, fundraisers, volunteer calls, and donation campaigns.">
+  <section class="section-pad bg-white">
+    <div class="section-shell">
+      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <SectionHeading eyebrow="Community" title="Support that reaches the pitch" intro="Fundraising cards are editable content with goal amounts, current amounts, status, imagery, and CTA links." />
+        <ButtonLink href="/volunteer/" variant="secondary">Volunteer</ButtonLink>
+      </div>
+      <div class="mt-10 grid gap-8">
+        {fundraisers.map((fundraiser) => <FundraiserCard fundraiser={fundraiser} />)}
+      </div>
+    </div>
+  </section>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell grid gap-5 md:grid-cols-3">
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Equipment</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Campaigns can fund balls, cones, bibs, medical kits, and training resources.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Events</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Club events can bring families, sponsors, and players together.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Access</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Future campaigns can support participation, uniforms, and junior development.</p></article>
+    </div>
+  </section>
+</BaseLayout>

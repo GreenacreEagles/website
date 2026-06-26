@@ -1,0 +1,22 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Icon from "@components/Icon.astro";
+import { formatDateTime } from "@lib/content";
+
+interface Props {
+  event: CollectionEntry<"events">;
+}
+
+const { event } = Astro.props;
+---
+
+<article class="surface p-5">
+  <p class="text-sm font-black uppercase text-eagles-green">{event.data.eventType}</p>
+  <h3 class="mt-2 font-display text-2xl font-black uppercase leading-none">{event.data.title}</h3>
+  <div class="mt-4 grid gap-2 text-sm font-bold text-eagles-ink/65">
+    <span class="inline-flex items-center gap-2"><Icon name="calendar" class="h-4 w-4 text-eagles-green" /> {formatDateTime(event.data.dateTime)}</span>
+    <span class="inline-flex items-center gap-2"><Icon name="mapPin" class="h-4 w-4 text-eagles-green" /> {event.data.location}</span>
+  </div>
+  <p class="mt-4 text-base leading-7 text-eagles-ink/70">{event.data.summary}</p>
+  {event.data.ctaLink && <a class="mt-5 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href={event.data.ctaLink}>View details</a>}
+</article>

@@ -1,0 +1,36 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { money, progressPercent } from "@lib/content";
+import ButtonLink from "@components/ButtonLink.astro";
+import Icon from "@components/Icon.astro";
+
+interface Props {
+  fundraiser: CollectionEntry<"fundraisers">;
+}
+
+const { fundraiser } = Astro.props;
+const percent = progressPercent(fundraiser.data.currentAmount, fundraiser.data.goalAmount);
+---
+
+<article class="grid overflow-hidden bg-eagles-ink text-white md:grid-cols-[.95fr_1.05fr]" style="border-radius:8px">
+  <img src={fundraiser.data.image ?? "/media/placeholders/fundraiser-community.svg"} alt="" class="h-full min-h-72 w-full object-cover" loading="lazy" />
+  <div class="p-6 md:p-8">
+    <p class="inline-flex items-center gap-2 text-sm font-black uppercase text-eagles-lime">
+      <Icon name="heartHandshake" class="h-4 w-4" /> {fundraiser.data.status}
+    </p>
+    <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{fundraiser.data.title}</h3>
+    <p class="mt-4 text-base leading-7 text-white/70">{fundraiser.data.description}</p>
+    <div class="mt-6">
+      <div class="flex items-end justify-between gap-4">
+        <span class="font-display text-3xl font-black">{money(fundraiser.data.currentAmount)}</span>
+        <span class="text-sm font-bold text-white/65">Goal {money(fundraiser.data.goalAmount)}</span>
+      </div>
+      <div class="mt-3 h-3 overflow-hidden bg-white/10" style="border-radius:8px">
+        <div class="h-full bg-eagles-gold" style={`width:${percent}%`}></div>
+      </div>
+    </div>
+    <div class="mt-7">
+      <ButtonLink href={fundraiser.data.ctaLink} variant="primary">{fundraiser.data.ctaText}</ButtonLink>
+    </div>
+  </div>
+</article>

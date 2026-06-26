@@ -1,0 +1,11 @@
+---
+import { site } from "@data/site";
+---
+
+<a href="/" class="focus-ring inline-flex items-center gap-3" aria-label={`${site.name} home`}>
+  <img src="/media/brand/eagles-mark.svg" alt="" class="h-12 w-12 shrink-0" />
+  <span class="leading-none">
+    <span class="block font-display text-xl font-black uppercase text-white md:text-2xl">{site.name}</span>
+    <span class="mt-1 block text-xs font-bold uppercase text-eagles-lime">{site.association}</span>
+  </span>
+</a>

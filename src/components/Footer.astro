@@ -1,0 +1,54 @@
+---
+import Icon from "@components/Icon.astro";
+import LogoLockup from "@components/LogoLockup.astro";
+import { site } from "@data/site";
+
+const footerLinks = [
+  { href: "/about/", label: "About" },
+  { href: "/teams/", label: "Teams" },
+  { href: "/news/", label: "News" },
+  { href: "/gallery/", label: "Gallery" },
+  { href: "/community/", label: "Community" },
+  { href: "/admin/", label: "Admin setup" }
+];
+---
+
+<footer class="bg-eagles-ink text-white">
+  <div class="section-shell grid gap-10 py-14 lg:grid-cols-[1.2fr_.8fr_.8fr]">
+    <div>
+      <LogoLockup />
+      <p class="mt-5 max-w-xl text-base leading-7 text-white/70">{site.tagline}</p>
+      <div class="mt-6 grid gap-3 text-sm text-white/70">
+        <span class="inline-flex items-center gap-2"><Icon name="mapPin" class="h-4 w-4 text-eagles-lime" /> {site.location}</span>
+        <a class="inline-flex items-center gap-2 hover:text-white" href={`mailto:${site.contactEmail}`}>
+          <Icon name="mail" class="h-4 w-4 text-eagles-lime" /> {site.contactEmail}
+        </a>
+      </div>
+    </div>
+    <div>
+      <h2 class="font-display text-lg font-black uppercase">Club</h2>
+      <div class="mt-4 grid gap-3">
+        {footerLinks.map((link) => <a class="text-sm font-bold text-white/70 hover:text-white" href={link.href}>{link.label}</a>)}
+      </div>
+    </div>
+    <div>
+      <h2 class="font-display text-lg font-black uppercase">Social</h2>
+      <div class="mt-4 grid gap-3">
+        {
+          site.socials.map((social) => (
+            <a class="inline-flex items-center gap-2 text-sm font-bold text-white/70 hover:text-white" href={social.href}>
+              {social.label}
+              <Icon name="arrowUpRight" class="h-4 w-4" />
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+  <div class="border-t border-white/10">
+    <div class="section-shell flex flex-col gap-3 py-5 text-sm text-white/60 md:flex-row md:items-center md:justify-between">
+      <p>&copy; {new Date().getFullYear()} {site.name}. All rights reserved.</p>
+      <p>Built for fast static hosting and Git-based content editing.</p>
+    </div>
+  </div>
+</footer>

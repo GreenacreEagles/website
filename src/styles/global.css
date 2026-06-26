@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --field-shadow: 0 0 0 3px rgba(8, 127, 69, 0.18);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-eagles-mist text-eagles-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-eagles-gold text-eagles-ink;
+  }
+
+  img,
+  svg {
+    display: block;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .section-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-pad {
+    @apply py-16 md:py-24;
+  }
+
+  .eyebrow {
+    @apply text-sm font-bold uppercase text-eagles-green;
+  }
+
+  .surface {
+    @apply border border-eagles-line bg-white shadow-match-card;
+    border-radius: 8px;
+  }
+
+  .dark-surface {
+    @apply border border-white/10 bg-eagles-night text-white shadow-match-card;
+    border-radius: 8px;
+  }
+
+  .field {
+    @apply w-full border border-eagles-line bg-white px-4 py-3 text-base text-eagles-ink outline-none transition;
+    border-radius: 8px;
+  }
+
+  .field:focus {
+    box-shadow: var(--field-shadow);
+    @apply border-eagles-green;
+  }
+
+  .label {
+    @apply mb-2 block text-sm font-bold text-eagles-ink;
+  }
+
+  .nav-link {
+    @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-white/80 hover:text-white;
+    border-radius: 8px;
+  }
+
+  .nav-link[aria-current="page"] {
+    @apply bg-white text-eagles-ink;
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-4 focus-visible:ring-eagles-gold/50;
+  }
+}

@@ -1,0 +1,29 @@
+---
+import type { CollectionEntry } from "astro:content";
+import Icon from "@components/Icon.astro";
+
+interface Props {
+  team: CollectionEntry<"teams">;
+}
+
+const { team } = Astro.props;
+---
+
+<article class="surface overflow-hidden">
+  <img src={team.data.image ?? "/media/placeholders/team-seniors.svg"} alt="" class="h-56 w-full object-cover" loading="lazy" />
+  <div class="p-5">
+    <p class="inline-flex items-center gap-2 text-sm font-black uppercase text-eagles-green"><Icon name="users" class="h-4 w-4" /> {team.data.ageGroup}</p>
+    <h3 class="mt-3 font-display text-2xl font-black uppercase leading-none">{team.data.name}</h3>
+    <p class="mt-3 text-base leading-7 text-eagles-ink/70">{team.data.description}</p>
+    <dl class="mt-5 grid gap-3 border-t border-eagles-line pt-5 text-sm">
+      <div>
+        <dt class="font-black text-eagles-ink">Coach / Manager</dt>
+        <dd class="mt-1 text-eagles-ink/65">{team.data.coach}</dd>
+      </div>
+      <div>
+        <dt class="font-black text-eagles-ink">Training</dt>
+        <dd class="mt-1 text-eagles-ink/65">{team.data.training}</dd>
+      </div>
+    </dl>
+  </div>
+</article>

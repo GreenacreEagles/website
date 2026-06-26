@@ -1,0 +1,87 @@
+---
+import LogoLockup from "@components/LogoLockup.astro";
+import Icon from "@components/Icon.astro";
+
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/about/", label: "About" },
+  { href: "/teams/", label: "Teams" },
+  { href: "/news/", label: "News" },
+  { href: "/weekly-highlights/", label: "Highlights" },
+  { href: "/events/", label: "Events" },
+  { href: "/sponsors/", label: "Sponsors" },
+  { href: "/contact/", label: "Contact" }
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-50 border-b border-white/10 bg-eagles-ink/95 backdrop-blur">
+  <div class="section-shell flex min-h-20 items-center justify-between gap-4">
+    <LogoLockup />
+    <nav class="hidden items-center gap-1 2xl:flex" aria-label="Primary navigation">
+      {
+        navItems.map((item) => (
+          <a
+            class="nav-link"
+            href={item.href}
+            aria-current={currentPath === item.href ? "page" : undefined}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+    <a
+      href="/join/"
+      class="focus-ring hidden items-center gap-2 bg-eagles-gold px-4 py-3 text-sm font-black text-eagles-ink hover:bg-white 2xl:inline-flex"
+      style="border-radius:8px"
+    >
+      Join
+    </a>
+    <button
+      class="focus-ring inline-flex h-11 w-11 items-center justify-center border border-white/20 text-white 2xl:hidden"
+      style="border-radius:8px"
+      type="button"
+      aria-label="Open navigation"
+      aria-expanded="false"
+      data-menu-toggle
+    >
+      <span data-menu-open-icon><Icon name="menu" class="h-5 w-5" /></span>
+      <span class="hidden" data-menu-close-icon><Icon name="x" class="h-5 w-5" /></span>
+    </button>
+  </div>
+  <nav class="hidden border-t border-white/10 bg-eagles-night 2xl:hidden" data-mobile-menu aria-label="Mobile navigation">
+    <div class="section-shell grid gap-2 py-4">
+      {
+        navItems.map((item) => (
+          <a
+            class="nav-link justify-between"
+            href={item.href}
+            aria-current={currentPath === item.href ? "page" : undefined}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+      <a class="focus-ring mt-2 bg-eagles-gold px-4 py-3 text-center text-sm font-black text-eagles-ink" style="border-radius:8px" href="/join/">
+        Join or Register
+      </a>
+    </div>
+  </nav>
+</header>
+
+<script>
+  const toggle = document.querySelector("[data-menu-toggle]");
+  const menu = document.querySelector("[data-mobile-menu]");
+  const openIcon = document.querySelector("[data-menu-open-icon]");
+  const closeIcon = document.querySelector("[data-menu-close-icon]");
+
+  toggle?.addEventListener("click", () => {
+    const isOpen = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!isOpen));
+    menu?.classList.toggle("hidden", isOpen);
+    openIcon?.classList.toggle("hidden", !isOpen);
+    closeIcon?.classList.toggle("hidden", isOpen);
+  });
+</script>

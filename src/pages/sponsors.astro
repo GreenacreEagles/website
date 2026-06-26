@@ -1,0 +1,38 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import SponsorStrip from "@components/SponsorStrip.astro";
+import { bySortOrder } from "@lib/content";
+
+const sponsors = bySortOrder(await getCollection("sponsors"));
+---
+
+<BaseLayout title="Sponsors" description="Sponsor showcase and partnership call-to-action for Greenacre Eagles FC.">
+  <section class="section-pad bg-eagles-ink text-white">
+    <div class="section-shell grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div>
+        <p class="text-sm font-black uppercase text-eagles-lime">Sponsors</p>
+        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Back the Eagles</h1>
+        <p class="mt-6 max-w-3xl text-xl leading-9 text-white/75">A polished sponsor area for local businesses, major partners, community supporters, and in-kind contributors.</p>
+      </div>
+      <ButtonLink href="/contact/" variant="primary">Become a sponsor</ButtonLink>
+    </div>
+  </section>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <SectionHeading eyebrow="Partners" title="Sponsor showcase" intro="Admins can update sponsor names, logos, links, descriptions, tiers, and sort order." />
+      <div class="mt-10">
+        <SponsorStrip sponsors={sponsors} />
+      </div>
+    </div>
+  </section>
+  <section class="section-pad bg-white">
+    <div class="section-shell grid gap-5 md:grid-cols-3">
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Visibility</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Sponsor placement across homepage, sponsor page, campaign cards, and club updates.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Community</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Support football participation, junior development, equipment, and club events.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Partnership</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Build a local relationship with families, players, supporters, and volunteers.</p></article>
+    </div>
+  </section>
+</BaseLayout>

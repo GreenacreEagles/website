@@ -1,0 +1,48 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import { formatDate, newestFirst } from "@lib/content";
+
+const highlights = newestFirst(await getCollection("weekly-highlights"));
+---
+
+<BaseLayout title="Weekly Highlights" description="This Week at the Eagles: weekly club highlights, calls to action, training notes, and community updates.">
+  <section class="section-pad bg-eagles-ink text-white">
+    <div class="section-shell">
+      <p class="text-sm font-black uppercase text-eagles-lime">This Week at the Eagles</p>
+      <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Weekly highlights</h1>
+      <p class="mt-6 max-w-3xl text-xl leading-9 text-white/75">A fast-moving content area for current club priorities, matchday moments, fundraisers, and registration reminders.</p>
+    </div>
+  </section>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell grid gap-10">
+      {
+        highlights.map((highlight) => (
+          <article class="surface overflow-hidden">
+            <div class="grid gap-0 lg:grid-cols-[.9fr_1.1fr]">
+              <img src={highlight.data.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-full min-h-72 w-full object-cover" loading="lazy" />
+              <div class="p-6 md:p-8">
+                <p class="text-sm font-black uppercase text-eagles-green">Week of {formatDate(highlight.data.weekOf)}</p>
+                <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">{highlight.data.title}</h2>
+                <p class="mt-4 text-lg leading-8 text-eagles-ink/70">{highlight.data.summary}</p>
+                <div class="mt-7 grid gap-4 md:grid-cols-3">
+                  {
+                    highlight.data.highlightCards.map((card) => (
+                      <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+                        {card.metric && <p class="font-display text-3xl font-black uppercase text-eagles-green">{card.metric}</p>}
+                        <h3 class="mt-2 font-display text-xl font-black uppercase leading-none">{card.title}</h3>
+                        <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{card.text}</p>
+                      </div>
+                    ))
+                  }
+                </div>
+                {highlight.data.cta && <div class="mt-7"><ButtonLink href={highlight.data.cta.href} variant="secondary">{highlight.data.cta.text}</ButtonLink></div>}
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

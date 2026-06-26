@@ -1,0 +1,37 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import Icon from "@components/Icon.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+---
+
+<BaseLayout title="Admin Setup" description="Pages CMS setup notes for Greenacre Eagles FC content editors.">
+  <section class="section-pad bg-white">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.85fr_1.15fr]">
+      <SectionHeading eyebrow="Admin" title="Simple Git-based content editing" intro="This build uses Pages CMS configuration so approved admins can edit structured site content in GitHub without touching Astro components." />
+      <div class="grid gap-5">
+        <article class="surface p-6">
+          <Icon name="filePen" class="h-8 w-8 text-eagles-green" />
+          <h2 class="mt-4 font-display text-3xl font-black uppercase leading-none">What admins can edit</h2>
+          <p class="mt-4 text-base leading-7 text-eagles-ink/70">News, weekly highlights, social post cards, sponsors, fundraisers, events, gallery items, teams, and club announcements are configured in `.pages.yml`.</p>
+        </article>
+        <article class="surface p-6">
+          <Icon name="gitBranch" class="h-8 w-8 text-eagles-green" />
+          <h2 class="mt-4 font-display text-3xl font-black uppercase leading-none">What setup is needed</h2>
+          <p class="mt-4 text-base leading-7 text-eagles-ink/70">A repo owner connects the GitHub repository to Pages CMS and grants editor access. No site database or paid backend is required.</p>
+        </article>
+        <article class="surface p-6">
+          <Icon name="shieldCheck" class="h-8 w-8 text-eagles-green" />
+          <h2 class="mt-4 font-display text-3xl font-black uppercase leading-none">How changes publish</h2>
+          <p class="mt-4 text-base leading-7 text-eagles-ink/70">CMS edits commit content files to GitHub. Cloudflare Pages then rebuilds and deploys the static site.</p>
+        </article>
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <ButtonLink href="https://app.pagescms.org/" variant="dark" external>Open Pages CMS</ButtonLink>
+          <a class="focus-ring inline-flex items-center justify-center gap-2 border border-eagles-line bg-white px-5 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green" style="border-radius:8px" href="https://pagescms.org/docs/" target="_blank" rel="noreferrer">
+            Pages CMS docs <Icon name="externalLink" class="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

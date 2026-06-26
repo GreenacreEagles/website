@@ -1,0 +1,32 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import FormPanel from "@components/FormPanel.astro";
+import Icon from "@components/Icon.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import { site } from "@data/site";
+---
+
+<BaseLayout title="Contact" description="Contact Greenacre Eagles FC for registrations, sponsorships, volunteering, events, and general enquiries.">
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr]">
+      <div>
+        <SectionHeading eyebrow="Contact" title="Talk to the Eagles" intro="A central contact page for players, parents, sponsors, volunteers, and community partners." />
+        <div class="mt-8 grid gap-4">
+          <a class="surface flex items-center gap-4 p-5 hover:border-eagles-green" href={`mailto:${site.contactEmail}`}>
+            <Icon name="mail" class="h-6 w-6 text-eagles-green" />
+            <span><span class="block text-sm font-black uppercase text-eagles-green">Email</span><span class="font-bold">{site.contactEmail}</span></span>
+          </a>
+          <div class="surface flex items-center gap-4 p-5">
+            <Icon name="phone" class="h-6 w-6 text-eagles-green" />
+            <span><span class="block text-sm font-black uppercase text-eagles-green">Phone</span><span class="font-bold">{site.phone}</span></span>
+          </div>
+          <div class="surface flex items-center gap-4 p-5">
+            <Icon name="mapPin" class="h-6 w-6 text-eagles-green" />
+            <span><span class="block text-sm font-black uppercase text-eagles-green">Home</span><span class="font-bold">{site.homeGround}</span></span>
+          </div>
+        </div>
+      </div>
+      <FormPanel title="Send an enquiry" intro="Share your details and the club can follow up about registrations, sponsorship, volunteering, events, or general questions." intent="Greenacre Eagles enquiry" />
+    </div>
+  </section>
+</BaseLayout>

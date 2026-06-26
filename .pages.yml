@@ -1,0 +1,177 @@
+media:
+  input: public/media
+  output: /media
+
+content:
+  - name: news
+    label: News Articles
+    type: collection
+    path: src/content/news
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: date, label: Date, type: date, required: true }
+      - { name: author, label: Author, type: string }
+      - { name: summary, label: Summary, type: text, required: true }
+      - { name: image, label: Featured image, type: image }
+      - { name: category, label: Category, type: string }
+      - { name: tags, label: Tags, type: string, list: true }
+      - { name: featured, label: Featured, type: boolean }
+      - { name: body, label: Main article content, type: rich-text }
+
+  - name: weekly-highlights
+    label: Weekly Highlights
+    type: collection
+    path: src/content/weekly-highlights
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: title, label: Title, type: string, required: true }
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: weekOf, label: Week of, type: date, required: true }
+      - { name: summary, label: Summary, type: text, required: true }
+      - { name: image, label: Image, type: image }
+      - name: cta
+        label: CTA
+        type: object
+        fields:
+          - { name: text, label: Text, type: string }
+          - { name: href, label: Link, type: string }
+      - name: highlightCards
+        label: Highlight cards
+        type: object
+        list: true
+        fields:
+          - { name: title, label: Title, type: string }
+          - { name: metric, label: Metric, type: string }
+          - { name: text, label: Text, type: text }
+          - { name: image, label: Image, type: image }
+          - { name: linkText, label: Link text, type: string }
+          - { name: linkUrl, label: Link URL, type: string }
+      - { name: body, label: Body, type: rich-text }
+
+  - name: social-posts
+    label: Featured Social Posts
+    type: collection
+    path: src/content/social-posts
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - name: platform
+        label: Platform
+        type: select
+        required: true
+        options:
+          values: [Instagram, TikTok, Facebook, YouTube, Other]
+      - { name: title, label: Title, type: string, required: true }
+      - { name: caption, label: Caption, type: text, required: true }
+      - { name: postUrl, label: Post URL, type: string, required: true }
+      - { name: date, label: Date, type: date, required: true }
+      - { name: thumbnail, label: Thumbnail, type: image }
+      - { name: featured, label: Featured, type: boolean }
+      - { name: sortOrder, label: Sort order, type: number }
+      - { name: embed, label: Use official embed when supported, type: boolean }
+
+  - name: sponsors
+    label: Sponsors
+    type: collection
+    path: src/content/sponsors
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: name, label: Sponsor name, type: string, required: true }
+      - { name: logo, label: Logo, type: image }
+      - { name: website, label: Website, type: string }
+      - name: tier
+        label: Sponsor tier
+        type: select
+        options:
+          values: [Major Partner, Gold, Silver, Community, In-kind]
+      - { name: description, label: Short description, type: text }
+      - { name: sortOrder, label: Sort order, type: number }
+
+  - name: fundraisers
+    label: Fundraisers
+    type: collection
+    path: src/content/fundraisers
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: title, label: Title, type: string, required: true }
+      - { name: goalAmount, label: Goal amount, type: number }
+      - { name: currentAmount, label: Current amount, type: number }
+      - { name: description, label: Description, type: text }
+      - { name: image, label: Image, type: image }
+      - { name: ctaText, label: CTA button text, type: string }
+      - { name: ctaLink, label: CTA link, type: string }
+      - name: status
+        label: Status
+        type: select
+        options:
+          values: [active, completed, paused]
+
+  - name: events
+    label: Events
+    type: collection
+    path: src/content/events
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: title, label: Event title, type: string, required: true }
+      - { name: dateTime, label: Date and time, type: date, required: true }
+      - { name: location, label: Location, type: string }
+      - { name: summary, label: Summary, type: text }
+      - { name: ctaLink, label: CTA link, type: string }
+      - { name: eventType, label: Event type, type: string }
+
+  - name: gallery
+    label: Gallery
+    type: collection
+    path: src/content/gallery
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: title, label: Title, type: string, required: true }
+      - { name: image, label: Image, type: image, required: true }
+      - { name: date, label: Date, type: date, required: true }
+      - { name: category, label: Category, type: string }
+      - { name: description, label: Description, type: text }
+
+  - name: teams
+    label: Teams
+    type: collection
+    path: src/content/teams
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: name, label: Team name, type: string, required: true }
+      - { name: ageGroup, label: Age group or division, type: string }
+      - { name: coach, label: Coach or manager, type: string }
+      - { name: training, label: Training information, type: text }
+      - { name: image, label: Team image, type: image }
+      - { name: description, label: Short description, type: text }
+      - { name: spotlight, label: Spotlight team, type: boolean }
+      - { name: sortOrder, label: Sort order, type: number }
+
+  - name: announcements
+    label: Club Announcements
+    type: collection
+    path: src/content/announcements
+    filename: "{fields.slug}.md"
+    format: yaml-frontmatter
+    fields:
+      - { name: slug, label: Slug, type: string, required: true }
+      - { name: title, label: Title, type: string, required: true }
+      - { name: message, label: Message, type: text }
+      - { name: linkText, label: Link text, type: string }
+      - { name: linkUrl, label: Link URL, type: string }
+      - { name: active, label: Active, type: boolean }
+      - { name: priority, label: Priority, type: number }

@@ -1,0 +1,20 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import EventCard from "@components/EventCard.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import { upcomingFirst } from "@lib/content";
+
+const events = upcomingFirst(await getCollection("events"));
+---
+
+<BaseLayout title="Events" description="Upcoming Greenacre Eagles FC events, launch days, volunteer briefings, sponsor nights, and community activity.">
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <SectionHeading eyebrow="Events" title="What is coming up" intro="Event content is ready for admins to edit date, time, location, event type, summary, and CTA link." />
+      <div class="mt-10 grid gap-5 lg:grid-cols-3">
+        {events.map((event) => <EventCard event={event} />)}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
