@@ -2,6 +2,8 @@
 
 Modern Astro rebuild for the Greenacre Eagles community football club website.
 
+This repo uses GitHub as the source repository only. The production target is Cloudflare Pages, not GitHub Pages or Jekyll.
+
 ## Stack
 
 - Astro static site
@@ -35,12 +37,22 @@ Static output is generated in `dist/`.
 2. Set the framework preset to `Astro`.
 3. Build command: `npm run build`.
 4. Build output directory: `dist`.
-5. Add `SITE_URL` as an environment variable when the real domain is confirmed.
-6. Deploy from the main production branch after preview approval.
+5. Node version: `22` (`.node-version` is included; `NODE_VERSION=22` can also be set in Cloudflare).
+6. Add `SITE_URL` as an environment variable when the real domain is confirmed.
+7. Deploy from the main production branch after preview approval.
+
+GitHub Pages should remain disabled for this repo. There is no Jekyll configuration, and `.nojekyll` is included only as a defensive signal.
+
+Cloudflare-specific static hosting files:
+
+- `public/_redirects` for Pages redirects.
+- `public/_headers` for baseline security headers and static asset caching.
+
+See `docs/cloudflare-pages.md` for the full deployment and future admin direction.
 
 ## Admin Editing
 
-This project uses Pages CMS through `.pages.yml`.
+This project is structured for a simple Git-based admin/content system. The current candidate is Pages CMS through `.pages.yml`.
 
 Admins can edit:
 
@@ -56,7 +68,9 @@ Admins can edit:
 
 Pages CMS setup requires a GitHub repository owner to connect the repo at `https://app.pagescms.org/` and grant access to approved editors. CMS edits commit changes back to GitHub, then Cloudflare Pages rebuilds the static site.
 
-No database, paid CMS, or custom dashboard is required for this v1.
+No database, paid CMS, or custom dashboard is required for this v1. Editors update Markdown and media in GitHub through the CMS; Cloudflare Pages rebuilds and deploys the static site.
+
+Future admin work should support secure login, article publishing/unpublishing, social post links, and featured homepage updates without changing the public static-first architecture.
 
 ## Content Folders
 
@@ -96,6 +110,8 @@ The v1 forms use `mailto:` so the UI is present without a paid service. Best nex
 - Fundraiser links and payment/donation destination
 - Club history and committee-approved copy
 
-## Notes
+## Deployment Notes
 
-The current visual assets include one AI-generated generic football hero and SVG placeholders. Replace these with real Greenacre Eagles imagery before final launch.
+- Do not add GitHub Pages workflows or Jekyll plugins.
+- Keep generated output out of Git; Cloudflare Pages builds `dist/`.
+- Future admin options should preserve the static-first model: Git-backed CMS, Cloudflare Pages Functions only for forms or small server-side integrations, and content stored under `src/content`.
