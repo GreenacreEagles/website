@@ -4,7 +4,7 @@ slug: "juniors-return-to-training"
 date: 2026-02-05
 author: "Junior committee"
 summary: "Families, coaches, and players are getting ready for another big year of grassroots football in Greenacre."
-image: "/media/placeholders/juniors.svg"
+image: "/media/photos/508338727_18345027943095212_4785406490655999984_n.jpg"
 tags:
   - Juniors
   - Training

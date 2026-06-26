@@ -18,12 +18,12 @@ const { Content } = await render(article);
 
 <BaseLayout title={article.data.title} description={article.data.summary} image={article.data.image}>
   <article class="bg-white">
-    <header class="bg-eagles-ink text-white">
+    <header class="bg-eagles-mist text-eagles-ink">
       <div class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-end">
         <div>
-          <p class="text-sm font-black uppercase text-eagles-lime">{article.data.category} / {formatDate(article.data.date)}</p>
+          <p class="text-sm font-black uppercase text-eagles-green">{article.data.category} / {formatDate(article.data.date)}</p>
           <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none md:text-7xl">{article.data.title}</h1>
-          <p class="mt-6 text-xl leading-9 text-white/75">{article.data.summary}</p>
+          <p class="mt-6 text-xl leading-9 text-eagles-ink/75">{article.data.summary}</p>
         </div>
         <img src={article.data.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
       </div>

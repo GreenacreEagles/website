@@ -23,40 +23,64 @@ const fundraiser = (await getCollection("fundraisers")).find((item) => item.data
 const announcement = (await getCollection("announcements"))
   .filter((item) => item.data.active)
   .sort((a, b) => a.data.priority - b.data.priority)[0];
+
+const photos = {
+  celebration: "/media/photos/470187271_18322350109095212_5760343773768933538_n.jpg",
+  cup: "/media/photos/470202517_18322349908095212_7819866471836709672_n.jpg",
+  field: "/media/photos/508338727_18345027943095212_4785406490655999984_n.jpg",
+  net: "/media/photos/508554586_18345027934095212_3422841738495448436_n.jpg",
+  champions: "/media/photos/542799832_18354096757095212_3870055734016167636_n.jpg"
+};
 ---
 
 <BaseLayout title={site.name} description={site.description}>
-  <section class="relative isolate overflow-hidden bg-eagles-ink text-white">
-    <img src="/media/generated/eagles-hero.png" alt="" class="absolute inset-0 -z-20 h-full w-full object-cover" />
-    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-eagles-ink via-eagles-ink/80 to-eagles-ink/10"></div>
-    <div class="section-shell flex min-h-[calc(100svh-5rem)] items-end py-12 md:items-center md:py-20">
+  <section class="relative isolate overflow-hidden bg-eagles-mist text-eagles-ink">
+    <div class="absolute inset-x-0 top-0 -z-20 h-40 bg-white"></div>
+    <div class="absolute right-0 top-20 -z-10 hidden h-[34rem] w-[44vw] bg-eagles-green lg:block" style="clip-path:polygon(22% 0, 100% 0, 100% 100%, 0 100%)"></div>
+    <div class="section-shell grid min-h-[calc(100svh-5rem)] gap-10 py-10 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:py-16">
       <div class="max-w-3xl">
         {announcement && (
-          <a href={announcement.data.linkUrl ?? "/join/"} class="focus-ring mb-7 inline-flex items-center gap-3 bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white hover:text-eagles-ink" style="border-radius:8px">
-            <Icon name="megaphone" class="h-4 w-4 text-eagles-gold" />
+          <a href={announcement.data.linkUrl ?? "/join/"} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
+            <Icon name="megaphone" class="h-4 w-4 text-eagles-green" />
             {announcement.data.title}
           </a>
         )}
-        <p class="text-base font-black uppercase text-eagles-lime">{site.association}</p>
-        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-8xl">
-          Greenacre Eagles FC
+        <p class="text-base font-black uppercase text-eagles-green">{site.association}</p>
+        <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none sm:text-6xl md:text-8xl">
+          Greenacre Eagles <span class="text-eagles-green">FC</span>
         </h1>
-        <p class="mt-6 max-w-2xl text-xl leading-9 text-white/80 md:text-2xl">
-          {site.tagline} A bold new home for teams, families, sponsors, volunteers, and supporters.
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-2xl md:leading-9">
+          {site.tagline} A brighter home for matchday energy, champions, families, sponsors, and supporters.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/join/">Join or register</ButtonLink>
-          <ButtonLink href="/volunteer/" variant="light">Volunteer with us</ButtonLink>
+          <ButtonLink href="/volunteer/" variant="secondary">Volunteer with us</ButtonLink>
+        </div>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-[1fr_.72fr]">
+        <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
+          <img src={photos.celebration} alt="" class="h-full min-h-[28rem] w-full object-cover" />
+        </div>
+        <div class="grid gap-4">
+          <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
+            <img src={photos.champions} alt="" class="h-64 w-full object-cover object-top" />
+          </div>
+          <div class="bg-eagles-green p-5 text-white shadow-match-card" style="border-radius:8px">
+            <p class="text-sm font-black uppercase text-eagles-lime">2025 Champions</p>
+            <p class="mt-2 font-display text-4xl font-black uppercase leading-none">Made to be seen</p>
+            <p class="mt-3 text-sm leading-6 text-white/80">Real club moments now lead the design, from the pitch to presentation night.</p>
+          </div>
         </div>
       </div>
     </div>
-    <div class="section-shell pb-8">
+    <div class="section-shell pb-10">
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {
           site.stats.map((stat) => (
-            <div class="border border-white/10 bg-eagles-ink/70 p-4 text-white backdrop-blur" style="border-radius:8px">
-              <p class="font-display text-3xl font-black uppercase leading-none text-eagles-gold">{stat.value}</p>
-              <p class="mt-2 text-sm font-bold text-white/70">{stat.label}</p>
+            <div class="border border-eagles-green/20 bg-white p-4 shadow-match-card" style="border-radius:8px">
+              <p class="font-display text-3xl font-black uppercase leading-none text-eagles-green">{stat.value}</p>
+              <p class="mt-2 text-sm font-bold text-eagles-ink/65">{stat.label}</p>
             </div>
           ))
         }
@@ -87,6 +111,20 @@ const announcement = (await getCollection("announcements"))
           <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Proud</h3>
           <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Green, black, and white carried with respect across the district.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-pad bg-eagles-green text-white">
+    <div class="section-shell grid gap-8 lg:grid-cols-[.95fr_1.05fr] lg:items-center">
+      <div>
+        <p class="eyebrow text-eagles-lime">Matchday colour</p>
+        <h2 class="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Bright kits. Big moments. Local pride.</h2>
+        <p class="mt-5 max-w-2xl text-lg leading-8 text-white/80">The new direction uses the real Greenacre palette from the photos: teal kits, white netting, grass, sunlight, medals, and crowd energy.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <img src={photos.field} alt="" class="h-80 w-full object-cover shadow-match-card" style="border-radius:8px" loading="lazy" />
+        <img src={photos.net} alt="" class="mt-10 h-80 w-full object-cover shadow-match-card" style="border-radius:8px" loading="lazy" />
       </div>
     </div>
   </section>
@@ -129,15 +167,15 @@ const announcement = (await getCollection("announcements"))
     </div>
   </section>
 
-  <section class="section-pad bg-eagles-ink">
+  <section class="section-pad bg-white">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="eyebrow text-eagles-lime">Social wall</p>
-          <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-white md:text-5xl">Featured club posts</h2>
-          <p class="mt-5 max-w-3xl text-lg leading-8 text-white/70">Curated TikTok, Instagram, Facebook, and YouTube posts keep the site reliable without fragile live scraping.</p>
+          <p class="eyebrow">Social wall</p>
+          <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Featured club posts</h2>
+          <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/70">Curated TikTok, Instagram, Facebook, and YouTube posts keep the site reliable without fragile live scraping.</p>
         </div>
-        <ButtonLink href="/weekly-highlights/" variant="light">Weekly highlights</ButtonLink>
+        <ButtonLink href="/weekly-highlights/" variant="secondary">Weekly highlights</ButtonLink>
       </div>
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {socialPosts.map((post) => <SocialPostCard post={post} />)}
@@ -195,11 +233,11 @@ const announcement = (await getCollection("announcements"))
   <section class="bg-eagles-green py-14 text-white">
     <div class="section-shell grid gap-6 md:grid-cols-[1fr_auto_auto] md:items-center">
       <div>
-        <p class="eyebrow text-eagles-gold">Get involved</p>
+        <p class="eyebrow text-white/75">Get involved</p>
         <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Players, families, volunteers, sponsors</h2>
         <p class="mt-4 max-w-3xl text-base leading-7 text-white/80">The rebuilt site gives every supporter a clear next step.</p>
       </div>
-      <ButtonLink href="/join/" variant="primary">Join the club</ButtonLink>
+      <ButtonLink href="/join/" variant="light">Join the club</ButtonLink>
       <ButtonLink href="/contact/" variant="light">Contact us</ButtonLink>
     </div>
   </section>

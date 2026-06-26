@@ -7,19 +7,19 @@ export default {
     extend: {
       colors: {
         eagles: {
-          ink: "#06120d",
-          night: "#0b1712",
-          pine: "#0d3d27",
-          green: "#087f45",
-          lime: "#9bd33f",
-          gold: "#f4c542",
-          line: "#dce8df",
-          mist: "#f3f8f1",
+          ink: "#020403",
+          night: "#070908",
+          pine: "#004f43",
+          green: "#009a72",
+          lime: "#dffcf2",
+          gold: "#ffffff",
+          line: "#d6e3dc",
+          mist: "#f4fbf7",
           white: "#ffffff"
         }
       },
       boxShadow: {
-        "match-card": "0 18px 50px rgba(6, 18, 13, 0.16)"
+        "match-card": "0 18px 50px rgba(2, 4, 3, 0.14)"
       },
       fontFamily: {
         sans: [

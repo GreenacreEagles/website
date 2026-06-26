@@ -7,20 +7,20 @@ import { site } from "@data/site";
 ---
 
 <BaseLayout title="About" description="Learn about Greenacre Eagles FC, a proud community football club in the Bankstown District Amateur Football Association.">
-  <section class="bg-eagles-ink text-white">
+  <section class="bg-eagles-mist text-eagles-ink">
     <div class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
       <div>
-        <p class="text-sm font-black uppercase text-eagles-lime">{site.location}</p>
+        <p class="text-sm font-black uppercase text-eagles-green">{site.location}</p>
         <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">About the Eagles</h1>
-        <p class="mt-6 text-xl leading-9 text-white/80">
+        <p class="mt-6 text-xl leading-9 text-eagles-ink/75">
           Greenacre Eagles FC is a community football club built around local pride, player development, family involvement, and competitive ambition.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/teams/">View teams</ButtonLink>
-          <ButtonLink href="/volunteer/" variant="light">Help the club</ButtonLink>
+          <ButtonLink href="/volunteer/" variant="secondary">Help the club</ButtonLink>
         </div>
       </div>
-      <img src="/media/generated/eagles-hero.png" alt="" class="h-full min-h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
+      <img src="/media/photos/542281190_18354096280095212_5121379521009928220_n.jpg" alt="" class="h-full min-h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
     </div>
   </section>
 

@@ -13,7 +13,7 @@ interface Props {
 const {
   title = site.name,
   description = site.description,
-  image = "/media/generated/eagles-hero.png"
+  image = "/media/photos/470187271_18322350109095212_5760343773768933538_n.jpg"
 } = Astro.props;
 
 const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
@@ -30,7 +30,7 @@ const imageUrl = new URL(image, Astro.site ?? "https://greenacreeaglesfc.com.au"
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    <meta name="theme-color" content="#06120d" />
+    <meta name="theme-color" content="#020403" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />

@@ -4,7 +4,7 @@ slug: "premier-league-season-launch"
 date: 2026-02-12
 author: "Greenacre Eagles FC"
 summary: "The Eagles are building on their District League premiership with renewed energy, a stronger squad, and a proud Premier League mindset."
-image: "/media/generated/eagles-hero.png"
+image: "/media/photos/470187271_18322350109095212_5760343773768933538_n.jpg"
 tags:
   - Premier League
   - Seniors

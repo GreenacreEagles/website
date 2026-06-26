@@ -5,7 +5,7 @@
 @layer base {
   :root {
     color-scheme: light;
-    --field-shadow: 0 0 0 3px rgba(8, 127, 69, 0.18);
+    --field-shadow: 0 0 0 3px rgba(0, 154, 114, 0.2);
   }
 
   html {
@@ -17,7 +17,7 @@
   }
 
   ::selection {
-    @apply bg-eagles-gold text-eagles-ink;
+    @apply bg-eagles-green text-white;
   }
 
   img,
@@ -49,7 +49,7 @@
   }
 
   .dark-surface {
-    @apply border border-white/10 bg-eagles-night text-white shadow-match-card;
+    @apply border border-eagles-green/20 bg-eagles-green text-white shadow-match-card;
     border-radius: 8px;
   }
 
@@ -68,15 +68,15 @@
   }
 
   .nav-link {
-    @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-white/80 hover:text-white;
+    @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-eagles-ink/70 hover:text-eagles-green;
     border-radius: 8px;
   }
 
   .nav-link[aria-current="page"] {
-    @apply bg-white text-eagles-ink;
+    @apply bg-eagles-green text-white;
   }
 
   .focus-ring {
-    @apply outline-none focus-visible:ring-4 focus-visible:ring-eagles-gold/50;
+    @apply outline-none focus-visible:ring-4 focus-visible:ring-eagles-green/35;
   }
 }

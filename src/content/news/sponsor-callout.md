@@ -4,7 +4,7 @@ slug: "sponsor-callout"
 date: 2026-01-28
 author: "Sponsorship team"
 summary: "The club is opening sponsor packages for local businesses who want to support community football."
-image: "/media/placeholders/sponsor-placeholder.svg"
+image: "/media/photos/470202517_18322349908095212_7819866471836709672_n.jpg"
 tags:
   - Sponsors
   - Community
