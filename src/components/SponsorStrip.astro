@@ -6,6 +6,14 @@ interface Props {
 }
 
 const { sponsors } = Astro.props;
+const isExternal = (href?: string) => href?.startsWith("http://") || href?.startsWith("https://");
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((word) => word[0])
+    .join("");
 ---
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -14,10 +22,18 @@ const { sponsors } = Astro.props;
       <a
         class="surface flex min-h-40 flex-col justify-between p-5 hover:border-eagles-green"
         href={sponsor.data.website ?? "/sponsors/"}
-        target={sponsor.data.website ? "_blank" : undefined}
-        rel={sponsor.data.website ? "noreferrer" : undefined}
+        target={isExternal(sponsor.data.website) ? "_blank" : undefined}
+        rel={isExternal(sponsor.data.website) ? "noreferrer" : undefined}
       >
-        <img src={sponsor.data.logo ?? "/media/placeholders/sponsor-placeholder.svg"} alt="" class="h-16 w-full object-contain object-left" loading="lazy" />
+        {
+          sponsor.data.logo ? (
+            <img src={sponsor.data.logo} alt="" class="h-16 w-full object-contain object-left" loading="lazy" />
+          ) : (
+            <div class="flex h-16 w-16 items-center justify-center bg-eagles-green font-display text-2xl font-black text-white" style="border-radius:8px">
+              {initials(sponsor.data.name)}
+            </div>
+          )
+        }
         <div class="mt-5">
           <p class="text-xs font-black uppercase text-eagles-green">{sponsor.data.tier}</p>
           <h3 class="mt-1 font-display text-xl font-black uppercase leading-none">{sponsor.data.name}</h3>

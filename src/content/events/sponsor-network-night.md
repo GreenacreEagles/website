@@ -2,8 +2,8 @@
 title: "Sponsor Network Night"
 slug: "sponsor-network-night"
 dateTime: 2026-03-21T19:00:00+11:00
-location: "Venue to be confirmed"
-summary: "An evening to connect local businesses with the club and celebrate community support."
+location: "Bankstown Sports Club"
+summary: "An evening for local partners, sponsors, and club volunteers to connect and support the season ahead."
 ctaLink: "/sponsors/"
 eventType: "Sponsors"
 ---

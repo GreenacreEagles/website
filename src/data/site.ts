@@ -3,14 +3,14 @@ export const site = {
   shortName: "Eagles",
   association: "Bankstown District Amateur Football Association",
   location: "Greenacre, Western Sydney",
-  tagline: "Community football with ambition, pride, and heart.",
+  tagline: "Proud football for Greenacre families, players, and supporters.",
   description:
-    "A modern community football club website for Greenacre Eagles FC, showcasing teams, news, events, sponsors, fundraisers, and ways to join the club.",
+    "Greenacre Eagles FC is a community football club in Western Sydney, with junior teams, senior football, volunteers, sponsors, and families behind every match day.",
   registrationUrl: "/join/",
   volunteerUrl: "/volunteer/",
   contactEmail: "contact@greenacreeaglesfc.com.au",
-  phone: "To be confirmed",
-  homeGround: "Greenacre, NSW",
+  phone: "Contact by email",
+  homeGround: "Roberts Park, Greenacre",
   socials: [
     { label: "Instagram", href: "https://www.instagram.com/", platform: "Instagram" },
     { label: "TikTok", href: "https://www.tiktok.com/", platform: "TikTok" },
@@ -18,9 +18,9 @@ export const site = {
     { label: "YouTube", href: "https://www.youtube.com/", platform: "YouTube" }
   ],
   stats: [
-    { label: "Premier League pathway", value: "BPL" },
+    { label: "Senior football", value: "BPL" },
     { label: "Club colours", value: "Green, black, white" },
-    { label: "Community focus", value: "All ages" },
-    { label: "Home suburb", value: "Greenacre" }
+    { label: "Junior pathways", value: "MiniRoos to youth" },
+    { label: "Home ground", value: "Roberts Park" }
   ]
 };

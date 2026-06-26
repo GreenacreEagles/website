@@ -1,9 +1,7 @@
 ---
-name: "Kit Partner Placeholder"
+name: "Bankstown Sports Club"
 slug: "kit-partner"
-logo: "/media/placeholders/sponsor-placeholder.svg"
-website: "https://example.com"
 tier: "Gold"
-description: "A sponsor slot for apparel, equipment, or matchday support."
+description: "Gold partner backing match day resources, junior football, and club events."
 sortOrder: 3
 ---

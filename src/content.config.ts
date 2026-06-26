@@ -123,7 +123,7 @@ const teams = defineCollection({
     slug: z.string().optional(),
     name: z.string(),
     ageGroup: z.string(),
-    coach: z.string().default("To be confirmed"),
+    coach: z.string().default("Club coaching group"),
     training: z.string(),
     image: imageField,
     description: z.string(),

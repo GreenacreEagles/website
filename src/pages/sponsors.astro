@@ -9,7 +9,7 @@ import { bySortOrder } from "@lib/content";
 const sponsors = bySortOrder(await getCollection("sponsors"));
 ---
 
-<BaseLayout title="Sponsors" description="Sponsor showcase and partnership call-to-action for Greenacre Eagles FC.">
+<BaseLayout title="Sponsors" description="Greenacre Eagles FC sponsors and local partners supporting community football.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
     <div class="section-shell grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
       <div>
@@ -22,7 +22,7 @@ const sponsors = bySortOrder(await getCollection("sponsors"));
   </section>
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell">
-      <SectionHeading eyebrow="Partners" title="Sponsor showcase" intro="Admins can update sponsor names, logos, links, descriptions, tiers, and sort order." />
+      <SectionHeading eyebrow="Partners" title="Our club sponsors" intro="Greenacre Eagles is proudly supported by local businesses who help keep football strong in our community." />
       <div class="mt-10">
         <SponsorStrip sponsors={sponsors} />
       </div>
@@ -30,9 +30,9 @@ const sponsors = bySortOrder(await getCollection("sponsors"));
   </section>
   <section class="section-pad bg-white">
     <div class="section-shell grid gap-5 md:grid-cols-3">
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Visibility</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Sponsor placement across homepage, sponsor page, campaign cards, and club updates.</p></article>
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Community</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Support football participation, junior development, equipment, and club events.</p></article>
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Partnership</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Build a local relationship with families, players, supporters, and volunteers.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Match day support</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Sponsors help cover the resources that keep teams prepared and home games running well.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Community</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Every partnership supports players, families, volunteers, and junior football in Greenacre.</p></article>
+      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Partnership</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Local businesses are part of the club story, from training nights to presentation day.</p></article>
     </div>
   </section>
 </BaseLayout>

@@ -50,7 +50,7 @@ const photos = {
           Greenacre Eagles <span class="text-eagles-green">FC</span>
         </h1>
         <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-2xl md:leading-9">
-          {site.tagline} A brighter home for matchday energy, champions, families, sponsors, and supporters.
+          Welcome to Greenacre Eagles Football Club, where local players, families, volunteers, and supporters come together every week.
         </p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/join/">Join or register</ButtonLink>
@@ -68,8 +68,8 @@ const photos = {
           </div>
           <div class="bg-eagles-green p-5 text-white shadow-match-card" style="border-radius:8px">
             <p class="text-sm font-black uppercase text-eagles-lime">2025 Champions</p>
-            <p class="mt-2 font-display text-4xl font-black uppercase leading-none">Made to be seen</p>
-            <p class="mt-3 text-sm leading-6 text-white/80">Real club moments now lead the design, from the pitch to presentation night.</p>
+            <p class="mt-2 font-display text-4xl font-black uppercase leading-none">Pride in the badge</p>
+            <p class="mt-3 text-sm leading-6 text-white/80">From junior football to senior match day, every win is shared across the club.</p>
           </div>
         </div>
       </div>
@@ -92,24 +92,24 @@ const photos = {
     <div class="section-shell grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
       <SectionHeading
         eyebrow="Club identity"
-        title="Built for football, families, and Greenacre pride"
-        intro="The Eagles website is structured around the things a modern community club needs to communicate quickly: who we are, what is happening now, how to join, and how local people can support the club."
+        title="Football, family, and Greenacre pride"
+        intro="The Eagles are a home for players learning the game, senior teams chasing results, and families who make match day feel local."
       />
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="surface p-5">
           <Icon name="trophy" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Competitive</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">A Premier League pathway with high standards and local ambition.</p>
+          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Senior football</h3>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Our senior squad carries Greenacre into every fixture with discipline, effort, and belief.</p>
         </div>
         <div class="surface p-5">
           <Icon name="users" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Community</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">A club environment for players, families, sponsors, and volunteers.</p>
+          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Juniors</h3>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">MiniRoos, youth teams, and family support keep the next generation moving forward.</p>
         </div>
         <div class="surface p-5">
           <Icon name="shield" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Proud</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Green, black, and white carried with respect across the district.</p>
+          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Volunteers</h3>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Coaches, managers, canteen helpers, and committee members keep the club running.</p>
         </div>
       </div>
     </div>
@@ -120,7 +120,7 @@ const photos = {
       <div>
         <p class="eyebrow text-eagles-lime">Matchday colour</p>
         <h2 class="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Bright kits. Big moments. Local pride.</h2>
-        <p class="mt-5 max-w-2xl text-lg leading-8 text-white/80">The new direction uses the real Greenacre palette from the photos: teal kits, white netting, grass, sunlight, medals, and crowd energy.</p>
+        <p class="mt-5 max-w-2xl text-lg leading-8 text-white/80">Greenacre match days are built on hard tackles, sideline support, junior smiles, and teammates who back each other.</p>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <img src={photos.field} alt="" class="h-80 w-full object-cover shadow-match-card" style="border-radius:8px" loading="lazy" />
@@ -158,8 +158,8 @@ const photos = {
   <section class="section-pad bg-white">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <SectionHeading eyebrow="Club news" title="Latest from the Eagles" intro="News articles are managed as Markdown content and are ready for club admins to edit through the CMS." />
-        <ButtonLink href="/news/" variant="secondary">All news</ButtonLink>
+        <SectionHeading eyebrow="Club news" title="Latest from the Eagles" intro="Read the latest updates from training, match day, registrations, sponsors, and the people around the club." />
+        <ButtonLink href="/news/" variant="secondary">Read club news</ButtonLink>
       </div>
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {news.map((article) => <NewsCard article={article} />)}
@@ -171,11 +171,11 @@ const photos = {
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="eyebrow">Social wall</p>
-          <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Featured club posts</h2>
-          <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/70">Curated TikTok, Instagram, Facebook, and YouTube posts keep the site reliable without fragile live scraping.</p>
+          <p class="eyebrow">From the socials</p>
+          <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Seen around the club</h2>
+          <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/70">Match photos, training moments, sponsor shout-outs, and community updates from the Eagles channels.</p>
         </div>
-        <ButtonLink href="/weekly-highlights/" variant="secondary">Weekly highlights</ButtonLink>
+        <ButtonLink href="/weekly-highlights/" variant="secondary">View weekly highlights</ButtonLink>
       </div>
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {socialPosts.map((post) => <SocialPostCard post={post} />)}
@@ -186,7 +186,7 @@ const photos = {
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell grid gap-10 lg:grid-cols-[1.1fr_.9fr]">
       <div>
-        <SectionHeading eyebrow="Upcoming" title="Events and matchday moments" intro="Keep families and supporters across upcoming launch days, briefings, fundraisers, and sponsor activity." />
+        <SectionHeading eyebrow="Upcoming" title="Events and matchday moments" intro="Key dates for families, players, volunteers, sponsors, and supporters around the club." />
         <div class="mt-8 grid gap-5">
           {events.map((event) => <EventCard event={event} />)}
         </div>
@@ -199,7 +199,7 @@ const photos = {
             <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{spotlightTeam.data.name}</h3>
             <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.data.description}</p>
             <div class="mt-6">
-              <ButtonLink href="/teams/" variant="primary">Explore teams</ButtonLink>
+              <ButtonLink href="/teams/" variant="primary">View teams</ButtonLink>
             </div>
           </div>
         </article>
@@ -210,7 +210,7 @@ const photos = {
   {fundraiser && (
     <section class="section-pad bg-white">
       <div class="section-shell">
-        <SectionHeading eyebrow="Community support" title="Fundraising with a purpose" intro="Campaign cards can be updated by admins with goal amounts, progress, images, and calls to action." />
+        <SectionHeading eyebrow="Community support" title="Backing the teams that wear green" intro="Fundraising helps provide equipment, training support, match day resources, and better football experiences for our players." />
         <div class="mt-10">
           <FundraiserCard fundraiser={fundraiser} />
         </div>
@@ -221,8 +221,8 @@ const photos = {
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <SectionHeading eyebrow="Partners" title="Sponsor showcase" intro="Give local businesses a polished place to be seen and thanked." />
-        <ButtonLink href="/sponsors/" variant="secondary">View sponsors</ButtonLink>
+        <SectionHeading eyebrow="Partners" title="Proudly supported locally" intro="Our club is backed by local businesses who help keep football strong in Greenacre." />
+        <ButtonLink href="/sponsors/" variant="secondary">Meet our sponsors</ButtonLink>
       </div>
       <div class="mt-10">
         <SponsorStrip sponsors={sponsors} />
@@ -235,7 +235,7 @@ const photos = {
       <div>
         <p class="eyebrow text-white/75">Get involved</p>
         <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Players, families, volunteers, sponsors</h2>
-        <p class="mt-4 max-w-3xl text-base leading-7 text-white/80">The rebuilt site gives every supporter a clear next step.</p>
+        <p class="mt-4 max-w-3xl text-base leading-7 text-white/80">There is a place at Greenacre Eagles for anyone ready to support local football.</p>
       </div>
       <ButtonLink href="/join/" variant="light">Join the club</ButtonLink>
       <ButtonLink href="/contact/" variant="light">Contact us</ButtonLink>

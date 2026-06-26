@@ -11,7 +11,7 @@ const events = upcomingFirst(await getCollection("events"));
 <BaseLayout title="Events" description="Upcoming Greenacre Eagles FC events, launch days, volunteer briefings, sponsor nights, and community activity.">
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell">
-      <SectionHeading eyebrow="Events" title="What is coming up" intro="Event content is ready for admins to edit date, time, location, event type, summary, and CTA link." />
+      <SectionHeading eyebrow="Events" title="What is coming up" intro="Club events, volunteer briefings, sponsor nights, and community days for Eagles families and supporters." />
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {events.map((event) => <EventCard event={event} />)}
       </div>

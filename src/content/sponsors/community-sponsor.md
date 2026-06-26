@@ -1,9 +1,7 @@
 ---
-name: "Community Sponsor Placeholder"
+name: "Greenacre Pharmacy"
 slug: "community-sponsor"
-logo: "/media/placeholders/sponsor-placeholder.svg"
-website: "https://example.com"
 tier: "Community"
-description: "A flexible sponsor card for local businesses supporting grassroots football."
+description: "Local community sponsor helping the Eagles support families on and off the pitch."
 sortOrder: 2
 ---

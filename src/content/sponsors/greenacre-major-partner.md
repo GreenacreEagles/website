@@ -1,9 +1,7 @@
 ---
-name: "Major Partner Placeholder"
+name: "Toyota Bankstown"
 slug: "greenacre-major-partner"
-logo: "/media/placeholders/sponsor-placeholder.svg"
-website: "https://example.com"
 tier: "Major Partner"
-description: "A premium sponsor position for the club's principal partner."
+description: "Proud major partner supporting local players, families, and football in Greenacre."
 sortOrder: 1
 ---

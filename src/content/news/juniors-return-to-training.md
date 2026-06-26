@@ -1,9 +1,9 @@
 ---
-title: "Junior squads return to training with record energy"
+title: "MiniRoos return for a big weekend at Roberts Park"
 slug: "juniors-return-to-training"
 date: 2026-02-05
 author: "Junior committee"
-summary: "Families, coaches, and players are getting ready for another big year of grassroots football in Greenacre."
+summary: "Greenacre's youngest Eagles are back with boots on, smiles out, and another busy weekend of football ahead."
 image: "/media/photos/508338727_18345027943095212_4785406490655999984_n.jpg"
 tags:
   - Juniors
@@ -13,6 +13,6 @@ category: "Juniors"
 featured: false
 ---
 
-Junior training is returning with a focus on enjoyment, skill development, and team connection.
+Junior training is back at Roberts Park with a focus on confidence, teamwork, ball movement, and enjoying the game.
 
-Parents and volunteers are encouraged to connect with the committee if they can help with team management, setup, canteen support, or matchday duties.
+Parents and volunteers play a big role every week, from helping teams organise before kick-off to supporting coaches and families around the ground.

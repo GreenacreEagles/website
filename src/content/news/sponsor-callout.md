@@ -1,9 +1,9 @@
 ---
-title: "Local businesses invited to back the Eagles"
+title: "Greenacre Eagles thanks its local partners"
 slug: "sponsor-callout"
 date: 2026-01-28
 author: "Sponsorship team"
-summary: "The club is opening sponsor packages for local businesses who want to support community football."
+summary: "The club thanks the local businesses helping keep football strong for players and families in Greenacre."
 image: "/media/photos/470202517_18322349908095212_7819866471836709672_n.jpg"
 tags:
   - Sponsors
@@ -12,6 +12,6 @@ category: "Sponsors"
 featured: false
 ---
 
-Greenacre Eagles FC is inviting local businesses to partner with the club for the coming season.
+Greenacre Eagles FC is proud to be supported by local businesses who understand what community football means to families in the area.
 
-Sponsor support helps fund equipment, training resources, player development, events, and community programs across the club.
+Sponsor support helps with equipment, training resources, junior development, events, and the match day details that keep the club moving.

@@ -11,7 +11,7 @@ const articles = newestFirst(await getCollection("news"));
 <BaseLayout title="News" description="Latest Greenacre Eagles FC news, announcements, updates, and community stories.">
   <section class="section-pad bg-white">
     <div class="section-shell">
-      <SectionHeading eyebrow="Newsroom" title="Latest club news" intro="Articles are Markdown files with title, date, author, summary, featured image, tags, and main article content." />
+      <SectionHeading eyebrow="Newsroom" title="Latest club news" intro="Updates from match day, registrations, training nights, sponsors, volunteers, and the Eagles community." />
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {articles.map((article) => <NewsCard article={article} />)}
       </div>
