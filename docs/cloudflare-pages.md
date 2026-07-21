@@ -1,6 +1,6 @@
 # Cloudflare Pages Deployment
 
-This project uses GitHub as the source repository only. Cloudflare Pages should build and host the public website.
+This project uses GitHub as the source repository only. Cloudflare Pages should build and host the public website and protected portal.
 
 Do not enable GitHub Pages for this repository. Do not add Jekyll, `jekyll-theme-primer`, `_config.yml`, or GitHub Pages workflows.
 
@@ -29,9 +29,18 @@ Current Pages project:
 
 Production and preview variables have been configured in Cloudflare Pages for the current Pages domain. Update `SITE_URL` after a custom domain is attached.
 
-## Static Output
+## Runtime Output
 
-Astro generates a static site into `dist/`.
+Astro is configured with `@astrojs/cloudflare` and `output: "server"`.
+
+Public marketing/content pages are prerendered into the build output. Protected portal, admin, and API routes run through Cloudflare Pages Functions so authentication and authorization happen server-side.
+
+Cloudflare Pages still uses `dist` as the output directory.
+
+Required runtime bindings:
+
+- `SESSION`: Workers KV binding used by Astro sessions.
+- `IMAGES`: Cloudflare Images binding used by the Cloudflare adapter image service when enabled.
 
 Cloudflare Pages reads these files from `public/` during the build:
 
@@ -58,12 +67,12 @@ This keeps the public site fast, portable, and easy for Cloudflare Pages to buil
 
 ## Future Admin Direction
 
-The first admin phase should stay simple:
+The public foundation is now ready for a simple database-backed admin system later:
 
-- Secure login through a Git-backed CMS provider or a small Cloudflare-protected admin surface.
-- Admins add, edit, publish, and unpublish articles by changing Markdown frontmatter.
-- Admins add social post links and thumbnails through `src/content/social-posts`.
-- Admins manage homepage featured updates through `src/content/announcements` and `src/content/weekly-highlights`.
-- Media uploads should land under `public/media`.
+- Supabase Auth handles secure login.
+- Portal/admin routes already run server-side.
+- Role and permission checks are centralized in Supabase RLS/RPCs and server route guards.
+- Public content still lives in `src/content` while operational workflows are built out.
+- Future content tables can support article publishing, social post links, featured updates, media records, and simple editor workflows without changing the public routing model.
 
-Avoid adding a custom database until there is a clear need. If dynamic features become necessary, prefer Cloudflare Pages Functions for small server-side tasks such as form handling, preview hooks, or authentication glue.
+Do not add GitHub Pages, Jekyll, or GitHub Pages-specific build steps.

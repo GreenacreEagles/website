@@ -1,9 +1,11 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import FormPanel from "@components/FormPanel.astro";
 import Icon from "@components/Icon.astro";
 import SectionHeading from "@components/SectionHeading.astro";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Join or Register" description="Register interest to play, join a Greenacre Eagles FC team, or connect with the club.">
@@ -35,3 +37,4 @@ import SectionHeading from "@components/SectionHeading.astro";
     </div>
   </section>
 </BaseLayout>
+

@@ -1,0 +1,64 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["users.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const q = Astro.url.searchParams.get("q")?.trim() ?? "";
+const status = Astro.url.searchParams.get("status") ?? "";
+let query = session.supabase
+  .from("profiles")
+  .select("id,full_name,preferred_name,email,mobile,account_status,onboarding_completed_at,created_at", { count: "exact" })
+  .order("created_at", { ascending: false })
+  .limit(50);
+
+if (q) query = query.or(`full_name.ilike.%${q}%,preferred_name.ilike.%${q}%,email.ilike.%${q}%,mobile.ilike.%${q}%`);
+if (status) query = query.eq("account_status", status);
+
+const { data: users, count } = await query;
+---
+
+<PortalLayout title="Users" section="Administration" session={session}>
+  <section class="surface p-5 md:p-7">
+    <form class="grid gap-4 md:grid-cols-[1fr_180px_auto]" method="get">
+      <label>
+        <span class="label">Search users</span>
+        <input class="field" name="q" value={q} placeholder="Name, email or mobile" />
+      </label>
+      <label>
+        <span class="label">Status</span>
+        <select class="field" name="status">
+          <option value="">All</option>
+          {["active", "suspended", "deleted_requested"].map((option) => <option selected={status === option} value={option}>{option}</option>)}
+        </select>
+      </label>
+      <button class="self-end bg-eagles-green px-5 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Search</button>
+    </form>
+    <p class="mt-4 text-sm font-bold text-eagles-ink/60">{count ?? 0} matching users</p>
+    <div class="mt-6 overflow-x-auto">
+      <table class="w-full min-w-[760px] text-left text-sm">
+        <thead class="border-b border-eagles-line text-xs uppercase text-eagles-ink/60">
+          <tr><th class="py-3">Name</th><th>Email</th><th>Mobile</th><th>Status</th><th>Profile</th><th>Joined</th><th></th></tr>
+        </thead>
+        <tbody>
+          {(users ?? []).map((user) => (
+            <tr class="border-b border-eagles-line">
+              <td class="py-4 font-bold">{user.preferred_name || user.full_name || "Unnamed member"}</td>
+              <td>{user.email ?? "Not recorded"}</td>
+              <td>{user.mobile ?? "Not recorded"}</td>
+              <td><StatusBadge label={user.account_status} tone={user.account_status === "active" ? "green" : "amber"} /></td>
+              <td>{user.onboarding_completed_at ? "Complete" : "Incomplete"}</td>
+              <td>{formatDate(user.created_at)}</td>
+              <td><a class="font-black text-eagles-green" href={`/admin/users/${user.id}/`}>Open</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</PortalLayout>

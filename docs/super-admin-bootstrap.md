@@ -48,3 +48,7 @@ select app_private.bootstrap_super_admin(
 Use the admin portal role assignment process for future administrators.
 
 Only an active super administrator can grant or remove the `super_administrator` role after bootstrap.
+
+## Current Status
+
+As of the latest platform audit, the linked Supabase project has user signups but no active `super_administrator` assignment. The admin portal will remain inaccessible until this bootstrap step is completed.

@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
+import cloudflare from "@astrojs/cloudflare";
 
 const site = process.env.SITE_URL || "https://greenacreeaglesfc.com.au";
 const toolbarDeps = new Set(["astro > aria-query", "astro > axobject-query"]);
@@ -15,6 +16,8 @@ const removeToolbarOptimizerDeps = () => ({
 
 export default defineConfig({
   site,
+  output: "server",
+  adapter: cloudflare(),
   devToolbar: {
     enabled: false
   },

@@ -1,6 +1,8 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Canteen" description="Greenacre Eagles FC canteen ordering, match day pickup, food vouchers, and volunteer support.">
@@ -38,3 +40,4 @@ import ButtonLink from "@components/ButtonLink.astro";
     </div>
   </section>
 </BaseLayout>
+

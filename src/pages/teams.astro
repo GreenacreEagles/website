@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -7,6 +7,8 @@ import TeamCard from "@components/TeamCard.astro";
 import { bySortOrder } from "@lib/content";
 
 const teams = bySortOrder(await getCollection("teams"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Teams" description="Greenacre Eagles FC senior teams, junior teams, MiniRoos, training nights, and player pathways.">
@@ -29,3 +31,4 @@ const teams = bySortOrder(await getCollection("teams"));
     </div>
   </section>
 </BaseLayout>
+

@@ -1,0 +1,100 @@
+---
+import LogoLockup from "@components/LogoLockup.astro";
+import { canAccessAdmin, hasAnyPermission } from "@lib/auth/permissions";
+import type { PortalSession } from "@lib/auth/session";
+import "../styles/global.css";
+
+interface NavItem {
+  href: string;
+  label: string;
+  permissions?: string[];
+}
+
+interface Props {
+  title: string;
+  section?: string;
+  session: PortalSession;
+}
+
+const { title, section = "Portal", session } = Astro.props;
+const pageTitle = `${title} | Greenacre Eagles FC`;
+
+const portalNav: NavItem[] = [
+  { href: "/portal/", label: "Dashboard" },
+  { href: "/portal/account/", label: "My account" },
+  { href: "/portal/roles/", label: "My roles" },
+  { href: "/portal/role-requests/", label: "Role requests" }
+];
+
+const adminNav: NavItem[] = [
+  { href: "/admin/", label: "Admin dashboard" },
+  { href: "/admin/users/", label: "Users", permissions: ["users.read"] },
+  { href: "/admin/role-assignments/", label: "Role assignments", permissions: ["roles.assign", "roles.read"] },
+  { href: "/admin/role-requests/", label: "Request review", permissions: ["roles.review"] },
+  { href: "/admin/roles/", label: "Roles & permissions", permissions: ["roles.read"] },
+  { href: "/admin/teams/", label: "Seasons & teams", permissions: ["club_structure.manage", "roles.assign"] },
+  { href: "/admin/audit/", label: "Audit activity", permissions: ["audit.read"] }
+];
+
+const visibleAdminNav = adminNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
+const showAdmin = canAccessAdmin(session.permissions);
+const activePath = Astro.url.pathname;
+const displayName = session.profile.preferred_name || session.profile.full_name || session.user.email || "Greenacre Eagles member";
+---
+
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>{pageTitle}</title>
+    <meta name="description" content="Secure Greenacre Eagles FC portal." />
+    <meta name="theme-color" content="#07875f" />
+  </head>
+  <body class="bg-eagles-mist">
+    <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+      <aside class="border-b border-eagles-line bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
+        <div class="flex items-center justify-between gap-4 p-4 lg:block lg:p-6">
+          <a href="/portal/" class="inline-flex"><LogoLockup /></a>
+          <form method="post" action="/api/auth/signout" class="lg:hidden">
+            <button class="text-sm font-black text-eagles-green" type="submit">Sign out</button>
+          </form>
+        </div>
+        <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
+          {portalNav.map((item) => (
+            <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+          ))}
+        </nav>
+        {showAdmin && (
+          <div class="border-t border-eagles-line px-4 py-4 lg:px-6">
+            <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Administration</p>
+            <nav class="mt-3 flex gap-2 overflow-x-auto text-sm font-black lg:grid" aria-label="Admin navigation">
+              {visibleAdminNav.map((item) => (
+                <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+              ))}
+            </nav>
+          </div>
+        )}
+        <div class="hidden border-t border-eagles-line p-6 lg:block">
+          <p class="text-sm font-black text-eagles-ink">{displayName}</p>
+          <p class="mt-1 text-xs text-eagles-ink/60">{session.user.email}</p>
+          <p class="mt-3 text-xs font-bold text-eagles-ink/60">{session.unreadNotifications} unread notifications</p>
+          <form method="post" action="/api/auth/signout" class="mt-4">
+            <button class="text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">Sign out</button>
+          </form>
+        </div>
+      </aside>
+
+      <div>
+        <header class="border-b border-eagles-line bg-white px-4 py-5 md:px-8">
+          <p class="text-xs font-black uppercase tracking-[.18em] text-eagles-green">{section}</p>
+          <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">{title}</h1>
+        </header>
+        <main class="px-4 py-6 md:px-8">
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

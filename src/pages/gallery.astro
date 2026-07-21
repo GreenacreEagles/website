@@ -1,10 +1,12 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import { formatDate, newestFirst } from "@lib/content";
 
 const gallery = newestFirst(await getCollection("gallery"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Gallery" description="Greenacre Eagles FC photo and video gallery for matchdays, training, community events, and club life.">
@@ -28,3 +30,4 @@ const gallery = newestFirst(await getCollection("gallery"));
     </div>
   </section>
 </BaseLayout>
+

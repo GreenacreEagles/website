@@ -1,0 +1,78 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["club_structure.manage", "roles.assign"]);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const [{ data: seasons }, { data: teams }, { data: ageGroups }] = await Promise.all([
+  session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
+  session.supabase.from("teams").select("id,name,division,status,seasons(id,name),age_groups(id,name)").order("name"),
+  session.supabase.from("age_groups").select("id,name").order("sort_order")
+]);
+const canManage = session.permissions.has("*") || session.permissions.has("club_structure.manage");
+---
+
+<PortalLayout title="Seasons & teams" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[420px_1fr]">
+    {canManage && (
+      <aside class="grid gap-5 content-start">
+        {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+        {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-season/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create season</h2>
+          <label><span class="label">Name</span><input class="field" name="name" placeholder="Season 2027" required /></label>
+          <label><span class="label">Year</span><input class="field" name="year" type="number" min="2000" max="2100" required /></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" required /></label>
+            <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" required /></label>
+          </div>
+          <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "completed", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create season</button>
+        </form>
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-team/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create team</h2>
+          <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
+          <label><span class="label">Age group</span><select class="field" name="age_group_id"><option value="">Not set</option>{(ageGroups ?? []).map((group) => <option value={group.id}>{group.name}</option>)}</select></label>
+          <label><span class="label">Name</span><input class="field" name="name" required /></label>
+          <label><span class="label">Division</span><input class="field" name="division" /></label>
+          <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create team</button>
+        </form>
+      </aside>
+    )}
+
+    <section class="grid gap-5">
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Seasons</h2>
+        <div class="mt-5 grid gap-3">
+          {(seasons ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No seasons have been created yet.</p>}
+          {(seasons ?? []).map((season) => (
+            <div class="flex flex-col gap-2 border border-eagles-line bg-white p-4 md:flex-row md:items-center md:justify-between" style="border-radius:8px">
+              <div><p class="font-black">{season.name}</p><p class="text-sm text-eagles-ink/60">{formatDate(season.starts_on)} to {formatDate(season.ends_on)}</p></div>
+              <StatusBadge label={season.status} tone={season.status === "active" ? "green" : "ink"} />
+            </div>
+          ))}
+        </div>
+      </article>
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Teams</h2>
+        <div class="mt-5 grid gap-3">
+          {(teams ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No teams have been created yet.</p>}
+          {(teams ?? []).map((team: any) => (
+            <div class="flex flex-col gap-2 border border-eagles-line bg-white p-4 md:flex-row md:items-center md:justify-between" style="border-radius:8px">
+              <div><p class="font-black">{team.name}</p><p class="text-sm text-eagles-ink/60">{team.age_groups?.name ?? "Age group not set"} · {team.division ?? "No division"} · {team.seasons?.name}</p></div>
+              <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
+            </div>
+          ))}
+        </div>
+      </article>
+    </section>
+  </div>
+</PortalLayout>

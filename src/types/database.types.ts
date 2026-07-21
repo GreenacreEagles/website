@@ -1488,6 +1488,7 @@ export type Database = {
           communication_sms: boolean
           created_at: string
           date_of_birth: string | null
+          email: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           full_name: string
@@ -1506,6 +1507,7 @@ export type Database = {
           communication_sms?: boolean
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           full_name?: string
@@ -1524,6 +1526,7 @@ export type Database = {
           communication_sms?: boolean
           created_at?: string
           date_of_birth?: string | null
+          email?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           full_name?: string
@@ -1614,6 +1617,13 @@ export type Database = {
             foreignKeyName: "role_permissions_role_id_fkey"
             columns: ["role_id"]
             isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["id"]
           },
@@ -1622,7 +1632,11 @@ export type Database = {
       role_requests: {
         Row: {
           created_at: string
+          decision_reason: string | null
+          experience: string | null
           id: string
+          notes: string | null
+          reason: string | null
           relationship_note: string | null
           requested_role_id: string | null
           requester_id: string
@@ -1631,12 +1645,18 @@ export type Database = {
           reviewed_by: string | null
           season_id: string | null
           status: string
+          submitted_at: string | null
           team_id: string | null
           updated_at: string
+          withdrawn_at: string | null
         }
         Insert: {
           created_at?: string
+          decision_reason?: string | null
+          experience?: string | null
           id?: string
+          notes?: string | null
+          reason?: string | null
           relationship_note?: string | null
           requested_role_id?: string | null
           requester_id: string
@@ -1645,12 +1665,18 @@ export type Database = {
           reviewed_by?: string | null
           season_id?: string | null
           status?: string
+          submitted_at?: string | null
           team_id?: string | null
           updated_at?: string
+          withdrawn_at?: string | null
         }
         Update: {
           created_at?: string
+          decision_reason?: string | null
+          experience?: string | null
           id?: string
+          notes?: string | null
+          reason?: string | null
           relationship_note?: string | null
           requested_role_id?: string | null
           requester_id?: string
@@ -1659,10 +1685,19 @@ export type Database = {
           reviewed_by?: string | null
           season_id?: string | null
           status?: string
+          submitted_at?: string | null
           team_id?: string | null
           updated_at?: string
+          withdrawn_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "role_requests_requested_role_id_fkey"
+            columns: ["requested_role_id"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "role_requests_requested_role_id_fkey"
             columns: ["requested_role_id"]
@@ -1708,7 +1743,12 @@ export type Database = {
           is_sensitive: boolean
           is_system: boolean
           key: string
+          may_request: boolean
           name: string
+          requires_season_scope: boolean
+          requires_super_admin_approval: boolean
+          requires_team_scope: boolean
+          sort_order: number
         }
         Insert: {
           created_at?: string
@@ -1717,7 +1757,12 @@ export type Database = {
           is_sensitive?: boolean
           is_system?: boolean
           key: string
+          may_request?: boolean
           name: string
+          requires_season_scope?: boolean
+          requires_super_admin_approval?: boolean
+          requires_team_scope?: boolean
+          sort_order?: number
         }
         Update: {
           created_at?: string
@@ -1726,7 +1771,12 @@ export type Database = {
           is_sensitive?: boolean
           is_system?: boolean
           key?: string
+          may_request?: boolean
           name?: string
+          requires_season_scope?: boolean
+          requires_super_admin_approval?: boolean
+          requires_team_scope?: boolean
+          sort_order?: number
         }
         Relationships: []
       }
@@ -2151,6 +2201,13 @@ export type Database = {
             columns: ["revoked_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_role_assignments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "role_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -2706,6 +2763,23 @@ export type Database = {
       }
     }
     Views: {
+      role_catalog: {
+        Row: {
+          description: string | null
+          id: string | null
+          is_sensitive: boolean | null
+          is_system: boolean | null
+          key: string | null
+          may_request: boolean | null
+          name: string | null
+          permissions: Json | null
+          requires_season_scope: boolean | null
+          requires_super_admin_approval: boolean | null
+          requires_team_scope: boolean | null
+          sort_order: number | null
+        }
+        Relationships: []
+      }
       wallet_balances: {
         Row: {
           balance_cents: number | null
@@ -2723,6 +2797,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_dashboard_summary: { Args: never; Returns: Json }
+      assign_user_role: {
+        Args: {
+          assignment_reason?: string
+          ends_at?: string
+          starts_at?: string
+          target_role_id: string
+          target_season_id?: string
+          target_team_id?: string
+          target_user_id: string
+        }
+        Returns: string
+      }
       has_permission: {
         Args: {
           permission_key: string
@@ -2746,9 +2833,38 @@ export type Database = {
           voucher_id: string
         }[]
       }
+      request_role: {
+        Args: {
+          request_experience?: string
+          request_notes?: string
+          request_reason?: string
+          requested_role_id: string
+          target_season_id?: string
+          target_team_id?: string
+        }
+        Returns: string
+      }
       reverse_voucher_redemption: {
         Args: { reason: string; target_redemption_id: string }
         Returns: string
+      }
+      review_role_request: {
+        Args: {
+          assignment_ends_at?: string
+          assignment_starts_at?: string
+          decision: string
+          review_reason: string
+          target_request_id: string
+        }
+        Returns: string
+      }
+      revoke_user_role: {
+        Args: { revocation_reason: string; target_assignment_id: string }
+        Returns: undefined
+      }
+      withdraw_role_request: {
+        Args: { target_request_id: string; withdrawal_reason?: string }
+        Returns: undefined
       }
     }
     Enums: {

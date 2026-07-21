@@ -1,6 +1,15 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
+import { getPortalSession } from "@lib/auth/session";
+
+export const prerender = false;
+
+const session = await getPortalSession(Astro);
+if (session) return Astro.redirect("/portal/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 ---
 
 <BaseLayout title="Login" description="Sign in to the Greenacre Eagles FC portal.">
@@ -10,21 +19,20 @@ import ButtonLink from "@components/ButtonLink.astro";
         <p class="eyebrow">Club portal</p>
         <h1 class="mt-3 font-display text-5xl font-black uppercase leading-none text-eagles-ink md:text-7xl">Sign in</h1>
         <p class="mt-5 text-lg leading-8 text-eagles-ink/70">
-          Access your Greenacre Eagles account for family details, teams, canteen orders, volunteer shifts, events, and club updates.
+          Access your Greenacre Eagles account for your profile, assigned roles, access requests and approved club administration tools.
         </p>
         <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/portal/" variant="secondary">Open portal</ButtonLink>
-          <ButtonLink href="/contact/" variant="ghost">Contact the club</ButtonLink>
+          <ButtonLink href="/" variant="secondary">Back to website</ButtonLink>
+          <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
 
       <div class="surface p-5 md:p-7">
-        <div data-auth-config-warning class="hidden border border-eagles-line bg-eagles-mist p-4 text-sm leading-6 text-eagles-ink/75" style="border-radius:8px">
-          Portal login is waiting on Supabase environment variables. Add `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` in local, preview, and production environments.
-        </div>
+        {success && <p class="mb-5 border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+        {error && <p class="mb-5 border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
 
-        <div class="grid gap-8" data-auth-panel>
-          <form class="grid gap-5" data-sign-in-form>
+        <div class="grid gap-8">
+          <form class="grid gap-5" method="post" action="/api/auth/signin">
             <div>
               <h2 class="font-display text-3xl font-black uppercase leading-none">Welcome back</h2>
               <p class="mt-3 text-base leading-7 text-eagles-ink/70">Sign in with the email address linked to your club account.</p>
@@ -42,27 +50,31 @@ import ButtonLink from "@components/ButtonLink.astro";
             </button>
           </form>
 
-          <form class="grid gap-5 border-t border-eagles-line pt-8" data-sign-up-form>
+          <form class="grid gap-5 border-t border-eagles-line pt-8" method="post" action="/api/auth/signup">
             <div>
               <h2 class="font-display text-3xl font-black uppercase leading-none">Create an account</h2>
               <p class="mt-3 text-base leading-7 text-eagles-ink/70">
-                New accounts start with general access. Club roles are reviewed and assigned by authorised administrators.
+                New accounts start with general portal access. Club roles are reviewed and approved by authorised administrators.
               </p>
             </div>
+            <label>
+              <span class="label">Full name</span>
+              <input class="field" name="fullName" autocomplete="name" required />
+            </label>
+            <label>
+              <span class="label">Email</span>
+              <input class="field" name="email" type="email" autocomplete="email" required />
+            </label>
             <div class="grid gap-4 md:grid-cols-2">
               <label>
-                <span class="label">Full name</span>
-                <input class="field" name="fullName" autocomplete="name" required />
+                <span class="label">Password</span>
+                <input class="field" name="password" type="password" autocomplete="new-password" minlength="8" required />
               </label>
               <label>
-                <span class="label">Email</span>
-                <input class="field" name="email" type="email" autocomplete="email" required />
+                <span class="label">Confirm password</span>
+                <input class="field" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
               </label>
             </div>
-            <label>
-              <span class="label">Password</span>
-              <input class="field" name="password" type="password" autocomplete="new-password" minlength="8" required />
-            </label>
             <label class="flex items-start gap-3 text-sm leading-6 text-eagles-ink/70">
               <input class="mt-1" name="terms" type="checkbox" required />
               <span>I agree to the club terms and privacy requirements for using the Greenacre Eagles portal.</span>
@@ -72,7 +84,7 @@ import ButtonLink from "@components/ButtonLink.astro";
             </button>
           </form>
 
-          <form class="grid gap-4 border-t border-eagles-line pt-8" data-reset-form>
+          <form class="grid gap-4 border-t border-eagles-line pt-8" method="post" action="/api/auth/reset-password">
             <div>
               <h2 class="font-display text-2xl font-black uppercase leading-none">Reset password</h2>
               <p class="mt-3 text-sm leading-6 text-eagles-ink/70">We will email you a secure password reset link.</p>
@@ -86,78 +98,7 @@ import ButtonLink from "@components/ButtonLink.astro";
             </button>
           </form>
         </div>
-
-        <p class="mt-5 hidden text-sm font-bold leading-6" data-auth-message></p>
       </div>
     </div>
   </section>
 </BaseLayout>
-
-<script>
-  import { isSupabaseConfigured, supabase } from "@lib/supabaseClient";
-
-  const warning = document.querySelector("[data-auth-config-warning]");
-  const panel = document.querySelector("[data-auth-panel]");
-  const message = document.querySelector("[data-auth-message]");
-  const signInForm = document.querySelector("[data-sign-in-form]");
-  const signUpForm = document.querySelector("[data-sign-up-form]");
-  const resetForm = document.querySelector("[data-reset-form]");
-
-  const showMessage = (text, isError = false) => {
-    if (!message) return;
-    message.textContent = text;
-    message.classList.remove("hidden", "text-eagles-green", "text-red-700");
-    message.classList.add(isError ? "text-red-700" : "text-eagles-green");
-  };
-
-  if (!isSupabaseConfigured || !supabase) {
-    warning?.classList.remove("hidden");
-    panel?.classList.add("hidden");
-  }
-
-  signInForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!supabase) return;
-    const formData = new FormData(signInForm);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(formData.get("email")),
-      password: String(formData.get("password"))
-    });
-    if (error) {
-      showMessage(error.message, true);
-      return;
-    }
-    window.location.href = "/portal/";
-  });
-
-  signUpForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!supabase) return;
-    const formData = new FormData(signUpForm);
-    const { error } = await supabase.auth.signUp({
-      email: String(formData.get("email")),
-      password: String(formData.get("password")),
-      options: {
-        emailRedirectTo: `${window.location.origin}/portal/`,
-        data: {
-          full_name: String(formData.get("fullName"))
-        }
-      }
-    });
-    if (error) {
-      showMessage(error.message, true);
-      return;
-    }
-    showMessage("Account created. Check your email to verify your address, then return to sign in.");
-  });
-
-  resetForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!supabase) return;
-    const formData = new FormData(resetForm);
-    const { error } = await supabase.auth.resetPasswordForEmail(String(formData.get("email")), {
-      redirectTo: `${window.location.origin}/login/`
-    });
-    showMessage(error ? error.message : "Password reset email sent.", Boolean(error));
-  });
-</script>

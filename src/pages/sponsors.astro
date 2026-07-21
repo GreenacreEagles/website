@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -7,6 +7,8 @@ import SponsorStrip from "@components/SponsorStrip.astro";
 import { bySortOrder } from "@lib/content";
 
 const sponsors = bySortOrder(await getCollection("sponsors"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Sponsors" description="Greenacre Eagles FC sponsors and local partners supporting community football.">
@@ -36,3 +38,4 @@ const sponsors = bySortOrder(await getCollection("sponsors"));
     </div>
   </section>
 </BaseLayout>
+

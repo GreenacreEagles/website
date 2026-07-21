@@ -1,0 +1,99 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDate, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+
+const [{ data: roles }, { data: teams }, { data: seasons }, { data: requests }] = await Promise.all([
+  session.supabase.from("role_catalog").select("*").eq("may_request", true).neq("key", "super_administrator").order("sort_order"),
+  session.supabase.from("teams").select("id,name,season_id,status").order("name"),
+  session.supabase.from("seasons").select("id,name,status,starts_on,ends_on").order("starts_on", { ascending: false }),
+  session.supabase
+    .from("role_requests")
+    .select("id,status,reason,experience,notes,decision_reason,review_note,created_at,submitted_at,reviewed_at,withdrawn_at,roles:requested_role_id(id,name,key),teams(id,name),seasons(id,name)")
+    .eq("requester_id", session.user.id)
+    .order("created_at", { ascending: false })
+]);
+---
+
+<PortalLayout title="Role requests" section="Access" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[420px_1fr]">
+    <form class="surface grid gap-5 p-5 md:p-7" method="post" action="/api/portal/role-requests/">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <div>
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Request club access</h2>
+        <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Tell the club what access you need. Operational roles are reviewed before they are granted.</p>
+      </div>
+      <label>
+        <span class="label">Requested role</span>
+        <select class="field" name="requested_role_id" required>
+          <option value="">Select a role</option>
+          {(roles ?? []).map((role: any) => <option value={role.id}>{role.name}</option>)}
+        </select>
+      </label>
+      <label>
+        <span class="label">Team, if relevant</span>
+        <select class="field" name="team_id">
+          <option value="">Club-wide or not sure</option>
+          {(teams ?? []).map((team) => <option value={team.id}>{team.name}</option>)}
+        </select>
+      </label>
+      <label>
+        <span class="label">Season, if relevant</span>
+        <select class="field" name="season_id">
+          <option value="">All seasons or not sure</option>
+          {(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}
+        </select>
+      </label>
+      <label>
+        <span class="label">Reason</span>
+        <textarea class="field min-h-28" name="reason" required placeholder="For example: I am managing Under 12 Blue this season and need access to team communications."></textarea>
+      </label>
+      <label>
+        <span class="label">Experience or qualifications</span>
+        <textarea class="field min-h-24" name="experience"></textarea>
+      </label>
+      <label>
+        <span class="label">Notes</span>
+        <textarea class="field min-h-20" name="notes"></textarea>
+      </label>
+      <button class="bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">Submit request</button>
+    </form>
+
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Your requests</h2>
+      <div class="mt-6 grid gap-4">
+        {(requests ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">You have not submitted any role requests yet.</p>}
+        {(requests ?? []).map((request: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h3 class="font-display text-2xl font-black uppercase leading-none">{request.roles?.name ?? "Club role"}</h3>
+                <p class="mt-2 text-sm text-eagles-ink/60">{request.teams?.name ?? "Club-wide"} · {request.seasons?.name ?? "Any season"} · {formatDate(request.created_at)}</p>
+              </div>
+              <StatusBadge label={statusLabel(request.status)} tone={request.status === "approved" ? "green" : request.status === "rejected" ? "red" : "amber"} />
+            </div>
+            <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{request.reason}</p>
+            {(request.review_note || request.decision_reason) && <p class="mt-3 text-sm font-bold text-eagles-ink">Club note: {request.review_note || request.decision_reason}</p>}
+            {["draft", "submitted", "under_review"].includes(request.status) && (
+              <form class="mt-4 flex flex-col gap-2 sm:flex-row" method="post" action="/api/portal/withdraw-role-request/">
+                <input type="hidden" name="request_id" value={request.id} />
+                <input class="field" name="reason" placeholder="Withdrawal note" />
+                <button class="px-4 py-2 text-sm font-black text-red-700 hover:text-eagles-ink" type="submit">Withdraw</button>
+              </form>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  </div>
+</PortalLayout>

@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -6,6 +6,8 @@ import FundraiserCard from "@components/FundraiserCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 
 const fundraisers = await getCollection("fundraisers");
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Community and Fundraising" description="Greenacre Eagles FC community support, fundraisers, volunteer calls, and donation campaigns.">
@@ -28,3 +30,4 @@ const fundraisers = await getCollection("fundraisers");
     </div>
   </section>
 </BaseLayout>
+

@@ -21,22 +21,30 @@
 
 - [x] Install Supabase client dependencies.
 - [x] Add Supabase browser client.
+- [x] Add Supabase server client for Cloudflare SSR routes.
 - [x] Build signup, signin, signout, password reset, account, and portal entry flows.
-- [x] Add client-side protected portal/admin entry routes.
+- [x] Add server-side protected portal routes.
+- [x] Add shared protected portal layout.
 - [x] Ensure migration provisions new users as general users only.
 - [x] Add rollback smoke test for profile provisioning and default role safety.
 
 ## Phase 3: Admin And Permissions
 
-- [ ] Build permission-aware admin layout.
-- [ ] Build user search and role assignment screens.
-- [ ] Prevent super-admin escalation except through protected workflow.
-- [ ] Add role request review.
-- [ ] Add audit log viewer.
+- [x] Build permission-aware admin layout.
+- [x] Build user search and role assignment screens.
+- [x] Prevent super-admin escalation except through protected workflow.
+- [x] Add role request review.
+- [x] Add audit log viewer.
+- [x] Add role catalog and role assignment views.
+- [x] Add season and team administration foundation.
+- [x] Add rollback smoke checks for role requests and role assignment security.
+- [ ] Reconcile remote migration history for MCP-applied follow-up migrations after Supabase CLI privileges are restored.
+- [ ] Bootstrap the first approved super administrator.
 
 ## Phase 4: Club Operations
 
-- [ ] Build seasons, teams, squads, staff, fixtures, and match reports.
+- [x] Build seasons and teams administration foundation.
+- [ ] Build squads, staff, fixtures, and match reports.
 - [ ] Build family and guardian management.
 - [ ] Build volunteer shifts and assignments.
 - [ ] Build coaching resource library.
@@ -59,10 +67,12 @@
 
 ## Phase 7: Production Hardening
 
-- [ ] Add automated RLS tests.
+- [x] Add SQL smoke coverage for core role safety checks.
+- [ ] Convert smoke coverage to automated pgTAP/local Supabase test flow.
 - [ ] Add business-rule unit tests.
 - [ ] Add end-to-end tests for critical journeys.
 - [ ] Add Turnstile to public abuse-prone forms.
 - [x] Configure Cloudflare Pages build/env vars for the current Pages domain.
+- [ ] Confirm Cloudflare Pages `SESSION` KV and `IMAGES` bindings for the server-rendered Astro adapter.
 - [ ] Configure custom domain.
 - [ ] Document backup, recovery, and administrator runbooks.

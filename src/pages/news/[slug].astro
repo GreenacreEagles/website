@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection, render } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -14,6 +14,8 @@ export async function getStaticPaths() {
 
 const { article } = Astro.props;
 const { Content } = await render(article);
+
+export const prerender = true;
 ---
 
 <BaseLayout title={article.data.title} description={article.data.summary} image={article.data.image}>
@@ -38,3 +40,4 @@ const { Content } = await render(article);
     </div>
   </article>
 </BaseLayout>
+

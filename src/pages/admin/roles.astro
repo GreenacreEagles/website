@@ -1,0 +1,39 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["roles.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const { data: roles } = await session.supabase.from("role_catalog").select("*").order("sort_order");
+---
+
+<PortalLayout title="Roles & permissions" section="Administration" session={session}>
+  <section class="surface p-5 md:p-7">
+    <div class="grid gap-4">
+      {(roles ?? []).map((role: any) => (
+        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 class="font-display text-2xl font-black uppercase leading-none">{role.name}</h2>
+              <p class="mt-2 text-sm font-bold text-eagles-green">{role.key}</p>
+              <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{role.description}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              {role.may_request && <StatusBadge label="Requestable" tone="green" />}
+              {role.is_sensitive && <StatusBadge label="Sensitive" tone="amber" />}
+              {role.requires_team_scope && <StatusBadge label="Team scoped" tone="ink" />}
+              {role.requires_season_scope && <StatusBadge label="Season scoped" tone="ink" />}
+            </div>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2">
+            {(role.permissions ?? []).map((permission: any) => <span class="border border-eagles-line px-2 py-1 text-xs font-bold text-eagles-ink/70" style="border-radius:999px">{permission.key}</span>)}
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+</PortalLayout>

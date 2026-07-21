@@ -1,0 +1,42 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["audit.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const action = Astro.url.searchParams.get("action")?.trim() ?? "";
+let query = session.supabase
+  .from("audit_logs")
+  .select("id,actor_id,action,entity_type,entity_id,reason,created_at,profiles:actor_id(full_name,preferred_name,email)")
+  .order("created_at", { ascending: false })
+  .limit(100);
+if (action) query = query.ilike("action", `%${action}%`);
+const { data: logs } = await query;
+---
+
+<PortalLayout title="Audit activity" section="Administration" session={session}>
+  <section class="surface p-5 md:p-7">
+    <form class="flex flex-col gap-3 sm:flex-row sm:items-end" method="get">
+      <label class="grow"><span class="label">Action search</span><input class="field" name="action" value={action} placeholder="role_assignment, role_request" /></label>
+      <button class="bg-eagles-green px-5 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Search</button>
+    </form>
+    <div class="mt-6 grid gap-3">
+      {(logs ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No audit records match this view.</p>}
+      {(logs ?? []).map((log: any) => (
+        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+          <p class="font-black text-eagles-ink">{log.action}</p>
+          <p class="mt-1 text-sm text-eagles-ink/70">
+            {(log.profiles?.preferred_name || log.profiles?.full_name || log.profiles?.email || "System")} changed {log.entity_type}
+            {log.entity_id ? ` ${log.entity_id}` : ""}.
+          </p>
+          {log.reason && <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{log.reason}</p>}
+          <p class="mt-2 text-xs font-bold text-eagles-ink/50">{formatDateTime(log.created_at)}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</PortalLayout>

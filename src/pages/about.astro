@@ -1,9 +1,11 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import Icon from "@components/Icon.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import { site } from "@data/site";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="About" description="Learn about Greenacre Eagles FC, a proud community football club in the Bankstown District Amateur Football Association.">
@@ -50,3 +52,4 @@ import { site } from "@data/site";
     </div>
   </section>
 </BaseLayout>
+

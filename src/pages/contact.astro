@@ -1,9 +1,11 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import FormPanel from "@components/FormPanel.astro";
 import Icon from "@components/Icon.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import { site } from "@data/site";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Contact" description="Contact Greenacre Eagles FC for registrations, sponsorships, volunteering, events, and general enquiries.">
@@ -30,3 +32,4 @@ import { site } from "@data/site";
     </div>
   </section>
 </BaseLayout>
+

@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -31,6 +31,8 @@ const photos = {
   net: "/media/photos/508554586_18345027934095212_3422841738495448436_n.jpg",
   champions: "/media/photos/542799832_18354096757095212_3870055734016167636_n.jpg"
 };
+
+export const prerender = true;
 ---
 
 <BaseLayout title={site.name} description={site.description}>
@@ -242,3 +244,4 @@ const photos = {
     </div>
   </section>
 </BaseLayout>
+

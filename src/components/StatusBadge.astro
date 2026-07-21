@@ -1,0 +1,16 @@
+---
+interface Props {
+  label: string;
+  tone?: "green" | "amber" | "red" | "ink";
+}
+
+const { label, tone = "ink" } = Astro.props;
+const classes = {
+  green: "bg-eagles-green text-white",
+  amber: "bg-yellow-100 text-yellow-900",
+  red: "bg-red-100 text-red-800",
+  ink: "bg-eagles-ink text-white"
+};
+---
+
+<span class:list={["inline-flex items-center px-2.5 py-1 text-xs font-black uppercase", classes[tone]]} style="border-radius:999px">{label}</span>

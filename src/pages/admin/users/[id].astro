@@ -1,0 +1,94 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["users.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const id = Astro.params.id!;
+const returnTo = `/admin/users/${id}/`;
+const [{ data: profile }, { data: assignments }, { data: requests }, { data: roles }, { data: teams }, { data: seasons }] = await Promise.all([
+  session.supabase.from("profiles").select("*").eq("id", id).single(),
+  session.supabase.from("user_role_assignments").select("id,status,starts_at,ends_at,reason,roles(id,name,key),teams(id,name),seasons(id,name)").eq("user_id", id).order("created_at", { ascending: false }),
+  session.supabase.from("role_requests").select("id,status,reason,created_at,roles:requested_role_id(name),teams(name),seasons(name)").eq("requester_id", id).order("created_at", { ascending: false }).limit(10),
+  session.supabase.from("role_catalog").select("id,key,name,requires_team_scope,requires_season_scope,requires_super_admin_approval").order("sort_order"),
+  session.supabase.from("teams").select("id,name,season_id,status").order("name"),
+  session.supabase.from("seasons").select("id,name,status").order("starts_on", { ascending: false })
+]);
+
+if (!profile) return Astro.redirect("/admin/users/");
+const canAssign = session.permissions.has("*") || session.permissions.has("roles.assign");
+---
+
+<PortalLayout title={profile.full_name || "User detail"} section="User management" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <section class="grid gap-5">
+      <article class="surface p-5 md:p-7">
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 class="font-display text-3xl font-black uppercase leading-none">{profile.preferred_name || profile.full_name || "Unnamed member"}</h2>
+            <p class="mt-2 text-sm text-eagles-ink/70">{profile.email ?? "No email recorded"} · {profile.mobile ?? "No mobile recorded"}</p>
+          </div>
+          <StatusBadge label={profile.account_status} tone={profile.account_status === "active" ? "green" : "amber"} />
+        </div>
+        <dl class="mt-5 grid gap-3 text-sm md:grid-cols-3">
+          <div><dt class="font-black">Relationship</dt><dd>{profile.relationship_to_club ?? "Not recorded"}</dd></div>
+          <div><dt class="font-black">Joined</dt><dd>{formatDateTime(profile.created_at)}</dd></div>
+          <div><dt class="font-black">Profile</dt><dd>{profile.onboarding_completed_at ? "Complete" : "Incomplete"}</dd></div>
+        </dl>
+      </article>
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Role history</h2>
+        <div class="mt-5 grid gap-3">
+          {(assignments ?? []).map((assignment: any) => (
+            <div class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex justify-between gap-3">
+                <p class="font-black">{assignment.roles?.name}</p>
+                <StatusBadge label={statusLabel(assignment.status)} tone={assignment.status === "active" ? "green" : "amber"} />
+              </div>
+              <p class="mt-2 text-sm text-eagles-ink/70">{assignment.teams?.name ?? "Club-wide"} · {assignment.seasons?.name ?? "All seasons"} · Expires {formatDateTime(assignment.ends_at)}</p>
+              {canAssign && assignment.status === "active" && (
+                <form class="mt-3 grid gap-2 md:grid-cols-[1fr_auto]" method="post" action="/api/admin/revoke-role/">
+                  <input type="hidden" name="assignment_id" value={assignment.id} />
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input class="field" name="reason" placeholder="Revocation reason" required />
+                  <button class="px-4 py-2 text-sm font-black text-red-700" type="submit">Revoke</button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      </article>
+    </section>
+
+    <aside class="grid gap-5 content-start">
+      {canAssign && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/assign-role/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Assign role</h2>
+          <input type="hidden" name="user_id" value={id} />
+          <input type="hidden" name="return_to" value={returnTo} />
+          <label><span class="label">Role</span><select class="field" name="role_id" required><option value="">Select</option>{(roles ?? []).map((role: any) => <option value={role.id}>{role.name}</option>)}</select></label>
+          <label><span class="label">Team</span><select class="field" name="team_id"><option value="">Club-wide</option>{(teams ?? []).map((team) => <option value={team.id}>{team.name}</option>)}</select></label>
+          <label><span class="label">Season</span><select class="field" name="season_id"><option value="">All seasons</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
+          <label><span class="label">Starts</span><input class="field" type="datetime-local" name="starts_at" /></label>
+          <label><span class="label">Expires</span><input class="field" type="datetime-local" name="ends_at" /></label>
+          <label><span class="label">Reason</span><textarea class="field min-h-24" name="reason" required></textarea></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign role</button>
+        </form>
+      )}
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Requests</h2>
+        <div class="mt-4 grid gap-3">
+          {(requests ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No requests.</p>}
+          {(requests ?? []).map((request: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{request.roles?.name}</strong><br />{statusLabel(request.status)} · {formatDateTime(request.created_at)}</p>)}
+        </div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>

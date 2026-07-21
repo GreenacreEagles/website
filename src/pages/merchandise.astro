@@ -1,6 +1,8 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Merchandise" description="Greenacre Eagles FC merchandise, apparel, accessories, and club gear.">
@@ -28,3 +30,4 @@ import ButtonLink from "@components/ButtonLink.astro";
     </div>
   </section>
 </BaseLayout>
+

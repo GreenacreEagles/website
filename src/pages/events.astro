@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import EventCard from "@components/EventCard.astro";
@@ -6,6 +6,8 @@ import SectionHeading from "@components/SectionHeading.astro";
 import { upcomingFirst } from "@lib/content";
 
 const events = upcomingFirst(await getCollection("events"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Events" description="Upcoming Greenacre Eagles FC events, launch days, volunteer briefings, sponsor nights, and community activity.">
@@ -18,3 +20,4 @@ const events = upcomingFirst(await getCollection("events"));
     </div>
   </section>
 </BaseLayout>
+

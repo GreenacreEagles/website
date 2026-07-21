@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import NewsCard from "@components/NewsCard.astro";
@@ -6,6 +6,8 @@ import SectionHeading from "@components/SectionHeading.astro";
 import { newestFirst } from "@lib/content";
 
 const articles = newestFirst(await getCollection("news"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="News" description="Latest Greenacre Eagles FC news, announcements, updates, and community stories.">
@@ -18,3 +20,4 @@ const articles = newestFirst(await getCollection("news"));
     </div>
   </section>
 </BaseLayout>
+

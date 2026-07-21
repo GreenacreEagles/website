@@ -1,8 +1,10 @@
----
+﻿---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import FormPanel from "@components/FormPanel.astro";
 import Icon from "@components/Icon.astro";
 import SectionHeading from "@components/SectionHeading.astro";
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Volunteer" description="Volunteer opportunities at Greenacre Eagles FC for matchdays, canteen, team management, events, and committee support.">
@@ -21,3 +23,4 @@ import SectionHeading from "@components/SectionHeading.astro";
     </div>
   </section>
 </BaseLayout>
+

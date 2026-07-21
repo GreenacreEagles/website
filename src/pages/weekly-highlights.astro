@@ -1,10 +1,12 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import { formatDate, newestFirst } from "@lib/content";
 
 const highlights = newestFirst(await getCollection("weekly-highlights"));
+
+export const prerender = true;
 ---
 
 <BaseLayout title="Weekly Highlights" description="This Week at the Eagles: weekly club highlights, calls to action, training notes, and community updates.">
@@ -46,3 +48,4 @@ const highlights = newestFirst(await getCollection("weekly-highlights"));
     </div>
   </section>
 </BaseLayout>
+
