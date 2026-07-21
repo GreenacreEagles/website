@@ -1,0 +1,65 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: venues }, { data: products }, { data: orders }] = await Promise.all([
+  session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
+  session.supabase.from("canteen_products").select("id,name,description,price_cents,is_active,is_sold_out,canteen_categories(name)").eq("is_active", true).limit(60),
+  session.supabase.from("canteen_orders").select("id,order_number,order_status,payment_status,total_cents,pickup_window_start,canteen_venues(name)").or(`customer_id.eq.${session.user.id},recipient_id.eq.${session.user.id}`).order("created_at", { ascending: false }).limit(20)
+]);
+---
+
+<PortalLayout title="Canteen" section="Match day" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+    <section class="grid gap-4">
+      {(products ?? []).length === 0 && <EmptyState title="Canteen menu coming soon" text="Available food, drinks and match day items will appear here once the canteen menu is published." />}
+      {(products ?? []).map((product: any) => (
+        <article class="surface p-5">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p class="eyebrow">{product.canteen_categories?.name ?? "Canteen"}</p>
+              <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{product.name}</h2>
+              <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{product.description ?? "Available on selected match days."}</p>
+            </div>
+            <p class="text-2xl font-black text-eagles-green">{formatMoney(product.price_cents)}</p>
+          </div>
+        </article>
+      ))}
+    </section>
+    <aside class="grid gap-5 content-start">
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Canteen venues</h2>
+        <div class="mt-4 grid gap-3">
+          {(venues ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Canteen locations will appear here.</p>}
+          {(venues ?? []).map((venue) => (
+            <div class="border-t border-eagles-line pt-3">
+              <p class="font-black">{venue.name}</p>
+              <p class="text-sm text-eagles-ink/70">{venue.is_active ? "Open for club service" : "Currently inactive"}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">My orders</h2>
+        <div class="mt-4 grid gap-3">
+          {(orders ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Your canteen orders will appear here.</p>}
+          {(orders ?? []).map((order: any) => (
+            <div class="border-t border-eagles-line pt-3">
+              <p class="font-black">Order {order.order_number}</p>
+              <p class="text-sm text-eagles-ink/70">{formatMoney(order.total_cents)} - {formatDateTime(order.pickup_window_start)}</p>
+              <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
+            </div>
+          ))}
+        </div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>

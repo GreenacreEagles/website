@@ -1,0 +1,49 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+
+const teamIds = session.roleAssignments.map((assignment) => assignment.team?.id).filter(Boolean) as string[];
+const canViewAll = session.permissions.has("*") || session.permissions.has("club_structure.manage") || session.permissions.has("teams.manage");
+let fixtures: any[] = [];
+if (canViewAll || teamIds.length > 0) {
+  let query = session.supabase
+    .from("fixtures")
+    .select("id,opponent,round,home_away,starts_at,status,external_url,teams(name),seasons(name),venues(name,suburb),competitions(name)")
+    .order("starts_at", { ascending: true })
+    .limit(80);
+  if (!canViewAll) query = query.in("team_id", teamIds);
+  const { data } = await query;
+  fixtures = data ?? [];
+}
+---
+
+<PortalLayout title="Fixtures" section="Match day" session={session}>
+  <section class="grid gap-4">
+    {fixtures.length === 0 && <EmptyState title="No fixtures published" text="Team fixtures will appear here once draws are connected to your approved teams." />}
+    {fixtures.map((fixture) => (
+      <article class="surface p-5">
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p class="eyebrow">{fixture.teams?.name ?? "Greenacre Eagles"} {fixture.round ? `- ${fixture.round}` : ""}</p>
+            <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">vs {fixture.opponent}</h2>
+            <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{formatDateTime(fixture.starts_at)} at {fixture.venues?.name ?? "venue TBC"}</p>
+          </div>
+          <StatusBadge label={statusLabel(fixture.status)} tone={fixture.status === "confirmed" ? "green" : "amber"} />
+        </div>
+        <div class="mt-4 flex flex-wrap gap-3 text-sm font-bold text-eagles-ink/70">
+          <span>{fixture.home_away ?? "Home/away TBC"}</span>
+          <span>{fixture.competitions?.name ?? "Competition TBC"}</span>
+          {fixture.external_url && <a class="text-eagles-green" href={fixture.external_url}>Official fixture</a>}
+        </div>
+      </article>
+    ))}
+  </section>
+</PortalLayout>

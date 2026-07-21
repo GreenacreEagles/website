@@ -1,0 +1,20 @@
+---
+interface Props {
+  title: string;
+  text: string;
+  href?: string;
+  action?: string;
+}
+
+const { title, text, href, action } = Astro.props;
+---
+
+<article class="border border-dashed border-eagles-line bg-white p-5 text-center" style="border-radius:8px">
+  <h2 class="font-display text-2xl font-black uppercase leading-none text-eagles-ink">{title}</h2>
+  <p class="mx-auto mt-3 max-w-2xl text-sm leading-6 text-eagles-ink/70">{text}</p>
+  {href && action && (
+    <a class="mt-4 inline-flex bg-eagles-green px-4 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href={href}>
+      {action}
+    </a>
+  )}
+</article>

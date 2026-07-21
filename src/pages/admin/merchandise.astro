@@ -1,0 +1,44 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["merchandise.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: products }, { data: orders }] = await Promise.all([
+  session.supabase.from("merchandise_products").select("id,name,category,status,featured,merchandise_variants(size,colour,price_cents,stock_quantity,is_active)").order("updated_at", { ascending: false }).limit(100),
+  session.supabase.from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at,profiles:customer_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Merchandise management" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Products</h2>
+      <div class="mt-5 grid gap-3">
+        {(products ?? []).length === 0 && <EmptyState title="No merchandise products" text="Club shop products and stock levels will appear here." />}
+        {(products ?? []).map((product: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{product.name}</p>
+            <p class="text-sm text-eagles-ink/70">{product.category ?? "Club shop"} - {product.merchandise_variants?.length ?? 0} variants</p>
+            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(product.status)} tone={product.status === "active" ? "green" : "amber"} />{product.featured && <StatusBadge label="Featured" tone="ink" />}</div>
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="surface p-5">
+      <h2 class="font-display text-2xl font-black uppercase leading-none">Orders</h2>
+      <div class="mt-4 grid gap-3">
+        {(orders ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No merchandise orders yet.</p>}
+        {(orders ?? []).map((order: any) => (
+          <p class="border-t border-eagles-line pt-3 text-sm"><strong>Order {order.order_number}</strong><br />{order.profiles?.full_name ?? order.profiles?.email} - {formatMoney(order.total_cents)} - {formatDateTime(order.created_at)}</p>
+        ))}
+      </div>
+    </aside>
+  </div>
+</PortalLayout>

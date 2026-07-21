@@ -1,0 +1,42 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["events.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: events }, { data: registrations }] = await Promise.all([
+  session.supabase.from("club_events").select("id,title,status,visibility,starts_at,capacity,price_cents,venues(name)").order("starts_at", { ascending: false }).limit(80),
+  session.supabase.from("event_registrations").select("id,status,created_at,club_events(title),profiles:attendee_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Event management" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Events</h2>
+      <div class="mt-5 grid gap-3">
+        {(events ?? []).length === 0 && <EmptyState title="No events" text="Club events and registration windows will appear here." />}
+        {(events ?? []).map((event: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{event.title}</p>
+            <p class="text-sm text-eagles-ink/70">{formatDateTime(event.starts_at)} - {event.venues?.name ?? "venue TBC"} - {formatMoney(event.price_cents)}</p>
+            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(event.status)} tone={event.status === "published" ? "green" : "amber"} /><StatusBadge label={statusLabel(event.visibility)} tone="ink" /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="surface p-5">
+      <h2 class="font-display text-2xl font-black uppercase leading-none">Registrations</h2>
+      <div class="mt-4 grid gap-3">
+        {(registrations ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No event registrations yet.</p>}
+        {(registrations ?? []).map((registration: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{registration.profiles?.full_name ?? registration.profiles?.email ?? "Attendee"}</strong><br />{registration.club_events?.title ?? "Event"} - {statusLabel(registration.status)}</p>)}
+      </div>
+    </aside>
+  </div>
+</PortalLayout>

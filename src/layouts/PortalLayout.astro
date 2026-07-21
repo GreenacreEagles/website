@@ -23,7 +23,17 @@ const portalNav: NavItem[] = [
   { href: "/portal/", label: "Dashboard" },
   { href: "/portal/account/", label: "My account" },
   { href: "/portal/roles/", label: "My roles" },
-  { href: "/portal/role-requests/", label: "Role requests" }
+  { href: "/portal/role-requests/", label: "Role requests" },
+  { href: "/portal/teams/", label: "Teams" },
+  { href: "/portal/fixtures/", label: "Fixtures" },
+  { href: "/portal/family/", label: "Family" },
+  { href: "/portal/events/", label: "Events" },
+  { href: "/portal/volunteers/", label: "Volunteers" },
+  { href: "/portal/canteen/", label: "Canteen" },
+  { href: "/portal/vouchers/", label: "Wallet" },
+  { href: "/portal/merchandise/", label: "Merchandise" },
+  { href: "/portal/coaching/", label: "Coaching", permissions: ["coaching_resources.read", "teams.manage"] },
+  { href: "/portal/notifications/", label: "Notifications" }
 ];
 
 const adminNav: NavItem[] = [
@@ -33,9 +43,20 @@ const adminNav: NavItem[] = [
   { href: "/admin/role-requests/", label: "Request review", permissions: ["roles.review"] },
   { href: "/admin/roles/", label: "Roles & permissions", permissions: ["roles.read"] },
   { href: "/admin/teams/", label: "Seasons & teams", permissions: ["club_structure.manage", "roles.assign"] },
+  { href: "/admin/fixtures/", label: "Fixtures", permissions: ["club_structure.manage", "teams.manage", "match_reports.read"] },
+  { href: "/admin/players/", label: "Players & families", permissions: ["players.manage", "families.manage", "users.read"] },
+  { href: "/admin/volunteers/", label: "Volunteers", permissions: ["volunteers.manage"] },
+  { href: "/admin/canteen/", label: "Canteen", permissions: ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"] },
+  { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage"] },
+  { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
+  { href: "/admin/content/", label: "Content", permissions: ["content.manage"] },
+  { href: "/admin/communications/", label: "Communications", permissions: ["communications.manage"] },
+  { href: "/admin/sponsors/", label: "Sponsors", permissions: ["sponsors.manage"] },
+  { href: "/admin/settings/", label: "Settings", permissions: ["settings.manage"] },
   { href: "/admin/audit/", label: "Audit activity", permissions: ["audit.read"] }
 ];
 
+const visiblePortalNav = portalNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const visibleAdminNav = adminNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const showAdmin = canAccessAdmin(session.permissions);
 const activePath = Astro.url.pathname;
@@ -62,7 +83,7 @@ const displayName = session.profile.preferred_name || session.profile.full_name 
           </form>
         </div>
         <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
-          {portalNav.map((item) => (
+          {visiblePortalNav.map((item) => (
             <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
           ))}
         </nav>

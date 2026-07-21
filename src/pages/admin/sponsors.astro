@@ -1,0 +1,39 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["sponsors.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const { data: sponsors } = await session.supabase
+  .from("sponsors")
+  .select("id,name,tier,status,starts_on,ends_on,contact_name,contact_email,display_priority,website_url")
+  .order("display_priority")
+  .limit(100);
+---
+
+<PortalLayout title="Sponsors" section="Administration" session={session}>
+  <section class="surface p-5 md:p-7">
+    <h2 class="font-display text-3xl font-black uppercase leading-none">Club partners</h2>
+    <div class="mt-5 grid gap-3">
+      {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors in the portal" text="Current club partners will appear here when sponsorship records are connected." />}
+      {(sponsors ?? []).map((sponsor) => (
+        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p class="font-black">{sponsor.name}</p>
+              <p class="text-sm text-eagles-ink/70">{sponsor.tier ?? "Club partner"} - {formatDate(sponsor.starts_on)} to {formatDate(sponsor.ends_on)}</p>
+              <p class="text-xs text-eagles-ink/60">{sponsor.contact_name ?? "Contact TBC"} {sponsor.contact_email ? `- ${sponsor.contact_email}` : ""}</p>
+            </div>
+            <StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+</PortalLayout>

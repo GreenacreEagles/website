@@ -1,0 +1,52 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["club_structure.manage", "teams.manage", "match_reports.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: fixtures }, { data: training }, { data: reports }] = await Promise.all([
+  session.supabase.from("fixtures").select("id,opponent,round,home_away,starts_at,status,teams(name),seasons(name),venues(name)").order("starts_at", { ascending: true }).limit(80),
+  session.supabase.from("training_sessions").select("id,starts_at,ends_at,status,teams(name),venues(name)").order("starts_at", { ascending: true }).limit(40),
+  session.supabase.from("match_reports").select("id,status,result,final_score_for,final_score_against,teams(name),fixtures(opponent,starts_at),profiles:author_id(full_name,email)").order("created_at", { ascending: false }).limit(40)
+]);
+---
+
+<PortalLayout title="Fixtures and reports" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Fixtures</h2>
+      <div class="mt-5 grid gap-3">
+        {(fixtures ?? []).length === 0 && <EmptyState title="No fixtures" text="Fixtures will appear here when team draws are entered." />}
+        {(fixtures ?? []).map((fixture: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{fixture.teams?.name ?? "Team"} vs {fixture.opponent}</p>
+            <p class="text-sm text-eagles-ink/70">{formatDateTime(fixture.starts_at)} - {fixture.venues?.name ?? "venue TBC"}</p>
+            <StatusBadge label={statusLabel(fixture.status)} tone={fixture.status === "confirmed" ? "green" : "amber"} />
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="grid gap-5 content-start">
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Training</h2>
+        <div class="mt-4 grid gap-3">
+          {(training ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No training sessions scheduled.</p>}
+          {(training ?? []).map((item: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{item.teams?.name ?? "Club"}</strong><br />{formatDateTime(item.starts_at)}</p>)}
+        </div>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Match reports</h2>
+        <div class="mt-4 grid gap-3">
+          {(reports ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No match reports submitted.</p>}
+          {(reports ?? []).map((report: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{report.teams?.name ?? "Team"}</strong><br />{statusLabel(report.status)} - {report.result ?? "result TBC"}</p>)}
+        </div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>

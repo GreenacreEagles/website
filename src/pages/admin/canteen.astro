@@ -1,0 +1,42 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: venues }, { data: products }, { data: orders }, { data: vouchers }] = await Promise.all([
+  session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
+  session.supabase.from("canteen_products").select("id,name,price_cents,is_active,is_sold_out,canteen_categories(name)").order("name").limit(100),
+  session.supabase.from("canteen_orders").select("id,order_number,order_status,payment_status,total_cents,created_at,profiles:customer_id(full_name,email),canteen_venues(name)").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("voucher_issuances").select("id,voucher_type,status,remaining_value_cents,expires_at,profiles:beneficiary_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Canteen operations" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Orders</h2>
+      <div class="mt-5 grid gap-3">
+        {(orders ?? []).length === 0 && <EmptyState title="No canteen orders" text="Match day canteen orders will appear here once ordering is enabled." />}
+        {(orders ?? []).map((order: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">Order {order.order_number} - {formatMoney(order.total_cents)}</p>
+            <p class="text-sm text-eagles-ink/70">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} - {formatDateTime(order.created_at)}</p>
+            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="grid gap-5 content-start">
+      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Products</h2><div class="mt-4 grid gap-3">{(products ?? []).map((product: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{product.name}</strong><br />{formatMoney(product.price_cents)} - {product.is_sold_out ? "sold out" : product.is_active ? "available" : "hidden"}</p>)}</div></article>
+      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Venues</h2><div class="mt-4 grid gap-3">{(venues ?? []).map((venue) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{venue.name}</strong><br />{venue.is_active ? "active" : "inactive"}</p>)}</div></article>
+      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Vouchers</h2><div class="mt-4 grid gap-3">{(vouchers ?? []).map((voucher: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{voucher.profiles?.full_name ?? "Member"}</strong><br />{formatMoney(voucher.remaining_value_cents)} - {statusLabel(voucher.status)}</p>)}</div></article>
+    </aside>
+  </div>
+</PortalLayout>

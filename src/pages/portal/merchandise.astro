@@ -1,0 +1,52 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: products }, { data: orders }] = await Promise.all([
+  session.supabase.from("merchandise_products").select("id,name,description,category,status,featured,image_url,merchandise_variants(size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status", "active").order("featured", { ascending: false }).limit(60),
+  session.supabase.from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at").eq("customer_id", session.user.id).order("created_at", { ascending: false }).limit(20)
+]);
+---
+
+<PortalLayout title="Merchandise" section="Club shop" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+    <section class="grid gap-4 md:grid-cols-2">
+      {(products ?? []).length === 0 && <EmptyState title="Club shop coming soon" text="Kit, training gear and supporter items will appear here once merchandise is published." />}
+      {(products ?? []).map((product: any) => {
+        const firstVariant = product.merchandise_variants?.find((variant: any) => variant.is_active) ?? product.merchandise_variants?.[0];
+        return (
+          <article class="surface overflow-hidden">
+            {product.image_url && <img src={product.image_url} alt="" class="h-52 w-full object-cover" loading="lazy" />}
+            <div class="p-5">
+              <p class="eyebrow">{product.category ?? "Club merchandise"}</p>
+              <h2 class="mt-2 font-display text-2xl font-black uppercase leading-none text-eagles-ink">{product.name}</h2>
+              <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{product.description ?? "Greenacre Eagles club gear."}</p>
+              <p class="mt-4 text-2xl font-black text-eagles-green">{firstVariant ? formatMoney(firstVariant.sale_price_cents ?? firstVariant.price_cents) : "Price TBC"}</p>
+            </div>
+          </article>
+        );
+      })}
+    </section>
+    <aside class="surface p-5">
+      <h2 class="font-display text-2xl font-black uppercase leading-none">My orders</h2>
+      <div class="mt-4 grid gap-3">
+        {(orders ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Your merchandise orders will appear here.</p>}
+        {(orders ?? []).map((order) => (
+          <div class="border-t border-eagles-line pt-3">
+            <p class="font-black">Order {order.order_number}</p>
+            <p class="text-sm text-eagles-ink/70">{formatMoney(order.total_cents)} - {formatDateTime(order.created_at)}</p>
+            <StatusBadge label={statusLabel(order.status)} tone={order.status === "completed" ? "green" : "amber"} />
+          </div>
+        ))}
+      </div>
+    </aside>
+  </div>
+</PortalLayout>

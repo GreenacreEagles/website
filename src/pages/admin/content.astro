@@ -1,0 +1,42 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["content.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: articles }, { data: announcements }] = await Promise.all([
+  session.supabase.from("content_articles").select("id,title,category,workflow_status,publish_at,updated_at,profiles:author_id(full_name,email)").order("updated_at", { ascending: false }).limit(80),
+  session.supabase.from("club_announcements").select("id,title,status,priority,starts_at,ends_at,updated_at").order("updated_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Content" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Articles</h2>
+      <div class="mt-5 grid gap-3">
+        {(articles ?? []).length === 0 && <EmptyState title="No articles" text="Club articles, match reports and public updates will appear here once publishing is enabled." />}
+        {(articles ?? []).map((article: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{article.title}</p>
+            <p class="text-sm text-eagles-ink/70">{article.category ?? "Club news"} - updated {formatDateTime(article.updated_at)}</p>
+            <StatusBadge label={statusLabel(article.workflow_status)} tone={article.workflow_status === "published" ? "green" : "amber"} />
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="surface p-5">
+      <h2 class="font-display text-2xl font-black uppercase leading-none">Announcements</h2>
+      <div class="mt-4 grid gap-3">
+        {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No announcements yet.</p>}
+        {(announcements ?? []).map((notice) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{statusLabel(notice.status)} - priority {notice.priority}</p>)}
+      </div>
+    </aside>
+  </div>
+</PortalLayout>

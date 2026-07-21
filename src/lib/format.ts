@@ -15,3 +15,6 @@ export const formatDateTime = (value?: string | null) => {
 };
 
 export const statusLabel = (value?: string | null) => (value ? value.replaceAll("_", " ") : "Unknown");
+
+export const formatMoney = (cents?: number | null) =>
+  new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format((cents ?? 0) / 100);

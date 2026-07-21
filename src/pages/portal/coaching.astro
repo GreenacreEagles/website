@@ -1,0 +1,36 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["coaching_resources.read", "teams.manage", "club_structure.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const { data: resources } = await session.supabase
+  .from("coaching_resources")
+  .select("id,title,summary,resource_type,status,visibility,duration_minutes,age_group_tags,skill_level_tags,equipment_required,created_at")
+  .order("updated_at", { ascending: false })
+  .limit(80);
+---
+
+<PortalLayout title="Coaching resources" section="Football" session={session}>
+  <section class="grid gap-4 md:grid-cols-2">
+    {(resources ?? []).length === 0 && <EmptyState title="No coaching resources published" text="Session plans, drills and team resources will appear here for approved coaches and football staff." />}
+    {(resources ?? []).map((resource) => (
+      <article class="surface p-5">
+        <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
+        <h2 class="mt-2 font-display text-2xl font-black uppercase leading-none text-eagles-ink">{resource.title}</h2>
+        <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{resource.summary ?? "Football resource for Greenacre Eagles coaching staff."}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <StatusBadge label={statusLabel(resource.status)} tone={resource.status === "published" ? "green" : "amber"} />
+          <StatusBadge label={`${resource.duration_minutes ?? 0} min`} tone="ink" />
+          <StatusBadge label={formatDate(resource.created_at)} tone="ink" />
+        </div>
+      </article>
+    ))}
+  </section>
+</PortalLayout>

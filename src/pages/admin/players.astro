@@ -1,0 +1,52 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["players.manage", "families.manage", "users.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: players }, { data: families }, { data: teamPlayers }] = await Promise.all([
+  session.supabase.from("player_records").select("id,registration_status,photo_consent,code_of_conduct_accepted_at,profiles:user_id(full_name,preferred_name,email),seasons(name,year)").order("created_at", { ascending: false }).limit(100),
+  session.supabase.from("families").select("id,name,created_at,family_members(id,status,relationship,is_primary_guardian,profiles:user_id(full_name,email))").order("name").limit(100),
+  session.supabase.from("team_players").select("id,status,squad_number,teams(name),player_records(profiles:user_id(full_name,email),seasons(name))").order("created_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Players and families" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
+      <div class="mt-5 grid gap-3">
+        {(players ?? []).length === 0 && <EmptyState title="No player records" text="Player registrations will appear here once the registrar connects them." />}
+        {(players ?? []).map((player: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{player.profiles?.preferred_name || player.profiles?.full_name || player.profiles?.email}</p>
+            <p class="text-sm text-eagles-ink/70">{player.seasons?.name ?? "Season"} - code of conduct {formatDate(player.code_of_conduct_accepted_at)}</p>
+            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(player.registration_status)} tone="green" /><StatusBadge label={player.photo_consent ? "Photo consent" : "No photo consent"} tone={player.photo_consent ? "green" : "amber"} /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="grid gap-5 content-start">
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Families</h2>
+        <div class="mt-4 grid gap-3">
+          {(families ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No family groups yet.</p>}
+          {(families ?? []).map((family: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{family.name}</strong><br />{family.family_members?.length ?? 0} linked members</p>)}
+        </div>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Team links</h2>
+        <div class="mt-4 grid gap-3">
+          {(teamPlayers ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No player team links yet.</p>}
+          {(teamPlayers ?? []).map((link: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{link.player_records?.profiles?.full_name ?? "Player"}</strong><br />{link.teams?.name ?? "Team"} - {statusLabel(link.status)}</p>)}
+        </div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>

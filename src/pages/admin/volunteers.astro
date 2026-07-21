@@ -1,0 +1,46 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["volunteers.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const [{ data: opportunities }, { data: shifts }, { data: assignments }] = await Promise.all([
+  session.supabase.from("volunteer_opportunities").select("id,title,description,opportunity_type,status").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venues(name)").order("starts_at", { ascending: true }).limit(80),
+  session.supabase.from("volunteer_assignments").select("id,status,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80)
+]);
+---
+
+<PortalLayout title="Volunteer management" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Opportunities</h2>
+      <div class="mt-5 grid gap-3">
+        {(opportunities ?? []).length === 0 && <EmptyState title="No volunteer opportunities" text="Setup, canteen, barbecue, marshal and pack-down roles will appear here once scheduled." />}
+        {(opportunities ?? []).map((item) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <p class="font-black">{item.title}</p>
+            <p class="text-sm text-eagles-ink/70">{item.description ?? statusLabel(item.opportunity_type)}</p>
+            <StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "amber"} />
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="grid gap-5 content-start">
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Shifts</h2>
+        <div class="mt-4 grid gap-3">{(shifts ?? []).map((shift: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{shift.volunteer_opportunities?.title ?? "Shift"}</strong><br />{formatDateTime(shift.starts_at)} - {shift.capacity} spots</p>)}</div>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Assignments</h2>
+        <div class="mt-4 grid gap-3">{(assignments ?? []).map((assignment: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{assignment.profiles?.full_name ?? assignment.profiles?.email}</strong><br />{assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Shift"} - {statusLabel(assignment.status)}</p>)}</div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>

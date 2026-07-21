@@ -1,0 +1,34 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["settings.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const { data: settings } = await session.supabase
+  .from("system_settings")
+  .select("key,description,value,updated_at,profiles:updated_by(full_name,email)")
+  .order("key")
+  .limit(100);
+---
+
+<PortalLayout title="Settings" section="Administration" session={session}>
+  <section class="surface p-5 md:p-7">
+    <h2 class="font-display text-3xl font-black uppercase leading-none">System settings</h2>
+    <div class="mt-5 grid gap-3">
+      {(settings ?? []).length === 0 && <EmptyState title="No settings records" text="Club-wide configuration records will appear here once operational settings are enabled." />}
+      {(settings ?? []).map((setting: any) => (
+        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+          <p class="font-black">{setting.key}</p>
+          <p class="mt-1 text-sm text-eagles-ink/70">{setting.description ?? "Club platform setting"}</p>
+          <p class="mt-2 break-all bg-eagles-mist p-3 text-xs text-eagles-ink/70" style="border-radius:8px">{JSON.stringify(setting.value)}</p>
+          <p class="mt-2 text-xs text-eagles-ink/60">Updated {formatDateTime(setting.updated_at)} by {setting.profiles?.full_name ?? setting.profiles?.email ?? "system"}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</PortalLayout>
