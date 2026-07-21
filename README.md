@@ -2,17 +2,17 @@
 
 Modern Astro rebuild for the Greenacre Eagles community football club website.
 
-This repo uses GitHub as the source repository only. The production target is Cloudflare Pages, not GitHub Pages or Jekyll.
+This repo uses GitHub as the source repository only. The production target is Cloudflare, not GitHub Pages or Jekyll.
 
 ## Stack
 
-- Astro static site
+- Astro static-first website with server-rendered portal routes
 - Tailwind CSS
 - Astro content collections
 - Pages CMS configuration for Git-based editing
 - Local Lucide-style SVG icon component
 - Astro sitemap
-- Static hosting target: Cloudflare Pages
+- Hosting target: Cloudflare Workers, with Cloudflare Pages available as a static public fallback
 
 ## Local Development
 
@@ -31,15 +31,27 @@ npm run build
 
 Static output is generated in `dist/`.
 
-## Cloudflare Pages Deployment
+## Cloudflare Deployment
 
-1. Connect this GitHub repo in Cloudflare Pages.
-2. Set the framework preset to `Astro`.
-3. Build command: `npm run build`.
-4. Build output directory: `dist`.
-5. Node version: `22` (`.node-version` is included; `NODE_VERSION=22` can also be set in Cloudflare).
-6. Add `SITE_URL` as an environment variable when the real domain is confirmed.
-7. Deploy from the main production branch after preview approval.
+The protected portal and admin routes need the Astro server build, so the full app is deployed as a Cloudflare Worker.
+
+```bash
+npm run deploy:worker
+```
+
+Before deploying locally, authenticate Wrangler with `wrangler login` or set `CLOUDFLARE_API_TOKEN`.
+
+Worker settings:
+
+- Worker name: `greenacre-eagles-website`
+- Build command: `npm run build`
+- Deploy command: `npm run deploy:worker`
+- Worker entry: `dist/server/entry.mjs`
+- Static assets directory: `dist/client`
+- Required KV binding: `SESSION`
+- Runtime config: `wrangler.jsonc`
+
+The existing Cloudflare Pages project can stay connected as a static public fallback. Its output directory must be `dist/client`. Pages alone will not serve `/portal/`, `/admin/`, or `/api/` routes.
 
 GitHub Pages should remain disabled for this repo. There is no Jekyll configuration, and `.nojekyll` is included only as a defensive signal.
 
@@ -92,7 +104,7 @@ Shared site settings live in `src/data/site.ts`.
 
 The v1 forms use `mailto:` so the UI is present without a paid service. Best next options for production are:
 
-- Cloudflare Pages Functions with email forwarding or a notification provider
+- Cloudflare Workers routes with email forwarding or a notification provider
 - Formspree free tier for a quick managed option
 - Google Forms for a lightweight no-code option
 - Netlify Forms only if the site moves to Netlify
@@ -113,5 +125,5 @@ The v1 forms use `mailto:` so the UI is present without a paid service. Best nex
 ## Deployment Notes
 
 - Do not add GitHub Pages workflows or Jekyll plugins.
-- Keep generated output out of Git; Cloudflare Pages builds `dist/`.
-- Future admin options should preserve the static-first model: Git-backed CMS, Cloudflare Pages Functions only for forms or small server-side integrations, and content stored under `src/content`.
+- Keep generated output out of Git; Cloudflare builds `dist/`.
+- Future admin options should preserve the static-first public model while using Supabase and server-rendered Worker routes for authenticated club operations.

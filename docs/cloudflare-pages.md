@@ -1,14 +1,43 @@
-# Cloudflare Pages Deployment
+# Cloudflare Deployment
 
-This project uses GitHub as the source repository only. Cloudflare Pages should build and host the public website and protected portal.
+This project uses GitHub as the source repository only. Cloudflare should host the public website and protected club portal.
 
 Do not enable GitHub Pages for this repository. Do not add Jekyll, `jekyll-theme-primer`, `_config.yml`, or GitHub Pages workflows.
 
-## Cloudflare Settings
+## Current Production Runtime
+
+The Greenacre Eagles portal contains protected server-rendered routes such as `/portal/`, `/admin/`, and `/api/`. The installed `@astrojs/cloudflare` adapter now targets Cloudflare Workers for this kind of Astro SSR app.
+
+Deploy the full website and portal as a Cloudflare Worker:
+
+- Worker name: `greenacre-eagles-website`
+- Compatibility date: `2026-04-15`
+- Build command: `npm run build`
+- Deploy command: `npm run deploy:worker`
+- Worker entry: `dist/server/entry.mjs`
+- Static assets directory: `dist/client`
+- Static assets binding: `ASSETS`
+- Required KV binding: `SESSION`
+
+The root `wrangler.jsonc` supplies build-time Cloudflare settings. Astro writes the deployable Worker config to `dist/server/wrangler.json`, and `npm run deploy:worker` deploys from that generated config. `wrangler deploy` can automatically provision the `SESSION` KV namespace.
+
+Local deploys require Wrangler authentication. Run `wrangler login` in an interactive terminal, or set `CLOUDFLARE_API_TOKEN` with Workers deploy permissions before running `npm run deploy:worker`.
+
+Required runtime variables:
+
+- `SITE_URL`: set this to the active production Worker or custom domain.
+- `PUBLIC_SUPABASE_URL`: Supabase project URL for browser auth and portal calls.
+- `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
+
+## Cloudflare Pages Fallback
+
+The existing Cloudflare Pages project can remain as a static public fallback, but it cannot run protected admin and portal routes by itself.
+
+Pages settings:
 
 - Framework preset: `Astro`
 - Build command: `npm run build`
-- Build output directory: `dist`
+- Build output directory: `dist/client`
 - Node version: `22`
 - Production branch: `main`, unless the repo owner chooses another branch
 
@@ -33,14 +62,11 @@ Production and preview variables have been configured in Cloudflare Pages for th
 
 Astro is configured with `@astrojs/cloudflare` and `output: "server"`.
 
-Public marketing/content pages are prerendered into the build output. Protected portal, admin, and API routes run through Cloudflare Pages Functions so authentication and authorization happen server-side.
-
-Cloudflare Pages still uses `dist` as the output directory.
+Public marketing/content pages are prerendered into `dist/client`. Protected portal, admin, and API routes run through the Cloudflare Worker server output in `dist/server`.
 
 Required runtime bindings:
 
 - `SESSION`: Workers KV binding used by Astro sessions.
-- `IMAGES`: Cloudflare Images binding used by the Cloudflare adapter image service when enabled.
 
 Cloudflare Pages reads these files from `public/` during the build:
 
@@ -63,7 +89,7 @@ The public website is static-first. Editable content lives in Markdown collectio
 - `teams`
 - `announcements`
 
-This keeps the public site fast, portable, and easy for Cloudflare Pages to build.
+This keeps the public site fast, portable, and easy to build.
 
 ## Future Admin Direction
 

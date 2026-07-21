@@ -10,6 +10,7 @@
     "dev": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "build": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "deploy:worker": "npm run build && wrangler deploy --config dist/server/wrangler.json",
     "serve:dist": "node scripts/serve-dist.mjs",
     "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro build",
     "typecheck": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",

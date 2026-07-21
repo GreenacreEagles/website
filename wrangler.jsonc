@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "greenacre-eagles-website",
+  "compatibility_date": "2026-04-15",
+  "assets": {
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SESSION"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://greenacre-eagles-website.a-saa.workers.dev",
+    "PUBLIC_SUPABASE_URL": "https://qzqezldtklimtupajvxf.supabase.co",
+    "PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_oHngmVOaKbcev-wt-PWaYg_qk9zOunh"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

@@ -17,7 +17,9 @@ const removeToolbarOptimizerDeps = () => ({
 export default defineConfig({
   site,
   output: "server",
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    imageService: "passthrough"
+  }),
   devToolbar: {
     enabled: false
   },
