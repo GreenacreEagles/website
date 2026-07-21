@@ -13,6 +13,8 @@ const readEnv = (context: RuntimeContext, key: string) =>
 export const createSupabaseServerClient = (context: RuntimeContext) => {
   const supabaseUrl = readEnv(context, "PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = readEnv(context, "PUBLIC_SUPABASE_ANON_KEY");
+  const requestUrl = new URL(context.request.url);
+  const secureCookies = requestUrl.protocol === "https:";
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase public environment variables are not configured.");
@@ -38,7 +40,7 @@ export const createSupabaseServerClient = (context: RuntimeContext) => {
           context.cookies.set(name, value, {
             ...options,
             path: options.path ?? "/",
-            secure: true,
+            secure: secureCookies,
             httpOnly: true,
             sameSite: "lax"
           });
