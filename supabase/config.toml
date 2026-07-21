@@ -1,0 +1,19 @@
+project_id = "qzqezldtklimtupajvxf"
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:4321"
+additional_redirect_urls = [
+  "http://localhost:4321/auth/callback",
+  "https://website-4h5.pages.dev/auth/callback",
+  "https://greenacreeaglesfc.com.au/auth/callback"
+]
+
+[db]
+major_version = 17

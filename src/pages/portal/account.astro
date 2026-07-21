@@ -1,0 +1,133 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Account" description="Manage your Greenacre Eagles FC portal profile.">
+  <section class="section-pad bg-white">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.85fr_1.15fr]">
+      <div>
+        <p class="eyebrow">Account</p>
+        <h1 class="mt-3 font-display text-5xl font-black uppercase leading-none text-eagles-ink md:text-7xl">Profile details</h1>
+        <p class="mt-5 text-lg leading-8 text-eagles-ink/70">
+          Keep your contact details current so the club can reach you about teams, events, volunteering, orders, and important updates.
+        </p>
+      </div>
+
+      <form class="surface grid gap-5 p-5 md:p-7" data-account-form>
+        <div class="grid gap-4 md:grid-cols-2">
+          <label>
+            <span class="label">Full name</span>
+            <input class="field" name="full_name" autocomplete="name" required />
+          </label>
+          <label>
+            <span class="label">Preferred name</span>
+            <input class="field" name="preferred_name" />
+          </label>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <label>
+            <span class="label">Mobile</span>
+            <input class="field" name="mobile" autocomplete="tel" />
+          </label>
+          <label>
+            <span class="label">Relationship to the club</span>
+            <select class="field" name="relationship_to_club">
+              <option value="">Select one</option>
+              <option>Parent or guardian</option>
+              <option>Player</option>
+              <option>Coach</option>
+              <option>Volunteer</option>
+              <option>Supporter</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <label>
+            <span class="label">Emergency contact</span>
+            <input class="field" name="emergency_contact_name" />
+          </label>
+          <label>
+            <span class="label">Emergency phone</span>
+            <input class="field" name="emergency_contact_phone" autocomplete="tel" />
+          </label>
+        </div>
+        <div class="grid gap-3 text-sm leading-6 text-eagles-ink/70">
+          <label class="flex items-center gap-3"><input name="communication_email" type="checkbox" /> Email updates</label>
+          <label class="flex items-center gap-3"><input name="communication_sms" type="checkbox" /> SMS updates where available</label>
+        </div>
+        <button class="focus-ring inline-flex items-center justify-center bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">
+          Save profile
+        </button>
+        <button class="focus-ring inline-flex items-center justify-center px-5 py-3 text-sm font-black text-eagles-green hover:text-eagles-ink" type="button" data-sign-out>
+          Sign out
+        </button>
+        <p class="hidden text-sm font-bold" data-account-message></p>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { isSupabaseConfigured, supabase } from "@lib/supabaseClient";
+
+  const form = document.querySelector("[data-account-form]");
+  const message = document.querySelector("[data-account-message]");
+  const signOut = document.querySelector("[data-sign-out]");
+
+  const showMessage = (text, isError = false) => {
+    if (!message) return;
+    message.textContent = text;
+    message.classList.remove("hidden", "text-eagles-green", "text-red-700");
+    message.classList.add(isError ? "text-red-700" : "text-eagles-green");
+  };
+
+  if (!isSupabaseConfigured || !supabase) {
+    showMessage("Portal configuration is missing. Add Supabase environment variables before using account management.", true);
+  } else {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) {
+      window.location.href = "/login/";
+    } else {
+      const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      if (profile && form instanceof HTMLFormElement) {
+        for (const [key, value] of Object.entries(profile)) {
+          const field = form.elements.namedItem(key);
+          if (field instanceof HTMLInputElement && field.type === "checkbox") field.checked = Boolean(value);
+          else if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) field.value = value ? String(value) : "";
+        }
+      }
+    }
+  }
+
+  form?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!supabase || !(form instanceof HTMLFormElement)) return;
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) {
+      window.location.href = "/login/";
+      return;
+    }
+
+    const formData = new FormData(form);
+    const payload = {
+      full_name: String(formData.get("full_name") || ""),
+      preferred_name: String(formData.get("preferred_name") || ""),
+      mobile: String(formData.get("mobile") || ""),
+      relationship_to_club: String(formData.get("relationship_to_club") || ""),
+      emergency_contact_name: String(formData.get("emergency_contact_name") || ""),
+      emergency_contact_phone: String(formData.get("emergency_contact_phone") || ""),
+      communication_email: formData.has("communication_email"),
+      communication_sms: formData.has("communication_sms"),
+      onboarding_completed_at: new Date().toISOString()
+    };
+    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
+    showMessage(error ? error.message : "Profile saved.", Boolean(error));
+  });
+
+  signOut?.addEventListener("click", async () => {
+    await supabase?.auth.signOut();
+    window.location.href = "/";
+  });
+</script>

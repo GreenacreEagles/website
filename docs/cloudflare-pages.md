@@ -12,11 +12,22 @@ Do not enable GitHub Pages for this repository. Do not add Jekyll, `jekyll-theme
 - Node version: `22`
 - Production branch: `main`, unless the repo owner chooses another branch
 
+Current Pages project:
+
+- Project name: `website`
+- Pages domain: `https://website-4h5.pages.dev`
+- GitHub source: `GreenacreEagles/website`
+- Production branch: `main`
+- Latest checked production deployment: successful
+
 ## Environment Variables
 
 - `SITE_URL`: set this to the production domain once confirmed, for example `https://greenacreeaglesfc.com.au`.
+- `PUBLIC_SUPABASE_URL`: Supabase project URL for browser auth and portal calls.
+- `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
+- `NODE_VERSION`: `22`
 
-The site will still build without `SITE_URL`; `astro.config.mjs` includes a production fallback.
+Production and preview variables have been configured in Cloudflare Pages for the current Pages domain. Update `SITE_URL` after a custom domain is attached.
 
 ## Static Output
 

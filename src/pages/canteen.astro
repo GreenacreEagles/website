@@ -1,0 +1,40 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+---
+
+<BaseLayout title="Canteen" description="Greenacre Eagles FC canteen ordering, match day pickup, food vouchers, and volunteer support.">
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+      <div>
+        <p class="eyebrow">Canteen</p>
+        <h1 class="mt-3 font-display text-5xl font-black uppercase leading-none text-eagles-ink md:text-7xl">Match day food, ready at the ground</h1>
+        <p class="mt-5 text-lg leading-8 text-eagles-ink/70">
+          The Eagles canteen supports players, families, volunteers, and visitors on busy football days. Online ordering and voucher pickup will run through the club portal as the canteen system comes online.
+        </p>
+        <div class="mt-7 flex flex-col gap-3 sm:flex-row">
+          <ButtonLink href="/portal/" variant="primary">Open portal</ButtonLink>
+          <ButtonLink href="/volunteer/" variant="secondary">Help in the canteen</ButtonLink>
+        </div>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Online orders</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Families will be able to order ahead, choose pickup windows, and track order status from their phone.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Food vouchers</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Secure QR vouchers will support players, volunteers, teams, and club initiatives without exposing private details.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Live queue</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Authorised canteen staff will manage new, preparing, ready, and collected orders in a mobile-friendly screen.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Volunteers</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Canteen shifts, BBQ support, setup, and pack-down will be coordinated through the volunteer roster.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

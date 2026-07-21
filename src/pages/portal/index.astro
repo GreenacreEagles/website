@@ -1,0 +1,98 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Portal" description="Greenacre Eagles FC member and family portal.">
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <div class="max-w-3xl">
+        <p class="eyebrow">Member portal</p>
+        <h1 class="mt-3 font-display text-5xl font-black uppercase leading-none text-eagles-ink md:text-7xl">Your club dashboard</h1>
+        <p class="mt-5 text-lg leading-8 text-eagles-ink/70">
+          Family details, teams, canteen orders, vouchers, volunteer shifts, events, and club actions in one place.
+        </p>
+      </div>
+
+      <div class="mt-10 surface p-5 md:p-7" data-portal-loading>
+        <p class="text-base font-bold text-eagles-ink/70">Checking your session...</p>
+      </div>
+
+      <div class="mt-10 hidden grid gap-5 md:grid-cols-2 lg:grid-cols-3" data-portal-dashboard>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Account</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70" data-profile-summary>Your profile will appear here after sign in.</p>
+          <a class="mt-5 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/account/">Manage account</a>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Family</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Linked children, guardians, spending settings, and emergency contact details.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Teams</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Training, fixtures, team announcements, and coach messages for your assigned teams.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Canteen</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Orders, pickup status, vouchers, and match day canteen activity.</p>
+        </article>
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Volunteering</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Available shifts, assigned duties, and match day support requests.</p>
+        </article>
+        <article class="surface p-5" data-admin-card>
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Administration</h2>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Operational tools appear only when your account has approved permissions.</p>
+          <a class="mt-5 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/admin/">Open admin</a>
+        </article>
+      </div>
+
+      <div class="mt-10 hidden surface p-5 md:p-7" data-portal-signed-out>
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Sign in required</h2>
+        <p class="mt-3 text-base leading-7 text-eagles-ink/70">Use your Greenacre Eagles account to access the portal.</p>
+        <a class="mt-5 inline-flex bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href="/login/">Sign in</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { isSupabaseConfigured, supabase } from "@lib/supabaseClient";
+
+  const loading = document.querySelector("[data-portal-loading]");
+  const dashboard = document.querySelector("[data-portal-dashboard]");
+  const signedOut = document.querySelector("[data-portal-signed-out]");
+  const profileSummary = document.querySelector("[data-profile-summary]");
+  const adminCard = document.querySelector("[data-admin-card]");
+
+  const showSignedOut = () => {
+    loading?.classList.add("hidden");
+    dashboard?.classList.add("hidden");
+    signedOut?.classList.remove("hidden");
+  };
+
+  if (!isSupabaseConfigured || !supabase) {
+    showSignedOut();
+  } else {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) {
+      showSignedOut();
+    } else {
+      const { data: profile } = await supabase.from("profiles").select("full_name, preferred_name, relationship_to_club, onboarding_completed_at").eq("id", user.id).single();
+      const { data: canAdmin } = await supabase.rpc("has_permission", { permission_key: "roles.read" });
+
+      loading?.classList.add("hidden");
+      signedOut?.classList.add("hidden");
+      dashboard?.classList.remove("hidden");
+
+      if (profileSummary) {
+        const name = profile?.preferred_name || profile?.full_name || user.email || "Greenacre Eagles member";
+        profileSummary.textContent = `${name} is signed in. Complete onboarding to unlock the right club actions for your family and roles.`;
+      }
+
+      if (!canAdmin && adminCard) {
+        adminCard.classList.add("hidden");
+      }
+    }
+  }
+</script>
