@@ -10,9 +10,12 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["communications.manage"]);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: outbox }, { data: notifications }] = await Promise.all([
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const [{ data: outbox }, { data: notifications }, { data: profiles }] = await Promise.all([
   session.supabase.from("communication_outbox").select("id,channel,status,template_key,scheduled_for,sent_at,failure_reason,profiles:recipient_id(full_name,email)").order("scheduled_for", { ascending: false }).limit(80),
-  session.supabase.from("notifications").select("id,title,created_at,read_at,profiles:recipient_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("notifications").select("id,title,created_at,read_at,profiles:recipient_id(full_name,email)").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(200)
 ]);
 ---
 
@@ -31,12 +34,25 @@ const [{ data: outbox }, { data: notifications }] = await Promise.all([
         ))}
       </div>
     </section>
-    <aside class="surface p-5">
-      <h2 class="font-display text-2xl font-black uppercase leading-none">Notifications</h2>
-      <div class="mt-4 grid gap-3">
-        {(notifications ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No notifications have been created.</p>}
-        {(notifications ?? []).map((notice: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{notice.profiles?.full_name ?? notice.profiles?.email} - {notice.read_at ? "read" : "unread"}</p>)}
-      </div>
+    <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="notification" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Send message</h2>
+        <label><span class="label">Recipient</span><select class="field" name="recipient_id" required><option value="">Select member</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+        <label><span class="label">Title</span><input class="field" name="title" required /></label>
+        <label><span class="label">Message</span><textarea class="field min-h-28" name="body" required></textarea></label>
+        <label><span class="label">Channel</span><select class="field" name="channel">{["in_app", "email", "sms"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Send message</button>
+      </form>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Notifications</h2>
+        <div class="mt-4 grid gap-3">
+          {(notifications ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No notifications have been created.</p>}
+          {(notifications ?? []).map((notice: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{notice.profiles?.full_name ?? notice.profiles?.email} - {notice.read_at ? "read" : "unread"}</p>)}
+        </div>
+      </article>
     </aside>
   </div>
 </PortalLayout>

@@ -10,6 +10,8 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["content.manage"]);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const [{ data: articles }, { data: announcements }] = await Promise.all([
   session.supabase.from("content_articles").select("id,title,category,workflow_status,publish_at,updated_at,profiles:author_id(full_name,email)").order("updated_at", { ascending: false }).limit(80),
   session.supabase.from("club_announcements").select("id,title,status,priority,starts_at,ends_at,updated_at").order("updated_at", { ascending: false }).limit(80)
@@ -31,12 +33,48 @@ const [{ data: articles }, { data: announcements }] = await Promise.all([
         ))}
       </div>
     </section>
-    <aside class="surface p-5">
-      <h2 class="font-display text-2xl font-black uppercase leading-none">Announcements</h2>
-      <div class="mt-4 grid gap-3">
-        {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No announcements yet.</p>}
-        {(announcements ?? []).map((notice) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{statusLabel(notice.status)} - priority {notice.priority}</p>)}
-      </div>
+    <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="article" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Draft article</h2>
+        <label><span class="label">Title</span><input class="field" name="title" required /></label>
+        <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+        <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
+        <label><span class="label">Body</span><textarea class="field min-h-36" name="body" required></textarea></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Category</span><input class="field" name="category" placeholder="Club news" /></label>
+          <label><span class="label">Status</span><select class="field" name="workflow_status">{["draft", "in_review", "scheduled", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        </div>
+        <label><span class="label">Publish at</span><input class="field" name="publish_at" type="datetime-local" /></label>
+        <label><span class="label">Featured image URL</span><input class="field" name="featured_image_url" type="url" /></label>
+        <label><span class="label">Tags</span><input class="field" name="tags" placeholder="juniors, match day" /></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save article</button>
+      </form>
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="announcement" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add announcement</h2>
+        <label><span class="label">Title</span><input class="field" name="title" required /></label>
+        <label><span class="label">Message</span><textarea class="field min-h-28" name="message" required></textarea></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Audience</span><input class="field" name="audience" value="public" /></label>
+          <label><span class="label">Priority</span><input class="field" name="priority" type="number" min="0" value="0" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" /></label>
+          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+        </div>
+        <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add announcement</button>
+      </form>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Announcements</h2>
+        <div class="mt-4 grid gap-3">
+          {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No announcements yet.</p>}
+          {(announcements ?? []).map((notice) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{statusLabel(notice.status)} - priority {notice.priority}</p>)}
+        </div>
+      </article>
     </aside>
   </div>
 </PortalLayout>

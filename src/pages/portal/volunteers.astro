@@ -10,6 +10,8 @@ export const prerender = false;
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const [{ data: shifts }, { data: assignments }] = await Promise.all([
   session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title,description,opportunity_type),venues(name,suburb)").order("starts_at", { ascending: true }).limit(40),
   session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,volunteer_shifts(starts_at,volunteer_opportunities(title),venues(name))").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20)
@@ -19,6 +21,8 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
 <PortalLayout title="Volunteers" section="Match day" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-4">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
       {(shifts ?? []).length === 0 && <EmptyState title="No volunteer shifts open" text="Canteen, setup, pack-down and match day volunteer shifts will appear here when scheduled." />}
       {(shifts ?? []).map((shift: any) => (
         <article class="surface p-5">
@@ -29,6 +33,10 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
             <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : "amber"} />
             <StatusBadge label={`${shift.capacity} spots`} tone="ink" />
           </div>
+          <form class="mt-5" method="post" action="/api/portal/volunteer-shift/">
+            <input type="hidden" name="shift_id" value={shift.id} />
+            <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Volunteer for this shift</button>
+          </form>
         </article>
       ))}
     </section>

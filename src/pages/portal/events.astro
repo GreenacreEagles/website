@@ -10,6 +10,8 @@ export const prerender = false;
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const [{ data: events }, { data: registrations }] = await Promise.all([
   session.supabase.from("club_events").select("id,title,description,starts_at,ends_at,status,visibility,capacity,price_cents,venues(name,suburb)").order("starts_at", { ascending: true }).limit(40),
   session.supabase.from("event_registrations").select("id,status,created_at,club_events(title,starts_at)").or(`registered_by.eq.${session.user.id},attendee_id.eq.${session.user.id}`).order("created_at", { ascending: false }).limit(20)
@@ -19,6 +21,8 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
 <PortalLayout title="Events" section="Club life" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-4">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
       {(events ?? []).length === 0 && <EmptyState title="No upcoming events" text="Club events, registrations and community nights will appear here when published." />}
       {(events ?? []).map((event: any) => (
         <article class="surface p-5">
@@ -30,6 +34,10 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
             <StatusBadge label={formatMoney(event.price_cents)} tone="ink" />
             <StatusBadge label={event.venues?.name ?? "Venue TBC"} tone="ink" />
           </div>
+          <form class="mt-5" method="post" action="/api/portal/event-registration/">
+            <input type="hidden" name="event_id" value={event.id} />
+            <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Register interest</button>
+          </form>
         </article>
       ))}
     </section>

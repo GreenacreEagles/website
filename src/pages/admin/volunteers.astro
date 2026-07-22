@@ -10,10 +10,13 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["volunteers.manage"]);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: opportunities }, { data: shifts }, { data: assignments }] = await Promise.all([
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const [{ data: opportunities }, { data: shifts }, { data: assignments }, { data: venues }] = await Promise.all([
   session.supabase.from("volunteer_opportunities").select("id,title,description,opportunity_type,status").order("created_at", { ascending: false }).limit(80),
   session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venues(name)").order("starts_at", { ascending: true }).limit(80),
-  session.supabase.from("volunteer_assignments").select("id,status,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("volunteer_assignments").select("id,status,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("venues").select("id,name").order("name")
 ]);
 ---
 
@@ -33,6 +36,33 @@ const [{ data: opportunities }, { data: shifts }, { data: assignments }] = await
       </div>
     </section>
     <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="volunteerOpportunity" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add opportunity</h2>
+        <label><span class="label">Title</span><input class="field" name="title" placeholder="Canteen helper" required /></label>
+        <label><span class="label">Type</span><input class="field" name="opportunity_type" placeholder="canteen" required /></label>
+        <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
+        <label><span class="label">Required permission</span><input class="field" name="required_permission" placeholder="Optional" /></label>
+        <label><span class="label">Status</span><select class="field" name="status">{["active", "paused", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add opportunity</button>
+      </form>
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="volunteerShift" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add shift</h2>
+        <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
+        <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
+          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" value="1" required /></label>
+          <label><span class="label">Status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        </div>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add shift</button>
+      </form>
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Shifts</h2>
         <div class="mt-4 grid gap-3">{(shifts ?? []).map((shift: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{shift.volunteer_opportunities?.title ?? "Shift"}</strong><br />{formatDateTime(shift.starts_at)} - {shift.capacity} spots</p>)}</div>

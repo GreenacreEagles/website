@@ -10,6 +10,8 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["sponsors.manage"]);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const { data: sponsors } = await session.supabase
   .from("sponsors")
   .select("id,name,tier,status,starts_on,ends_on,contact_name,contact_email,display_priority,website_url")
@@ -18,22 +20,52 @@ const { data: sponsors } = await session.supabase
 ---
 
 <PortalLayout title="Sponsors" section="Administration" session={session}>
-  <section class="surface p-5 md:p-7">
-    <h2 class="font-display text-3xl font-black uppercase leading-none">Club partners</h2>
-    <div class="mt-5 grid gap-3">
-      {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors in the portal" text="Current club partners will appear here when sponsorship records are connected." />}
-      {(sponsors ?? []).map((sponsor) => (
-        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p class="font-black">{sponsor.name}</p>
-              <p class="text-sm text-eagles-ink/70">{sponsor.tier ?? "Club partner"} - {formatDate(sponsor.starts_on)} to {formatDate(sponsor.ends_on)}</p>
-              <p class="text-xs text-eagles-ink/60">{sponsor.contact_name ?? "Contact TBC"} {sponsor.contact_email ? `- ${sponsor.contact_email}` : ""}</p>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Club partners</h2>
+      <div class="mt-5 grid gap-3">
+        {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors in the portal" text="Current club partners will appear here when sponsorship records are connected." />}
+        {(sponsors ?? []).map((sponsor) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p class="font-black">{sponsor.name}</p>
+                <p class="text-sm text-eagles-ink/70">{sponsor.tier ?? "Club partner"} - {formatDate(sponsor.starts_on)} to {formatDate(sponsor.ends_on)}</p>
+                <p class="text-xs text-eagles-ink/60">{sponsor.contact_name ?? "Contact TBC"} {sponsor.contact_email ? `- ${sponsor.contact_email}` : ""}</p>
+              </div>
+              <StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />
             </div>
-            <StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />
-          </div>
-        </article>
-      ))}
-    </div>
-  </section>
+          </article>
+        ))}
+      </div>
+    </section>
+    <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="sponsor" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add sponsor</h2>
+        <label><span class="label">Name</span><input class="field" name="name" required /></label>
+        <label><span class="label">Tier</span><input class="field" name="tier" placeholder="Major Partner" /></label>
+        <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
+        <label><span class="label">Website</span><input class="field" name="website_url" type="url" /></label>
+        <label><span class="label">Logo URL</span><input class="field" name="logo_url" /></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
+          <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Display priority</span><input class="field" name="display_priority" type="number" min="0" value="0" /></label>
+          <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        </div>
+        <label><span class="label">Display locations</span><input class="field" name="display_locations" placeholder="homepage, sponsors" /></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Contact name</span><input class="field" name="contact_name" /></label>
+          <label><span class="label">Contact email</span><input class="field" name="contact_email" type="email" /></label>
+        </div>
+        <label><span class="label">Internal notes</span><textarea class="field min-h-20" name="internal_notes"></textarea></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save sponsor</button>
+      </form>
+    </aside>
+  </div>
 </PortalLayout>

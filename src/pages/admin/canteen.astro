@@ -10,12 +10,20 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"]);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: venues }, { data: products }, { data: orders }, { data: vouchers }] = await Promise.all([
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const [{ data: venues }, { data: groundVenues }, { data: categories }, { data: products }, { data: orders }, { data: vouchers }, { data: profiles }, { data: teams }] = await Promise.all([
   session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
+  session.supabase.from("venues").select("id,name").order("name"),
+  session.supabase.from("canteen_categories").select("id,name,is_active").order("display_order"),
   session.supabase.from("canteen_products").select("id,name,price_cents,is_active,is_sold_out,canteen_categories(name)").order("name").limit(100),
   session.supabase.from("canteen_orders").select("id,order_number,order_status,payment_status,total_cents,created_at,profiles:customer_id(full_name,email),canteen_venues(name)").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("voucher_issuances").select("id,voucher_type,status,remaining_value_cents,expires_at,profiles:beneficiary_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("voucher_issuances").select("id,voucher_type,status,remaining_value_cents,expires_at,profiles:beneficiary_id(full_name,email)").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(200),
+  session.supabase.from("teams").select("id,name").order("name")
 ]);
+const canManageCatalog = session.permissions.has("*") || session.permissions.has("canteen.manage");
+const canManageVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.manage");
 ---
 
 <PortalLayout title="Canteen operations" section="Administration" session={session}>
@@ -34,6 +42,65 @@ const [{ data: venues }, { data: products }, { data: orders }, { data: vouchers 
       </div>
     </section>
     <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      {canManageCatalog && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="canteenVenue" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Add canteen venue</h2>
+          <label><span class="label">Name</span><input class="field" name="name" placeholder="Roberts Park canteen" required /></label>
+          <label><span class="label">Ground venue</span><select class="field" name="venue_id"><option value="">Not linked</option>{(groundVenues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+          <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add venue</button>
+        </form>
+      )}
+      {canManageCatalog && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="canteenCategory" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Add category</h2>
+          <label><span class="label">Name</span><input class="field" name="name" placeholder="Hot food" required /></label>
+          <label><span class="label">Display order</span><input class="field" name="display_order" type="number" min="0" value="0" /></label>
+          <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add category</button>
+        </form>
+      )}
+      {canManageCatalog && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="canteenProduct" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Add product</h2>
+          <label><span class="label">Category</span><select class="field" name="category_id"><option value="">Uncategorised</option>{(categories ?? []).map((category) => <option value={category.id}>{category.name}</option>)}</select></label>
+          <label><span class="label">Name</span><input class="field" name="name" required /></label>
+          <label><span class="label">Description</span><textarea class="field min-h-20" name="description"></textarea></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" required /></label>
+            <label><span class="label">Prep minutes</span><input class="field" name="preparation_minutes" type="number" min="0" value="5" /></label>
+          </div>
+          <label><span class="label">Max per order</span><input class="field" name="max_quantity_per_order" type="number" min="1" /></label>
+          <label><span class="label">Dietary tags</span><input class="field" name="dietary_info" placeholder="vegetarian, halal" /></label>
+          <label><span class="label">Allergens</span><input class="field" name="allergen_info" placeholder="gluten, dairy" /></label>
+          <div class="flex flex-wrap gap-4">
+            <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
+            <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_sold_out" /> Sold out</label>
+          </div>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add product</button>
+        </form>
+      )}
+      {canManageVouchers && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="voucher" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Issue voucher</h2>
+          <label><span class="label">Member</span><select class="field" name="beneficiary_id"><option value="">No member selected</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+          <label><span class="label">Team</span><select class="field" name="team_id"><option value="">No team</option>{(teams ?? []).map((team) => <option value={team.id}>{team.name}</option>)}</select></label>
+          <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Any canteen</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+          <label><span class="label">Reason</span><input class="field" name="issue_reason" placeholder="Volunteer meal voucher" /></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Type</span><select class="field" name="voucher_type">{["fixed_amount", "declining_balance", "meal_deal"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            <label><span class="label">Value</span><input class="field" name="value" type="number" min="0" step="0.01" required /></label>
+          </div>
+          <label><span class="label">Expires</span><input class="field" name="expires_at" type="datetime-local" /></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Issue voucher</button>
+        </form>
+      )}
       <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Products</h2><div class="mt-4 grid gap-3">{(products ?? []).map((product: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{product.name}</strong><br />{formatMoney(product.price_cents)} - {product.is_sold_out ? "sold out" : product.is_active ? "available" : "hidden"}</p>)}</div></article>
       <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Venues</h2><div class="mt-4 grid gap-3">{(venues ?? []).map((venue) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{venue.name}</strong><br />{venue.is_active ? "active" : "inactive"}</p>)}</div></article>
       <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Vouchers</h2><div class="mt-4 grid gap-3">{(vouchers ?? []).map((voucher: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{voucher.profiles?.full_name ?? "Member"}</strong><br />{formatMoney(voucher.remaining_value_cents)} - {statusLabel(voucher.status)}</p>)}</div></article>

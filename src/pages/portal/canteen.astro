@@ -10,6 +10,8 @@ export const prerender = false;
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const [{ data: venues }, { data: products }, { data: orders }] = await Promise.all([
   session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
   session.supabase.from("canteen_products").select("id,name,description,price_cents,is_active,is_sold_out,canteen_categories(name)").eq("is_active", true).limit(60),
@@ -20,6 +22,8 @@ const [{ data: venues }, { data: products }, { data: orders }] = await Promise.a
 <PortalLayout title="Canteen" section="Match day" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-4">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
       {(products ?? []).length === 0 && <EmptyState title="Canteen menu coming soon" text="Available food, drinks and match day items will appear here once the canteen menu is published." />}
       {(products ?? []).map((product: any) => (
         <article class="surface p-5">
@@ -31,6 +35,14 @@ const [{ data: venues }, { data: products }, { data: orders }] = await Promise.a
             </div>
             <p class="text-2xl font-black text-eagles-green">{formatMoney(product.price_cents)}</p>
           </div>
+          <form class="mt-5 grid gap-3 md:grid-cols-[1fr_120px_auto]" method="post" action="/api/portal/canteen-order/">
+            <input type="hidden" name="product_id" value={product.id} />
+            <label><span class="label">Pickup venue</span><select class="field" name="venue_id"><option value="">Select on pickup</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <label><span class="label">Qty</span><input class="field" name="quantity" type="number" min="1" max="20" value="1" /></label>
+            <label><span class="label">Pickup time</span><input class="field" name="pickup_window_start" type="datetime-local" /></label>
+            <label class="md:col-span-2"><span class="label">Notes</span><input class="field" name="special_instructions" placeholder="Sauce, allergy note, pickup name" /></label>
+            <button class="self-end bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Order item</button>
+          </form>
         </article>
       ))}
     </section>

@@ -11,10 +11,12 @@ if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: seasons }, { data: teams }, { data: ageGroups }] = await Promise.all([
+const [{ data: seasons }, { data: teams }, { data: ageGroups }, { data: competitions }, { data: venues }] = await Promise.all([
   session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
-  session.supabase.from("teams").select("id,name,division,status,seasons(id,name),age_groups(id,name)").order("name"),
-  session.supabase.from("age_groups").select("id,name").order("sort_order")
+  session.supabase.from("teams").select("id,name,division,colour,status,external_fixture_url,seasons(id,name),age_groups(id,name),competitions(id,name),home:home_venue_id(name),training:training_venue_id(name)").order("name"),
+  session.supabase.from("age_groups").select("id,name").order("sort_order"),
+  session.supabase.from("competitions").select("id,name").order("name"),
+  session.supabase.from("venues").select("id,name,suburb").order("name")
 ]);
 const canManage = session.permissions.has("*") || session.permissions.has("club_structure.manage");
 ---
@@ -25,6 +27,26 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
       <aside class="grid gap-5 content-start">
         {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
         {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="venue" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create venue</h2>
+          <label><span class="label">Name</span><input class="field" name="name" placeholder="Roberts Park" required /></label>
+          <label><span class="label">Address</span><input class="field" name="address" /></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Suburb</span><input class="field" name="suburb" /></label>
+            <label><span class="label">Postcode</span><input class="field" name="postcode" /></label>
+          </div>
+          <label><span class="label">Notes</span><textarea class="field min-h-20" name="notes"></textarea></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create venue</button>
+        </form>
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="competition" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create competition</h2>
+          <label><span class="label">Name</span><input class="field" name="name" placeholder="Bankstown Premier League" required /></label>
+          <label><span class="label">Season</span><select class="field" name="season_id"><option value="">No season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
+          <label><span class="label">External link</span><input class="field" name="external_url" type="url" /></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create competition</button>
+        </form>
         <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-season/">
           <h2 class="font-display text-2xl font-black uppercase leading-none">Create season</h2>
           <label><span class="label">Name</span><input class="field" name="name" placeholder="Season 2027" required /></label>
@@ -40,8 +62,13 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
           <h2 class="font-display text-2xl font-black uppercase leading-none">Create team</h2>
           <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
           <label><span class="label">Age group</span><select class="field" name="age_group_id"><option value="">Not set</option>{(ageGroups ?? []).map((group) => <option value={group.id}>{group.name}</option>)}</select></label>
+          <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
           <label><span class="label">Name</span><input class="field" name="name" required /></label>
           <label><span class="label">Division</span><input class="field" name="division" /></label>
+          <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
+          <label><span class="label">Home venue</span><select class="field" name="home_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+          <label><span class="label">Training venue</span><select class="field" name="training_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+          <label><span class="label">Fixture link</span><input class="field" name="external_fixture_url" type="url" /></label>
           <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
           <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create team</button>
         </form>
@@ -67,7 +94,11 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
           {(teams ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No teams have been created yet.</p>}
           {(teams ?? []).map((team: any) => (
             <div class="flex flex-col gap-2 border border-eagles-line bg-white p-4 md:flex-row md:items-center md:justify-between" style="border-radius:8px">
-              <div><p class="font-black">{team.name}</p><p class="text-sm text-eagles-ink/60">{team.age_groups?.name ?? "Age group not set"} · {team.division ?? "No division"} · {team.seasons?.name}</p></div>
+              <div>
+                <p class="font-black">{team.name}</p>
+                <p class="text-sm text-eagles-ink/60">{team.age_groups?.name ?? "Age group not set"} - {team.division ?? "No division"} - {team.seasons?.name}</p>
+                <p class="text-xs text-eagles-ink/55">{team.competitions?.name ?? "No competition"} - home {team.home?.name ?? "TBC"} - training {team.training?.name ?? "TBC"}</p>
+              </div>
               <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
             </div>
           ))}

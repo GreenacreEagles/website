@@ -10,9 +10,12 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["events.manage"]);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: events }, { data: registrations }] = await Promise.all([
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const [{ data: events }, { data: registrations }, { data: venues }] = await Promise.all([
   session.supabase.from("club_events").select("id,title,status,visibility,starts_at,capacity,price_cents,venues(name)").order("starts_at", { ascending: false }).limit(80),
-  session.supabase.from("event_registrations").select("id,status,created_at,club_events(title),profiles:attendee_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("event_registrations").select("id,status,created_at,club_events(title),profiles:attendee_id(full_name,email)").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("venues").select("id,name").order("name")
 ]);
 ---
 
@@ -31,12 +34,37 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
         ))}
       </div>
     </section>
-    <aside class="surface p-5">
-      <h2 class="font-display text-2xl font-black uppercase leading-none">Registrations</h2>
-      <div class="mt-4 grid gap-3">
-        {(registrations ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No event registrations yet.</p>}
-        {(registrations ?? []).map((registration: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{registration.profiles?.full_name ?? registration.profiles?.email ?? "Attendee"}</strong><br />{registration.club_events?.title ?? "Event"} - {statusLabel(registration.status)}</p>)}
-      </div>
+    <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="event" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add event</h2>
+        <label><span class="label">Title</span><input class="field" name="title" required /></label>
+        <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+        <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
+        <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
+          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" /></label>
+          <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" value="0" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Visibility</span><select class="field" name="visibility">{["public", "members", "private"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+          <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "cancelled", "completed", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+        </div>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add event</button>
+      </form>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Registrations</h2>
+        <div class="mt-4 grid gap-3">
+          {(registrations ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No event registrations yet.</p>}
+          {(registrations ?? []).map((registration: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{registration.profiles?.full_name ?? registration.profiles?.email ?? "Attendee"}</strong><br />{registration.club_events?.title ?? "Event"} - {statusLabel(registration.status)}</p>)}
+        </div>
+      </article>
     </aside>
   </div>
 </PortalLayout>
