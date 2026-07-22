@@ -16,10 +16,18 @@ const { data: notifications } = await session.supabase
   .eq("recipient_id", session.user.id)
   .order("created_at", { ascending: false })
   .limit(80);
+
+const unreadCount = (notifications ?? []).filter((notice) => !notice.read_at).length;
 ---
 
 <PortalLayout title="Notifications" section="Member portal" session={session}>
   <section class="grid gap-4">
+    {unreadCount > 0 && (
+      <form class="flex justify-end" method="post" action="/api/portal/notification/">
+        <input type="hidden" name="action" value="mark_all_read" />
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Mark all read</button>
+      </form>
+    )}
     {(notifications ?? []).length === 0 && <EmptyState title="No notifications" text="Club notices, role decisions, event reminders and account messages will appear here." />}
     {(notifications ?? []).map((notice) => (
       <article class="surface p-5">
@@ -32,6 +40,13 @@ const { data: notifications } = await session.supabase
           </div>
           <StatusBadge label={notice.read_at ? "Read" : "Unread"} tone={notice.read_at ? "ink" : "green"} />
         </div>
+        {!notice.read_at && (
+          <form class="mt-4" method="post" action="/api/portal/notification/">
+            <input type="hidden" name="action" value="mark_read" />
+            <input type="hidden" name="notification_id" value={notice.id} />
+            <button class="text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">Mark read</button>
+          </form>
+        )}
       </article>
     ))}
   </section>

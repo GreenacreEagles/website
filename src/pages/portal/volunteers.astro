@@ -13,7 +13,7 @@ if (!session) return Astro.redirect("/login/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: shifts }, { data: assignments }] = await Promise.all([
-  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title,description,opportunity_type),venues(name,suburb)").order("starts_at", { ascending: true }).limit(40),
+  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title,description,opportunity_type),venues(name,suburb),volunteer_assignments(id,status,user_id)").order("starts_at", { ascending: true }).limit(40),
   session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,volunteer_shifts(starts_at,volunteer_opportunities(title),venues(name))").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(20)
 ]);
 ---
@@ -26,17 +26,43 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
       {(shifts ?? []).length === 0 && <EmptyState title="No volunteer shifts open" text="Canteen, setup, pack-down and match day volunteer shifts will appear here when scheduled." />}
       {(shifts ?? []).map((shift: any) => (
         <article class="surface p-5">
+          {(() => {
+            const myAssignment = shift.volunteer_assignments?.find((assignment: any) => assignment.user_id === session.user.id && assignment.status !== "cancelled");
+            return (
+              <>
           <p class="eyebrow">{shift.volunteer_opportunities?.opportunity_type ?? "Volunteer shift"}</p>
           <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{shift.volunteer_opportunities?.title ?? "Club support"}</h2>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{formatDateTime(shift.starts_at)} at {shift.venues?.name ?? "venue TBC"}</p>
+          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{formatDateTime(shift.starts_at)} at {shift.venues?.name ?? "club venue"}</p>
           <div class="mt-4 flex flex-wrap gap-2">
             <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : "amber"} />
             <StatusBadge label={`${shift.capacity} spots`} tone="ink" />
           </div>
-          <form class="mt-5" method="post" action="/api/portal/volunteer-shift/">
-            <input type="hidden" name="shift_id" value={shift.id} />
-            <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Volunteer for this shift</button>
-          </form>
+          {!myAssignment && (
+            <form class="mt-5" method="post" action="/api/portal/volunteer-shift/">
+              <input type="hidden" name="shift_id" value={shift.id} />
+              <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Volunteer for this shift</button>
+            </form>
+          )}
+          {myAssignment && (
+            <div class="mt-5 flex flex-wrap gap-2">
+              <StatusBadge label="You are on this shift" tone="green" />
+              {myAssignment.status !== "checked_in" && (
+                <form method="post" action="/api/portal/volunteer-assignment/">
+                  <input type="hidden" name="assignment_id" value={myAssignment.id} />
+                  <input type="hidden" name="status" value="checked_in" />
+                  <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Check in</button>
+                </form>
+              )}
+              <form method="post" action="/api/portal/volunteer-assignment/">
+                <input type="hidden" name="assignment_id" value={myAssignment.id} />
+                <input type="hidden" name="status" value="cancelled" />
+                <button class="bg-red-50 px-4 py-3 text-sm font-black text-red-700" style="border-radius:8px" type="submit">Cancel shift</button>
+              </form>
+            </div>
+          )}
+              </>
+            );
+          })()}
         </article>
       ))}
     </section>
@@ -48,6 +74,22 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
           <div class="border-t border-eagles-line pt-3">
             <p class="font-black">{assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Volunteer shift"}</p>
             <p class="text-sm text-eagles-ink/70">{statusLabel(assignment.status)} - {formatDateTime(assignment.volunteer_shifts?.starts_at)}</p>
+            {assignment.status !== "cancelled" && assignment.status !== "completed" && (
+              <div class="mt-3 flex flex-wrap gap-2">
+                {assignment.status !== "checked_in" && (
+                  <form method="post" action="/api/portal/volunteer-assignment/">
+                    <input type="hidden" name="assignment_id" value={assignment.id} />
+                    <input type="hidden" name="status" value="checked_in" />
+                    <button class="text-sm font-black text-eagles-green" type="submit">Check in</button>
+                  </form>
+                )}
+                <form method="post" action="/api/portal/volunteer-assignment/">
+                  <input type="hidden" name="assignment_id" value={assignment.id} />
+                  <input type="hidden" name="status" value="cancelled" />
+                  <button class="text-sm font-black text-red-700" type="submit">Cancel</button>
+                </form>
+              </div>
+            )}
           </div>
         ))}
       </div>

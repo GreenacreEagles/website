@@ -64,7 +64,7 @@ const { data: training } = await session.supabase
         {(training ?? []).map((item: any) => (
           <div class="border-t border-eagles-line pt-3">
             <p class="font-black text-eagles-ink">{item.teams?.name ?? "Club session"}</p>
-            <p class="text-sm text-eagles-ink/70">{formatDate(item.starts_at)} at {item.venues?.name ?? "venue TBC"}</p>
+            <p class="text-sm text-eagles-ink/70">{formatDate(item.starts_at)} at {item.venues?.name ?? "club venue"}</p>
           </div>
         ))}
       </div>

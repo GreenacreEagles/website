@@ -39,8 +39,8 @@ if (canViewAll || teamIds.length > 0) {
           <StatusBadge label={statusLabel(fixture.status)} tone={fixture.status === "confirmed" ? "green" : "amber"} />
         </div>
         <div class="mt-4 flex flex-wrap gap-3 text-sm font-bold text-eagles-ink/70">
-          <span>{fixture.home_away ?? "Home/away TBC"}</span>
-          <span>{fixture.competitions?.name ?? "Competition TBC"}</span>
+          <span>{fixture.home_away ?? "Venue type pending"}</span>
+          <span>{fixture.competitions?.name ?? "Club fixture"}</span>
           {fixture.external_url && <a class="text-eagles-green" href={fixture.external_url}>Official fixture</a>}
         </div>
       </article>
