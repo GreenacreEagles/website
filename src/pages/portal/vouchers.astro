@@ -4,6 +4,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDate, formatDateTime, formatMoney, statusLabel } from "@lib/format";
+import QRCode from "qrcode";
 
 export const prerender = false;
 
@@ -11,10 +12,20 @@ const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
 const [{ data: vouchers }, { data: wallets }, { data: ledger }] = await Promise.all([
-  session.supabase.from("voucher_issuances").select("id,voucher_type,status,original_value_cents,remaining_value_cents,valid_from,expires_at,issue_reason,canteen_venues(name),teams(name)").eq("beneficiary_id", session.user.id).order("created_at", { ascending: false }).limit(30),
+  session.supabase.from("voucher_issuances").select("id,redemption_code,voucher_type,status,original_value_cents,remaining_value_cents,valid_from,expires_at,issue_reason,canteen_venues(name),teams(name)").eq("beneficiary_id", session.user.id).order("created_at", { ascending: false }).limit(30),
   session.supabase.from("wallet_accounts").select("id,account_type,status,wallet_balances(balance_cents)").eq("owner_id", session.user.id).limit(10),
   session.supabase.from("wallet_ledger_entries").select("id,amount_cents,direction,transaction_type,description,created_at,wallet_accounts!inner(owner_id)").eq("wallet_accounts.owner_id", session.user.id).order("created_at", { ascending: false }).limit(20)
 ]);
+
+const voucherCards = await Promise.all(
+  (vouchers ?? []).map(async (voucher: any) => ({
+    ...voucher,
+    qrCode:
+      voucher.redemption_code && voucher.status === "active" && voucher.remaining_value_cents > 0
+        ? await QRCode.toDataURL(`GEVOUCHER:${voucher.redemption_code}`, { margin: 1, width: 220, color: { dark: "#111111", light: "#ffffff" } })
+        : null
+  }))
+);
 ---
 
 <PortalLayout title="Wallet and vouchers" section="Payments" session={session}>
@@ -33,20 +44,33 @@ const [{ data: vouchers }, { data: wallets }, { data: ledger }] = await Promise.
       <article class="surface p-5 md:p-7">
         <h2 class="font-display text-3xl font-black uppercase leading-none">Vouchers</h2>
         <div class="mt-5 grid gap-3">
-          {(vouchers ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No active vouchers are linked to your account.</p>}
-          {(vouchers ?? []).map((voucher: any) => (
+          {voucherCards.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No active vouchers are linked to your account.</p>}
+          {voucherCards.map((voucher: any) => (
             <div class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p class="font-black">{statusLabel(voucher.voucher_type)}</p>
                   <p class="mt-1 text-sm text-eagles-ink/70">{voucher.issue_reason ?? "Club-issued canteen voucher"}</p>
+                  <p class="mt-1 text-sm text-eagles-ink/70">{voucher.canteen_venues?.name ? `Use at ${voucher.canteen_venues.name}` : "Use at any club canteen"}</p>
                   <p class="mt-1 text-xs text-eagles-ink/60">Valid {formatDate(voucher.valid_from)} to {formatDate(voucher.expires_at)}</p>
                 </div>
-                <div class="text-right">
+                <div class="md:text-right">
                   <p class="text-2xl font-black text-eagles-green">{formatMoney(voucher.remaining_value_cents)}</p>
                   <StatusBadge label={statusLabel(voucher.status)} tone={voucher.status === "active" ? "green" : "amber"} />
                 </div>
               </div>
+              {voucher.qrCode && (
+                <div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center">
+                  <img class="h-[220px] w-[220px] border border-eagles-line bg-white p-2" style="border-radius:8px" src={voucher.qrCode} alt={`QR code for ${statusLabel(voucher.voucher_type)} voucher`} />
+                  <div>
+                    <p class="text-sm font-bold text-eagles-ink/70">Show this QR code at the canteen. Staff scan it or enter the code below to claim the voucher.</p>
+                    <p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{voucher.redemption_code}</p>
+                  </div>
+                </div>
+              )}
+              {!voucher.qrCode && voucher.status === "active" && (
+                <p class="mt-4 border-t border-eagles-line pt-4 text-sm font-bold text-eagles-ink/70">This voucher was issued before wallet QR codes were enabled. Ask the canteen manager to reissue it if you need a scannable code.</p>
+              )}
             </div>
           ))}
         </div>

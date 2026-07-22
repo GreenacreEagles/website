@@ -2421,6 +2421,7 @@ export type Database = {
           issue_reason: string | null
           issued_by: string | null
           original_value_cents: number
+          redemption_code: string | null
           redemption_count: number
           redemption_limit: number
           remaining_value_cents: number
@@ -2447,6 +2448,7 @@ export type Database = {
           issue_reason?: string | null
           issued_by?: string | null
           original_value_cents?: number
+          redemption_code?: string | null
           redemption_count?: number
           redemption_limit?: number
           remaining_value_cents?: number
@@ -2473,6 +2475,7 @@ export type Database = {
           issue_reason?: string | null
           issued_by?: string | null
           original_value_cents?: number
+          redemption_code?: string | null
           redemption_count?: number
           redemption_limit?: number
           remaining_value_cents?: number

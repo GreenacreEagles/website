@@ -240,6 +240,7 @@ export const POST: APIRoute = async (context) => {
   } else if (action === "voucher") {
     const rawToken = token();
     ({ error } = await session.supabase.from("voucher_issuances").insert({
+      redemption_code: rawToken,
       token_hash: await hashToken(rawToken),
       beneficiary_id: data.beneficiary_id ?? null,
       family_id: data.family_id ?? null,
@@ -257,10 +258,10 @@ export const POST: APIRoute = async (context) => {
       await session.supabase.from("notifications").insert({
         recipient_id: data.beneficiary_id,
         title: "Canteen voucher issued",
-        body: `Your Greenacre Eagles canteen voucher code is ${rawToken}.`
+        body: "A new canteen voucher has been added to your wallet."
       });
     }
-    success = `Voucher issued. Code: ${rawToken}`;
+    success = "Voucher issued and added to the member wallet.";
   } else if (action === "event") {
     ({ error } = await session.supabase.from("club_events").insert({
       ...data,

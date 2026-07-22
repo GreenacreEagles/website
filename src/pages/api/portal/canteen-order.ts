@@ -42,8 +42,8 @@ export const POST: APIRoute = async (context) => {
       pickup_window_start: parsed.data.pickup_window_start || null,
       subtotal_cents: subtotal,
       total_cents: subtotal,
-      payment_status: "awaiting_payment",
-      order_status: "awaiting_payment",
+      payment_status: "unpaid",
+      order_status: "accepted",
       special_instructions: parsed.data.special_instructions || null
     })
     .select("id")

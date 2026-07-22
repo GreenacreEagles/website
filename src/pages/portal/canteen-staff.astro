@@ -1,0 +1,184 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["canteen.orders.manage", "canteen.vouchers.redeem"]);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
+const canRedeemVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.redeem");
+
+const [{ data: venues }, { data: orders }, { data: redemptions }] = await Promise.all([
+  session.supabase.from("canteen_venues").select("id,name,is_active").eq("is_active", true).order("name"),
+  session.supabase
+    .from("canteen_orders")
+    .select("id,order_number,order_status,payment_status,total_cents,special_instructions,pickup_window_start,created_at,canteen_venues(name),profiles:customer_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)")
+    .in("order_status", ["accepted", "preparing", "ready_for_pickup"])
+    .order("created_at", { ascending: true })
+    .limit(80),
+  session.supabase
+    .from("voucher_redemptions")
+    .select("id,amount_cents,created_at,device_label,status,canteen_venues(name),voucher_issuances(issue_reason,beneficiary_id)")
+    .order("created_at", { ascending: false })
+    .limit(12)
+]);
+
+const nextActions: Record<string, { label: string; value: string }[]> = {
+  accepted: [
+    { label: "Start preparing", value: "preparing" },
+    { label: "Ready now", value: "ready_for_pickup" },
+    { label: "Cancel", value: "cancelled" }
+  ],
+  preparing: [
+    { label: "Ready for pickup", value: "ready_for_pickup" },
+    { label: "Cancel", value: "cancelled" }
+  ],
+  ready_for_pickup: [{ label: "Collected", value: "collected" }]
+};
+---
+
+<PortalLayout title="Canteen staff" section="Match day" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <section class="grid gap-4">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+
+      <article class="surface p-5 md:p-7">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="eyebrow">Live queue</p>
+            <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">Orders to prepare</h2>
+          </div>
+          <p class="text-sm font-bold text-eagles-ink/70">{(orders ?? []).length} open orders</p>
+        </div>
+
+        <div class="mt-5 grid gap-3">
+          {(orders ?? []).length === 0 && <EmptyState title="No open canteen orders" text="New orders will appear here as soon as members place them." />}
+          {(orders ?? []).map((order: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Order {order.order_number}</p>
+                  <h3 class="mt-1 text-xl font-black text-eagles-ink">{order.profiles?.full_name ?? order.profiles?.email ?? "Member"}</h3>
+                  <p class="mt-1 text-sm text-eagles-ink/70">{formatDateTime(order.created_at)} · {order.canteen_venues?.name ?? "Any canteen"}</p>
+                </div>
+                <div class="flex flex-wrap gap-2 md:justify-end">
+                  <StatusBadge label={statusLabel(order.order_status)} tone="green" />
+                  <StatusBadge label={statusLabel(order.payment_status)} tone="ink" />
+                </div>
+              </div>
+
+              <div class="mt-4 grid gap-2">
+                {(order.canteen_order_items ?? []).map((item: any) => (
+                  <p class="flex justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
+                    <span><strong>{item.quantity}x</strong> {item.product_name_snapshot}</span>
+                    <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
+                  </p>
+                ))}
+              </div>
+              {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold text-eagles-ink" style="border-radius:8px">{order.special_instructions}</p>}
+
+              {canManageOrders && (
+                <div class="mt-4 flex flex-wrap gap-2">
+                  {(nextActions[order.order_status] ?? []).map((action) => (
+                    <form method="post" action="/api/admin/canteen-order-status/">
+                      <input type="hidden" name="order_id" value={order.id} />
+                      <input type="hidden" name="order_status" value={action.value} />
+                      <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
+                      <button class:list={["px-4 py-3 text-sm font-black", action.value === "cancelled" ? "bg-red-50 text-red-700" : "bg-eagles-green text-white"]} style="border-radius:8px" type="submit">{action.label}</button>
+                    </form>
+                  ))}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </article>
+    </section>
+
+    <aside class="grid gap-5 content-start">
+      {canRedeemVouchers && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/redeem-voucher/">
+          <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Claim voucher</h2>
+          <label>
+            <span class="label">Scan or enter code</span>
+            <input id="voucher-code" class="field font-mono text-lg font-black uppercase tracking-[.12em]" name="redemption_code" autocomplete="off" placeholder="GEVOUCHER:ABC123" required />
+          </label>
+          <div class="grid gap-3">
+            <button id="scan-voucher" class="border border-eagles-green px-4 py-3 text-sm font-black text-eagles-green" style="border-radius:8px" type="button">Scan QR</button>
+            <video id="voucher-scanner" class="hidden w-full border border-eagles-line bg-black" style="border-radius:8px" playsinline></video>
+            <p id="scanner-message" class="hidden text-sm font-bold text-eagles-ink/70"></p>
+          </div>
+          <label><span class="label">Canteen</span><select class="field" name="venue_id" required>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+          <label><span class="label">Amount to claim</span><input class="field" name="amount" type="number" min="0.01" step="0.01" placeholder="5.00" required /></label>
+          <label><span class="label">Link to order</span><select class="field" name="order_id"><option value="">No order</option>{(orders ?? []).map((order) => <option value={order.id}>{order.order_number}</option>)}</select></label>
+          <label><span class="label">Device label</span><input class="field" name="device_label" placeholder="Canteen iPad" /></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Claim voucher</button>
+        </form>
+      )}
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Recent claims</h2>
+        <div class="mt-4 grid gap-3">
+          {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear here after staff scan a wallet QR code.</p>}
+          {(redemptions ?? []).map((redemption: any) => (
+            <div class="border-t border-eagles-line pt-3">
+              <p class="font-black">{formatMoney(redemption.amount_cents)} · {statusLabel(redemption.status)}</p>
+              <p class="text-sm text-eagles-ink/70">{redemption.canteen_venues?.name ?? "Canteen"} · {formatDateTime(redemption.created_at)}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+    </aside>
+  </div>
+  <script>
+    const scanButton = document.querySelector<HTMLButtonElement>("#scan-voucher");
+    const video = document.querySelector<HTMLVideoElement>("#voucher-scanner");
+    const codeInput = document.querySelector<HTMLInputElement>("#voucher-code");
+    const message = document.querySelector<HTMLElement>("#scanner-message");
+
+    const showMessage = (text: string) => {
+      if (!message) return;
+      message.textContent = text;
+      message.classList.remove("hidden");
+    };
+
+    scanButton?.addEventListener("click", async () => {
+      const Detector = (window as typeof window & { BarcodeDetector?: any }).BarcodeDetector;
+      if (!Detector || !video || !codeInput) {
+        showMessage("QR scanning is not available in this browser. Enter the voucher code instead.");
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        video.classList.remove("hidden");
+        await video.play();
+        const detector = new Detector({ formats: ["qr_code"] });
+        const scan = async () => {
+          const codes = await detector.detect(video);
+          if (codes.length > 0) {
+            codeInput.value = codes[0].rawValue;
+            stream.getTracks().forEach((track) => track.stop());
+            video.classList.add("hidden");
+            showMessage("Voucher code scanned.");
+            return;
+          }
+          requestAnimationFrame(scan);
+        };
+        scan();
+      } catch {
+        showMessage("Camera access was not available. Enter the voucher code instead.");
+      }
+    });
+  </script>
+</PortalLayout>
