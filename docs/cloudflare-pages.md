@@ -8,7 +8,23 @@ Do not enable GitHub Pages for this repository. Do not add Jekyll, `jekyll-theme
 
 The Greenacre Eagles portal contains protected server-rendered routes such as `/portal/`, `/admin/`, and `/api/`. The installed `@astrojs/cloudflare` adapter now targets Cloudflare Workers for this kind of Astro SSR app.
 
-Deploy the full website and portal as a Cloudflare Worker:
+The existing Cloudflare Pages project must run in Pages advanced mode. The `postbuild` script copies Astro's generated Cloudflare Worker into `dist/client/_worker.js/index.js`, so the same `website-4h5.pages.dev` domain can serve both prerendered public pages and server-rendered portal/admin routes.
+
+Cloudflare Pages settings:
+
+- Project name: `website`
+- Pages domain: `https://website-4h5.pages.dev`
+- Framework preset: `Astro`
+- Build command: `npm run build`
+- Build output directory: `dist/client`
+- Node version: `22`
+- Compatibility flag: `nodejs_compat`
+- Production branch: `main`, unless the repo owner chooses another branch
+- Pages Functions: enabled automatically by the `dist/client/_worker.js` directory
+
+Do not remove `scripts/prepare-pages-worker.mjs` or the `postbuild` script. Without the `_worker.js` directory, Cloudflare Pages serves only the static public pages and `/portal/`, `/admin/`, and `/api/` will not work.
+
+The app can also be deployed as a standalone Cloudflare Worker:
 
 - Worker name: `greenacre-eagles-website`
 - Compatibility date: `2026-04-15`
@@ -29,26 +45,6 @@ Required runtime variables:
 - `PUBLIC_SUPABASE_URL`: Supabase project URL for browser auth and portal calls.
 - `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
 
-## Cloudflare Pages Fallback
-
-The existing Cloudflare Pages project can remain as a static public fallback, but it cannot run protected admin and portal routes by itself.
-
-Pages settings:
-
-- Framework preset: `Astro`
-- Build command: `npm run build`
-- Build output directory: `dist/client`
-- Node version: `22`
-- Production branch: `main`, unless the repo owner chooses another branch
-
-Current Pages project:
-
-- Project name: `website`
-- Pages domain: `https://website-4h5.pages.dev`
-- GitHub source: `GreenacreEagles/website`
-- Production branch: `main`
-- Latest checked production deployment: successful
-
 ## Environment Variables
 
 - `SITE_URL`: set this to the production domain once confirmed, for example `https://greenacreeaglesfc.com.au`.
@@ -62,11 +58,11 @@ Production and preview variables have been configured in Cloudflare Pages for th
 
 Astro is configured with `@astrojs/cloudflare` and `output: "server"`.
 
-Public marketing/content pages are prerendered into `dist/client`. Protected portal, admin, and API routes run through the Cloudflare Worker server output in `dist/server`.
+Public marketing/content pages are prerendered into `dist/client`. Protected portal, admin, and API routes run through the Cloudflare Worker entry copied to `dist/client/_worker.js/index.js`.
 
 Required runtime bindings:
 
-- `SESSION`: Workers KV binding used by Astro sessions.
+- `SESSION`: Workers KV binding used by Astro sessions. Configure this in Cloudflare Pages production and preview Functions bindings.
 
 Cloudflare Pages reads these files from `public/` during the build:
 

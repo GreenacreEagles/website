@@ -12,7 +12,7 @@ This repo uses GitHub as the source repository only. The production target is Cl
 - Pages CMS configuration for Git-based editing
 - Local Lucide-style SVG icon component
 - Astro sitemap
-- Hosting target: Cloudflare Workers, with Cloudflare Pages available as a static public fallback
+- Hosting target: Cloudflare Pages advanced mode, with a generated Cloudflare Worker for portal/admin routes
 
 ## Local Development
 
@@ -33,7 +33,20 @@ Static output is generated in `dist/`.
 
 ## Cloudflare Deployment
 
-The protected portal and admin routes need the Astro server build, so the full app is deployed as a Cloudflare Worker.
+The protected portal and admin routes need the Astro server build. Cloudflare Pages must deploy `dist/client`, and the `postbuild` script places Astro's generated Worker at `dist/client/_worker.js/index.js` for Pages advanced mode.
+
+Cloudflare Pages settings:
+
+- Project name: `website`
+- Build command: `npm run build`
+- Build output directory: `dist/client`
+- Node version: `22`
+- Compatibility flag: `nodejs_compat`
+- Required binding: `SESSION` Workers KV binding for Astro sessions
+
+Do not deploy the Pages project as static-only. If the `_worker.js` directory is missing from `dist/client`, `/portal/`, `/admin/`, `/login/`, and `/api/` routes will not run.
+
+The same app can also be deployed as a standalone Cloudflare Worker:
 
 ```bash
 npm run deploy:worker
@@ -50,8 +63,6 @@ Worker settings:
 - Static assets directory: `dist/client`
 - Required KV binding: `SESSION`
 - Runtime config: `wrangler.jsonc`
-
-The existing Cloudflare Pages project can stay connected as a static public fallback. Its output directory must be `dist/client`. Pages alone will not serve `/portal/`, `/admin/`, or `/api/` routes.
 
 GitHub Pages should remain disabled for this repo. There is no Jekyll configuration, and `.nojekyll` is included only as a defensive signal.
 

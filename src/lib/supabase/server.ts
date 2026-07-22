@@ -7,8 +7,7 @@ type RuntimeContext = {
   locals?: any;
 };
 
-const readEnv = (context: RuntimeContext, key: string) =>
-  context.locals?.runtime?.env?.[key] ?? import.meta.env[key];
+const readEnv = (_context: RuntimeContext, key: string) => import.meta.env[key];
 
 export const createSupabaseServerClient = (context: RuntimeContext) => {
   const supabaseUrl = readEnv(context, "PUBLIC_SUPABASE_URL");
