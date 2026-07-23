@@ -21,6 +21,7 @@ export const ADMIN_PERMISSIONS = [
   "canteen.vouchers.reverse",
   "wallet.read",
   "wallet.adjust",
+  "finance.read",
   "merchandise.manage",
   "events.manage",
   "volunteers.manage",

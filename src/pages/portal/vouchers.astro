@@ -1,5 +1,4 @@
 ---
-import EmptyState from "@components/EmptyState.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
@@ -11,10 +10,14 @@ export const prerender = false;
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: vouchers }, { data: wallets }, { data: ledger }] = await Promise.all([
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+
+const [{ data: vouchers }, { data: wallets }, { data: ledger }, { data: payments }] = await Promise.all([
   session.supabase.from("voucher_issuances").select("id,redemption_code,voucher_type,status,original_value_cents,remaining_value_cents,valid_from,expires_at,issue_reason,canteen_venues(name),teams(name)").eq("beneficiary_id", session.user.id).order("created_at", { ascending: false }).limit(30),
   session.supabase.from("wallet_accounts").select("id,account_type,status,wallet_balances(balance_cents)").eq("owner_id", session.user.id).limit(10),
-  session.supabase.from("wallet_ledger_entries").select("id,amount_cents,direction,transaction_type,description,created_at,wallet_accounts!inner(owner_id)").eq("wallet_accounts.owner_id", session.user.id).order("created_at", { ascending: false }).limit(20)
+  session.supabase.from("wallet_ledger_entries").select("id,amount_cents,direction,transaction_type,description,created_at,wallet_accounts!inner(owner_id)").eq("wallet_accounts.owner_id", session.user.id).order("created_at", { ascending: false }).limit(20),
+  session.supabase.from("payments" as any).select("id,provider,amount_cents,status,created_at,updated_at,metadata").eq("payer_id", session.user.id).eq("metadata->>purpose", "wallet_top_up").order("created_at", { ascending: false }).limit(10)
 ]);
 
 const voucherCards = await Promise.all(
@@ -31,6 +34,8 @@ const voucherCards = await Promise.all(
 <PortalLayout title="Wallet and vouchers" section="Payments" session={session}>
   <div class="grid gap-6 xl:grid-cols-[360px_1fr]">
     <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
       {(wallets ?? []).map((wallet: any) => (
         <article class="surface p-5">
           <p class="eyebrow">{statusLabel(wallet.account_type)}</p>
@@ -38,7 +43,37 @@ const voucherCards = await Promise.all(
           <p class="mt-2 text-sm text-eagles-ink/70">{statusLabel(wallet.status)}</p>
         </article>
       ))}
-      {(wallets ?? []).length === 0 && <EmptyState title="No wallet yet" text="Wallet balances will appear here when the club enables stored credit or family accounts." />}
+      {(wallets ?? []).length === 0 && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-account/">
+          <input type="hidden" name="return_to" value="/portal/vouchers/" />
+          <input type="hidden" name="account_type" value="user" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create wallet</h2>
+          <p class="text-sm leading-6 text-eagles-ink/70">Create a member wallet before requesting top-ups or storing club credit.</p>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create wallet</button>
+        </form>
+      )}
+      {(wallets ?? []).length > 0 && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-top-up/">
+          <input type="hidden" name="return_to" value="/portal/vouchers/" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Top up wallet</h2>
+          <label><span class="label">Wallet</span><select class="field" name="wallet_id">{(wallets ?? []).map((wallet: any) => <option value={wallet.id}>{statusLabel(wallet.account_type)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
+          <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="1" max="1000" step="0.01" placeholder="25.00" required /></label>
+          <label><span class="label">Payment method</span><select class="field" name="provider"><option value="manual">Manual settlement</option></select></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Request top-up</button>
+        </form>
+      )}
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Top-up requests</h2>
+        <div class="mt-4 grid gap-3">
+          {(payments ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Top-up requests will appear here.</p>}
+          {(payments ?? []).map((payment: any) => (
+            <p class="border-t border-eagles-line pt-3 text-sm">
+              <strong>{formatMoney(payment.amount_cents)}</strong> - {statusLabel(payment.status)}<br />
+              {payment.provider} - {formatDateTime(payment.updated_at ?? payment.created_at)}
+            </p>
+          ))}
+        </div>
+      </article>
     </aside>
     <section class="grid gap-5">
       <article class="surface p-5 md:p-7">

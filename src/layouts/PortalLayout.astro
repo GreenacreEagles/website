@@ -28,7 +28,7 @@ const portalNav: NavItem[] = [
   { href: "/portal/events/", label: "Events" },
   { href: "/portal/volunteers/", label: "Volunteers" },
   { href: "/portal/canteen/", label: "Canteen" },
-  { href: "/portal/canteen-staff/", label: "Canteen staff", permissions: ["canteen.orders.manage", "canteen.vouchers.redeem"] },
+  { href: "/portal/canteen-staff/", label: "Canteen staff", permissions: ["canteen.orders.manage", "canteen.vouchers.redeem", "canteen.vouchers.reverse"] },
   { href: "/portal/vouchers/", label: "Wallet" },
   { href: "/portal/coaching/", label: "Coaching resources", permissions: ["coaching_resources.read", "teams.manage"] }
 ];
@@ -42,6 +42,7 @@ const adminNav: NavItem[] = [
   { href: "/admin/volunteers/", label: "Volunteers", permissions: ["volunteers.manage"] },
   { href: "/admin/canteen/", label: "Canteen", permissions: ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"] },
   { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage"] },
+  { href: "/admin/wallets/", label: "Wallets", permissions: ["wallet.read", "wallet.adjust", "finance.read"] },
   { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
   { href: "/admin/content/", label: "Resource guide", permissions: ["coaching_resources.manage", "content.manage"] },
   { href: "/admin/content/", label: "Content", permissions: ["content.manage"] },

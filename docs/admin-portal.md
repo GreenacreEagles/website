@@ -53,3 +53,9 @@ Order state changes run through `public.update_canteen_order_state`, which enfor
 Administrators manage merchandise products and stock variants from `/admin/merchandise/`. Member orders run through `public.create_merchandise_order`, which locks the selected variant, snapshots the ordered item and reserves stock atomically.
 
 Merchandise order status changes run through `public.update_merchandise_order_state`. The RPC enforces merchandise-management permission, records order status history, notifies the customer and releases reserved stock when an order is cancelled or refunded.
+
+## Wallet Operations
+
+Members create wallet accounts and manual top-up requests from `/portal/vouchers/`. Top-up requests create `payments` rows with wallet metadata; they do not credit the wallet until an authorised treasurer or wallet operator settles them.
+
+Administrators use `/admin/wallets/` to review pending top-ups, mark them succeeded, failed or cancelled, create member wallets, record controlled credit/debit adjustments and reverse mistaken ledger entries. Settlement and adjustment actions run through wallet RPCs so ledger writes are idempotent and auditable.

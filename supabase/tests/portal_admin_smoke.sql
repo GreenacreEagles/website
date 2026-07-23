@@ -100,6 +100,141 @@ select 'team staff report can be saved',
   ),
   'match report inserted for active team staff';
 
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
+
+with ensured as (
+  select public.ensure_wallet_account(null, null, 'user') as wallet_id
+)
+insert into smoke_results
+select 'member can create wallet account',
+  exists (
+    select 1
+    from public.wallet_accounts wa
+    where wa.id = ensured.wallet_id
+      and wa.owner_id = '00000000-0000-4000-8000-000000000212'
+      and wa.account_type = 'user'
+      and wa.status = 'active'
+  ),
+  'wallet account ensured for member'
+from ensured;
+
+with top_up as (
+  select *
+  from public.create_wallet_top_up(
+    (
+      select id
+      from public.wallet_accounts
+      where owner_id = '00000000-0000-4000-8000-000000000212'
+      limit 1
+    ),
+    1000,
+    'manual',
+    'smoke-wallet-top-up'
+  )
+)
+insert into smoke_results
+select 'member can create wallet top-up request',
+  top_up.payment_status = 'created'
+  and top_up.amount_cents = 1000
+  and exists (
+    select 1
+    from public.payments p
+    where p.id = top_up.payment_id
+      and p.payer_id = '00000000-0000-4000-8000-000000000212'
+      and p.metadata->>'purpose' = 'wallet_top_up'
+  ),
+  'payment request created with wallet metadata'
+from top_up;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+with settled as (
+  select *
+  from public.settle_wallet_top_up(
+    (
+      select id
+      from public.payments
+      where idempotency_key = 'smoke-wallet-top-up'
+      limit 1
+    ),
+    'succeeded',
+    'SMOKE-POS-1',
+    'Smoke settlement'
+  )
+)
+insert into smoke_results
+select 'treasurer can settle wallet top-up',
+  settled.payment_status = 'succeeded'
+  and settled.ledger_entry_id is not null
+  and exists (
+    select 1
+    from public.wallet_balances wb
+    join public.wallet_accounts wa on wa.id = wb.wallet_account_id
+    where wa.owner_id = '00000000-0000-4000-8000-000000000212'
+      and wb.balance_cents = 1000
+  ),
+  'settled top-up credits wallet ledger'
+from settled;
+
+with adjusted as (
+  select public.adjust_wallet_balance(
+    (
+      select id
+      from public.wallet_accounts
+      where owner_id = '00000000-0000-4000-8000-000000000212'
+      limit 1
+    ),
+    250,
+    'debit',
+    'manual_adjustment',
+    'Smoke debit adjustment',
+    'smoke-wallet-debit',
+    '00000000-0000-4000-8000-000000000212'
+  ) as entry_id
+)
+insert into smoke_results
+select 'wallet adjustment debits available balance',
+  exists (
+    select 1
+    from public.wallet_ledger_entries wle
+    join public.wallet_balances wb on wb.wallet_account_id = wle.wallet_account_id
+    where wle.id = adjusted.entry_id
+      and wle.direction = 'debit'
+      and wb.balance_cents = 750
+  ),
+  'manual debit adjustment recorded'
+from adjusted;
+
+with reversed_wallet_entry as (
+  select public.reverse_wallet_ledger_entry(
+    (
+      select id
+      from public.wallet_ledger_entries
+      where idempotency_key = 'smoke-wallet-debit'
+      limit 1
+    ),
+    'Smoke debit reversal'
+  ) as reversal_id
+)
+insert into smoke_results
+select 'wallet ledger reversal restores balance',
+  exists (
+    select 1
+    from public.wallet_ledger_entries reversal
+    join public.wallet_balances wb on wb.wallet_account_id = reversal.wallet_account_id
+    where reversal.id = reversed_wallet_entry.reversal_id
+      and reversal.direction = 'credit'
+      and reversal.reversal_of = (
+        select id
+        from public.wallet_ledger_entries
+        where idempotency_key = 'smoke-wallet-debit'
+        limit 1
+      )
+      and wb.balance_cents = 1000
+  ),
+  'reversal credit links back to original debit'
+from reversed_wallet_entry;
+
 insert into public.canteen_categories (id, name, display_order, is_active)
 values ('00000000-0000-4000-8000-000000000215', 'Smoke Canteen', 0, true);
 

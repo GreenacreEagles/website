@@ -1,0 +1,172 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["wallet.read", "wallet.adjust", "finance.read"]);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const canAdjust = session.permissions.has("*") || session.permissions.has("wallet.adjust");
+
+const [{ data: wallets }, { data: payments }, { data: ledger }, { data: profiles }] = await Promise.all([
+  session.supabase
+    .from("wallet_accounts")
+    .select("id,owner_id,family_id,account_type,status,created_at,wallet_balances(balance_cents),profiles:owner_id(full_name,email),families(name)")
+    .order("created_at", { ascending: false })
+    .limit(120),
+  session.supabase
+    .from("payments" as any)
+    .select("id,provider,provider_payment_id,payer_id,beneficiary_id,amount_cents,currency,status,idempotency_key,metadata,created_at,updated_at,settled_at,profiles:payer_id(full_name,email),beneficiary:beneficiary_id(full_name,email)")
+    .eq("metadata->>purpose", "wallet_top_up")
+    .order("created_at", { ascending: false })
+    .limit(80),
+  session.supabase
+    .from("wallet_ledger_entries")
+    .select("id,wallet_account_id,amount_cents,direction,transaction_type,description,created_at,reversal_of,wallet_accounts(account_type,profiles:owner_id(full_name,email),families(name))")
+    .order("created_at", { ascending: false })
+    .limit(80),
+  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(250)
+]);
+
+const walletList = (wallets ?? []) as any[];
+const pendingPayments = ((payments ?? []) as any[]).filter((payment) => ["created", "requires_action"].includes(payment.status));
+const settledPayments = ((payments ?? []) as any[]).filter((payment) => !["created", "requires_action"].includes(payment.status));
+const walletName = (wallet: any) => wallet.profiles?.full_name ?? wallet.profiles?.email ?? wallet.families?.name ?? `${statusLabel(wallet.account_type)} wallet`;
+const ledgerWalletName = (entry: any) => {
+  const wallet = entry.wallet_accounts;
+  return wallet?.profiles?.full_name ?? wallet?.profiles?.email ?? wallet?.families?.name ?? "Wallet";
+};
+---
+
+<PortalLayout title="Wallet operations" section="Administration" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+    <section class="grid gap-5">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+
+      <article class="surface p-5 md:p-7">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p class="eyebrow">Finance queue</p>
+            <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">Top-up requests</h2>
+          </div>
+          <p class="text-sm font-bold text-eagles-ink/70">{pendingPayments.length} pending</p>
+        </div>
+        <div class="mt-5 grid gap-3">
+          {pendingPayments.length === 0 && <EmptyState title="No pending top-ups" text="Member wallet top-up requests will appear here for treasurer settlement." />}
+          {pendingPayments.map((payment: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="font-black">{formatMoney(payment.amount_cents)} - {statusLabel(payment.status)}</p>
+                  <p class="mt-1 text-sm text-eagles-ink/70">{payment.profiles?.full_name ?? payment.profiles?.email ?? "Member"} - {payment.provider}</p>
+                  <p class="mt-1 text-xs text-eagles-ink/60">{formatDateTime(payment.created_at)}</p>
+                </div>
+                <StatusBadge label={statusLabel(payment.status)} tone="amber" />
+              </div>
+              {canAdjust && (
+                <form class="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]" method="post" action="/api/admin/wallet-settlement/">
+                  <input type="hidden" name="payment_id" value={payment.id} />
+                  <input type="hidden" name="return_to" value="/admin/wallets/" />
+                  <label><span class="label">Provider reference</span><input class="field" name="provider_payment_id" value={payment.provider_payment_id ?? ""} /></label>
+                  <label><span class="label">Settlement note</span><input class="field" name="settlement_note" placeholder="Cash received, bank transfer, POS ref" /></label>
+                  <div class="grid gap-2">
+                    <button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px" type="submit" name="status" value="succeeded">Settle</button>
+                    <button class="bg-red-50 px-3 py-2 text-xs font-black text-red-700" style="border-radius:8px" type="submit" name="status" value="failed">Fail</button>
+                  </div>
+                </form>
+              )}
+            </article>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Recent ledger</h2>
+        <div class="mt-5 grid gap-3">
+          {(ledger ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Wallet ledger entries will appear after top-ups, adjustments or reversals.</p>}
+          {(ledger ?? []).map((entry: any) => (
+            <article class="border-t border-eagles-line pt-3">
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="font-black">{ledgerWalletName(entry)} - {entry.direction === "credit" ? "+" : "-"}{formatMoney(entry.amount_cents)}</p>
+                  <p class="mt-1 text-sm text-eagles-ink/70">{statusLabel(entry.transaction_type)} - {entry.description ?? statusLabel(entry.direction)}</p>
+                  <p class="mt-1 text-xs text-eagles-ink/60">{formatDateTime(entry.created_at)}</p>
+                </div>
+                <StatusBadge label={entry.reversal_of ? "Reversal" : statusLabel(entry.direction)} tone={entry.direction === "credit" ? "green" : "amber"} />
+              </div>
+              {canAdjust && !entry.reversal_of && entry.transaction_type !== "reversal" && (
+                <form class="mt-3 grid gap-2 md:grid-cols-[1fr_auto]" method="post" action="/api/admin/wallet-ledger-reversal/">
+                  <input type="hidden" name="entry_id" value={entry.id} />
+                  <input type="hidden" name="return_to" value="/admin/wallets/" />
+                  <label><span class="label">Reversal reason</span><input class="field" name="reason" placeholder="Duplicate top-up or mistaken adjustment" required /></label>
+                  <button class="bg-red-50 px-3 py-2 text-xs font-black text-red-700" style="border-radius:8px" type="submit">Reverse</button>
+                </form>
+              )}
+            </article>
+          ))}
+        </div>
+      </article>
+    </section>
+
+    <aside class="grid gap-5 content-start">
+      {canAdjust && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/wallet-adjustment/">
+          <input type="hidden" name="return_to" value="/admin/wallets/" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Manual adjustment</h2>
+          <label><span class="label">Wallet</span><select class="field" name="wallet_id" required>{walletList.map((wallet) => <option value={wallet.id}>{walletName(wallet)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Direction</span><select class="field" name="direction"><option value="credit">Credit</option><option value="debit">Debit</option></select></label>
+            <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
+          </div>
+          <label><span class="label">Transaction type</span><input class="field" name="transaction_type" value="manual_adjustment" required /></label>
+          <label><span class="label">Beneficiary</span><select class="field" name="beneficiary_id"><option value="">No beneficiary</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+          <label><span class="label">Description</span><textarea class="field min-h-20" name="description" required></textarea></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Record adjustment</button>
+        </form>
+      )}
+
+      {canAdjust && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-account/">
+          <input type="hidden" name="return_to" value="/admin/wallets/" />
+          <input type="hidden" name="account_type" value="user" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create member wallet</h2>
+          <label><span class="label">Member</span><select class="field" name="owner_id" required>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create wallet</button>
+        </form>
+      )}
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Wallets</h2>
+        <div class="mt-4 grid gap-3">
+          {walletList.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No wallet accounts found.</p>}
+          {walletList.map((wallet) => (
+            <p class="border-t border-eagles-line pt-3 text-sm">
+              <strong>{walletName(wallet)}</strong><br />
+              {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)} - {statusLabel(wallet.account_type)} - {statusLabel(wallet.status)}
+            </p>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Settled top-ups</h2>
+        <div class="mt-4 grid gap-3">
+          {settledPayments.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Settled, failed or cancelled top-ups will appear here.</p>}
+          {settledPayments.map((payment: any) => (
+            <p class="border-t border-eagles-line pt-3 text-sm">
+              <strong>{formatMoney(payment.amount_cents)}</strong> - {statusLabel(payment.status)}<br />
+              {payment.profiles?.full_name ?? payment.profiles?.email ?? "Member"} - {formatDateTime(payment.updated_at)}
+            </p>
+          ))}
+        </div>
+      </article>
+    </aside>
+  </div>
+</PortalLayout>
