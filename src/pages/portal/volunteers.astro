@@ -28,6 +28,8 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
         <article class="surface p-5">
           {(() => {
             const myAssignment = shift.volunteer_assignments?.find((assignment: any) => assignment.user_id === session.user.id && assignment.status !== "cancelled");
+            const activeAssignments = shift.volunteer_assignments?.filter((assignment: any) => ["interested", "assigned", "checked_in", "replacement_requested"].includes(assignment.status)).length ?? 0;
+            const spotsRemaining = Math.max(shift.capacity - activeAssignments, 0);
             return (
               <>
           <p class="eyebrow">{shift.volunteer_opportunities?.opportunity_type ?? "Volunteer shift"}</p>
@@ -35,22 +37,32 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
           <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{formatDateTime(shift.starts_at)} at {shift.venues?.name ?? "club venue"}</p>
           <div class="mt-4 flex flex-wrap gap-2">
             <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : "amber"} />
-            <StatusBadge label={`${shift.capacity} spots`} tone="ink" />
+            <StatusBadge label={`${spotsRemaining}/${shift.capacity} spots left`} tone="ink" />
           </div>
-          {!myAssignment && (
+          {!myAssignment && shift.status === "open" && spotsRemaining > 0 && (
             <form class="mt-5" method="post" action="/api/portal/volunteer-shift/">
               <input type="hidden" name="shift_id" value={shift.id} />
               <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Volunteer for this shift</button>
             </form>
           )}
+          {!myAssignment && (shift.status !== "open" || spotsRemaining === 0) && (
+            <p class="mt-5 text-sm font-bold text-eagles-ink/70">This shift is not taking new volunteers right now.</p>
+          )}
           {myAssignment && (
             <div class="mt-5 flex flex-wrap gap-2">
-              <StatusBadge label="You are on this shift" tone="green" />
+              <StatusBadge label={myAssignment.status === "replacement_requested" ? "Replacement requested" : "You are on this shift"} tone="green" />
               {myAssignment.status !== "checked_in" && (
                 <form method="post" action="/api/portal/volunteer-assignment/">
                   <input type="hidden" name="assignment_id" value={myAssignment.id} />
                   <input type="hidden" name="status" value="checked_in" />
                   <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Check in</button>
+                </form>
+              )}
+              {myAssignment.status !== "replacement_requested" && (
+                <form method="post" action="/api/portal/volunteer-assignment/">
+                  <input type="hidden" name="assignment_id" value={myAssignment.id} />
+                  <input type="hidden" name="status" value="replacement_requested" />
+                  <button class="bg-yellow-100 px-4 py-3 text-sm font-black text-yellow-900" style="border-radius:8px" type="submit">Request replacement</button>
                 </form>
               )}
               <form method="post" action="/api/portal/volunteer-assignment/">
@@ -81,6 +93,13 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
                     <input type="hidden" name="assignment_id" value={assignment.id} />
                     <input type="hidden" name="status" value="checked_in" />
                     <button class="text-sm font-black text-eagles-green" type="submit">Check in</button>
+                  </form>
+                )}
+                {assignment.status !== "replacement_requested" && (
+                  <form method="post" action="/api/portal/volunteer-assignment/">
+                    <input type="hidden" name="assignment_id" value={assignment.id} />
+                    <input type="hidden" name="status" value="replacement_requested" />
+                    <button class="text-sm font-black text-yellow-900" type="submit">Request replacement</button>
                   </form>
                 )}
                 <form method="post" action="/api/portal/volunteer-assignment/">

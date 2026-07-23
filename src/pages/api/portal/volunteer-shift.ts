@@ -16,11 +16,9 @@ export const POST: APIRoute = async (context) => {
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   if (!parsed.success) return context.redirect(redirectWithMessage("/portal/volunteers/", "error", "Select a volunteer shift."));
 
-  const { error } = await session.supabase.from("volunteer_assignments").insert({
-    shift_id: parsed.data.shift_id,
-    user_id: session.user.id,
-    status: "interested"
+  const { error } = await (session.supabase as any).rpc("request_volunteer_shift", {
+    target_shift_id: parsed.data.shift_id
   });
 
-  return context.redirect(redirectWithMessage("/portal/volunteers/", error ? "error" : "success", error?.message ?? "Volunteer interest recorded."));
+  return context.redirect(redirectWithMessage("/portal/volunteers/", error ? "error" : "success", error?.message ?? "Volunteer shift confirmed."));
 };

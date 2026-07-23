@@ -100,6 +100,105 @@ select 'team staff report can be saved',
   ),
   'match report inserted for active team staff';
 
+insert into public.volunteer_opportunities (id, title, description, opportunity_type, status)
+values ('00000000-0000-4000-8000-000000000220', 'Smoke Volunteer Gate', 'Smoke volunteer roster', 'match_day', 'active');
+
+insert into public.volunteer_shifts (id, opportunity_id, starts_at, ends_at, capacity, status)
+values (
+  '00000000-0000-4000-8000-000000000221',
+  '00000000-0000-4000-8000-000000000220',
+  now() + interval '1 hour',
+  now() + interval '3 hours',
+  1,
+  'open'
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
+
+with requested as (
+  select *
+  from public.request_volunteer_shift('00000000-0000-4000-8000-000000000221')
+)
+insert into smoke_results
+select 'member can request open volunteer shift',
+  requested.assignment_status = 'assigned'
+  and requested.shift_status = 'filled'
+  and exists (
+    select 1
+    from public.volunteer_assignments va
+    where va.id = requested.assignment_id
+      and va.user_id = '00000000-0000-4000-8000-000000000212'
+      and va.status = 'assigned'
+  ),
+  'capacity-aware RPC assigns member and fills one-person shift'
+from requested;
+
+with requested_again as (
+  select *
+  from public.request_volunteer_shift('00000000-0000-4000-8000-000000000221')
+)
+insert into smoke_results
+select 'duplicate volunteer request is idempotent',
+  requested_again.assignment_status = 'assigned'
+  and (
+    select count(*)
+    from public.volunteer_assignments
+    where shift_id = '00000000-0000-4000-8000-000000000221'
+      and user_id = '00000000-0000-4000-8000-000000000212'
+  ) = 1,
+  'repeat signup returns existing assignment'
+from requested_again;
+
+with checked_in as (
+  select *
+  from public.update_volunteer_assignment(
+    (
+      select id
+      from public.volunteer_assignments
+      where shift_id = '00000000-0000-4000-8000-000000000221'
+        and user_id = '00000000-0000-4000-8000-000000000212'
+      limit 1
+    ),
+    'checked_in',
+    'Smoke member check-in'
+  )
+)
+insert into smoke_results
+select 'member can check in volunteer assignment',
+  checked_in.assignment_status = 'checked_in'
+  and exists (
+    select 1
+    from public.volunteer_assignments
+    where id = checked_in.assignment_id
+      and checked_in_at is not null
+  ),
+  'check-in timestamp recorded'
+from checked_in;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+with completed_shift as (
+  select *
+  from public.update_volunteer_shift_status(
+    '00000000-0000-4000-8000-000000000221',
+    'completed',
+    'Smoke shift completed'
+  )
+)
+insert into smoke_results
+select 'volunteer coordinator can complete shift',
+  completed_shift.shift_status = 'completed'
+  and completed_shift.affected_assignments = 1
+  and exists (
+    select 1
+    from public.volunteer_assignments
+    where shift_id = completed_shift.shift_id
+      and status = 'completed'
+      and completed_at is not null
+  ),
+  'shift completion completes active assignment'
+from completed_shift;
+
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
 
 with ensured as (

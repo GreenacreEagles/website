@@ -51,7 +51,7 @@
 - [x] Add guardian-visible family wallets/vouchers and child canteen order beneficiary selection.
 - [x] Build full squads, staff and match reports management.
 - [x] Build family and guardian management foundation.
-- [ ] Build volunteer shifts and assignments.
+- [x] Build volunteer shifts and assignments.
 - [ ] Build coaching resource library.
 
 ## Phase 5: Commerce

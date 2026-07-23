@@ -14,10 +14,13 @@ const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: opportunities }, { data: shifts }, { data: assignments }, { data: venues }] = await Promise.all([
   session.supabase.from("volunteer_opportunities").select("id,title,description,opportunity_type,status").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venues(name)").order("starts_at", { ascending: true }).limit(80),
-  session.supabase.from("volunteer_assignments").select("id,status,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venues(name),volunteer_assignments(id,status,user_id)").order("starts_at", { ascending: true }).limit(80),
+  session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80),
   session.supabase.from("venues").select("id,name").order("name")
 ]);
+
+const activeAssignmentCount = (shift: any) =>
+  shift.volunteer_assignments?.filter((assignment: any) => ["interested", "assigned", "checked_in", "replacement_requested"].includes(assignment.status)).length ?? 0;
 ---
 
 <PortalLayout title="Volunteer management" section="Administration" session={session}>
@@ -65,11 +68,51 @@ const [{ data: opportunities }, { data: shifts }, { data: assignments }, { data:
       </form>
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Shifts</h2>
-        <div class="mt-4 grid gap-3">{(shifts ?? []).map((shift: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{shift.volunteer_opportunities?.title ?? "Shift"}</strong><br />{formatDateTime(shift.starts_at)} - {shift.capacity} spots</p>)}</div>
+        <div class="mt-4 grid gap-3">
+          {(shifts ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Scheduled shifts will appear here.</p>}
+          {(shifts ?? []).map((shift: any) => (
+            <div class="border-t border-eagles-line pt-3 text-sm">
+              <div class="flex items-start justify-between gap-3">
+                <p>
+                  <strong>{shift.volunteer_opportunities?.title ?? "Shift"}</strong><br />
+                  {formatDateTime(shift.starts_at)} - {activeAssignmentCount(shift)}/{shift.capacity} filled
+                </p>
+                <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : shift.status === "cancelled" ? "red" : "amber"} />
+              </div>
+              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action/">
+                <input type="hidden" name="action" value="shift" />
+                <input type="hidden" name="shift_id" value={shift.id} />
+                <label><span class="label">Shift status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item} selected={shift.status === item}>{statusLabel(item)}</option>)}</select></label>
+                <label><span class="label">Note</span><input class="field" name="note" placeholder="Optional roster note" /></label>
+                <button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px" type="submit">Update shift</button>
+              </form>
+            </div>
+          ))}
+        </div>
       </article>
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Assignments</h2>
-        <div class="mt-4 grid gap-3">{(assignments ?? []).map((assignment: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{assignment.profiles?.full_name ?? assignment.profiles?.email}</strong><br />{assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Shift"} - {statusLabel(assignment.status)}</p>)}</div>
+        <div class="mt-4 grid gap-3">
+          {(assignments ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Volunteer assignments will appear here.</p>}
+          {(assignments ?? []).map((assignment: any) => (
+            <div class="border-t border-eagles-line pt-3 text-sm">
+              <div class="flex items-start justify-between gap-3">
+                <p>
+                  <strong>{assignment.profiles?.full_name ?? assignment.profiles?.email}</strong><br />
+                  {assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Shift"} - {formatDateTime(assignment.volunteer_shifts?.starts_at)}
+                </p>
+                <StatusBadge label={statusLabel(assignment.status)} tone={assignment.status === "completed" ? "green" : assignment.status === "cancelled" ? "red" : "amber"} />
+              </div>
+              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action/">
+                <input type="hidden" name="action" value="assignment" />
+                <input type="hidden" name="assignment_id" value={assignment.id} />
+                <label><span class="label">Assignment status</span><select class="field" name="status">{["interested", "assigned", "checked_in", "completed", "cancelled", "replacement_requested"].map((item) => <option value={item} selected={assignment.status === item}>{statusLabel(item)}</option>)}</select></label>
+                <label><span class="label">Note</span><input class="field" name="note" placeholder="Optional coordinator note" /></label>
+                <button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px" type="submit">Update assignment</button>
+              </form>
+            </div>
+          ))}
+        </div>
       </article>
     </aside>
   </div>

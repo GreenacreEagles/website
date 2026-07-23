@@ -42,6 +42,12 @@ Administrators manage the club hierarchy from `/admin/teams/`. The page now incl
 
 Coaches and team managers submit reports from the member team page. Report review actions stay in administration and require `match_reports.review`.
 
+## Volunteer Operations
+
+Volunteer coordinators manage opportunities, dated shifts and assignment statuses from `/admin/volunteers/`. Member sign-ups run through `public.request_volunteer_shift`, which locks the shift, checks capacity, respects opportunity status and returns the existing assignment for duplicate submissions.
+
+Coordinators can update individual assignments or close a whole shift through `/api/admin/volunteer-action/`. The shift RPC cancels active assignments when a shift is cancelled, completes active assignments when a shift is completed, writes audit records and notifies affected members.
+
 ## Canteen Operations
 
 Administrators manage canteen venues, categories, products, stock levels and fulfilment modes from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.

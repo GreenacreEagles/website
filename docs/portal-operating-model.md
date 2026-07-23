@@ -32,6 +32,10 @@ Team pages also show active squad and staff lists where team RLS permits access.
 
 Notifications use the existing `notifications` table. The dashboard supports unread display and mark-all-read through `/api/portal/notification/`. New notification categories should set `related_entity_type` and `related_entity_id` so dashboard action links can route members to the right workflow.
 
+## Volunteers
+
+`/portal/volunteers/` shows open or filled volunteer shifts, remaining capacity and the signed-in member's assignments. Members can sign up, check in, cancel or request a replacement through RPC-backed actions so shift capacity and status remain consistent under concurrent submissions.
+
 ## Current Limits
 
-The commerce source phases add canteen catalogue management, stock-aware canteen ordering, staff order transitions, payment marking, pickup codes, automatic wallet voucher issuance for paid voucher products, voucher QR scanning and reversal, wallet account creation, manual top-up settlement, provider webhook settlement, controlled wallet adjustments, ledger reversal, merchandise catalogue management, stock-backed merchandise checkout and merchandise order operations. Full production completion still requires applying the latest migration, regenerating database types, configuring live payment provider credentials, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.
+The commerce and club-operations source phases add canteen catalogue management, stock-aware canteen ordering, staff order transitions, payment marking, pickup codes, automatic wallet voucher issuance for paid voucher products, voucher QR scanning and reversal, wallet account creation, manual top-up settlement, provider webhook settlement, controlled wallet adjustments, ledger reversal, merchandise catalogue management, stock-backed merchandise checkout, merchandise order operations and volunteer shift rostering. Full production completion still requires applying the latest migration, regenerating database types, configuring live payment provider credentials, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.

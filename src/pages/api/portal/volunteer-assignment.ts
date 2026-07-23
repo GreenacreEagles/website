@@ -7,7 +7,7 @@ export const prerender = false;
 
 const schema = z.object({
   assignment_id: uuidSchema,
-  status: z.enum(["checked_in", "cancelled"])
+  status: z.enum(["checked_in", "cancelled", "replacement_requested"])
 });
 
 export const POST: APIRoute = async (context) => {
@@ -17,16 +17,11 @@ export const POST: APIRoute = async (context) => {
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   if (!parsed.success) return context.redirect(redirectWithMessage("/portal/volunteers/", "error", "Volunteer shift could not be updated."));
 
-  const patch =
-    parsed.data.status === "checked_in"
-      ? { status: "checked_in", checked_in_at: new Date().toISOString() }
-      : { status: "cancelled", checked_in_at: null };
-
-  const { error } = await session.supabase
-    .from("volunteer_assignments")
-    .update(patch)
-    .eq("id", parsed.data.assignment_id)
-    .eq("user_id", session.user.id);
+  const { error } = await (session.supabase as any).rpc("update_volunteer_assignment", {
+    target_assignment_id: parsed.data.assignment_id,
+    target_status: parsed.data.status,
+    note: "Member portal update"
+  });
 
   return context.redirect(redirectWithMessage("/portal/volunteers/", error ? "error" : "success", error ? "Volunteer shift could not be updated." : "Volunteer shift updated."));
 };
