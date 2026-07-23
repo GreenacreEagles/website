@@ -1,0 +1,226 @@
+---
+import EmptyState from "@components/EmptyState.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+
+const teamId = Astro.params.id!;
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+
+const [{ data: team }, { data: posts }, { data: squad }, { data: staff }, { data: fixtures }, { data: reports }] = await Promise.all([
+  session.supabase
+    .from("teams")
+    .select("id,name,division,colour,status,seasons(name,year),age_groups(name),competitions(name),venues:training_venue_id(name,suburb)")
+    .eq("id", teamId)
+    .single(),
+  (session.supabase as any)
+    .from("team_posts")
+    .select("id,team_id,title,body,post_type,is_pinned,allow_poll_results,poll_closes_at,published_at,author_id,profiles:author_id(full_name,preferred_name),team_poll_options(id,label,sort_order,team_poll_responses(id,option_id,user_id,respondent_id)),team_post_reactions(id,user_id,reaction)")
+    .eq("team_id", teamId)
+    .eq("status", "published")
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false }),
+  session.supabase
+    .from("team_players")
+    .select("id,status,squad_number,player_records(id,registration_status,profiles:user_id(full_name,preferred_name,email))")
+    .eq("team_id", teamId)
+    .eq("status", "active")
+    .order("squad_number"),
+  session.supabase
+    .from("team_staff")
+    .select("id,user_id,staff_role,status,profiles:user_id(full_name,preferred_name,email)")
+    .eq("team_id", teamId)
+    .eq("status", "active")
+    .order("staff_role"),
+  session.supabase
+    .from("fixtures")
+    .select("id,opponent,round,starts_at,status,home_away,venues(name,suburb)")
+    .eq("team_id", teamId)
+    .order("starts_at", { ascending: false })
+    .limit(12),
+  session.supabase
+    .from("match_reports")
+    .select("id,fixture_id,status,result,final_score_for,final_score_against,highlights,improvement_notes,conduct_issues,injury_notes,reviewer_notes,created_at,profiles:author_id(full_name,preferred_name,email),fixtures(opponent,round,starts_at)")
+    .eq("team_id", teamId)
+    .order("created_at", { ascending: false })
+    .limit(12)
+]);
+
+if (!team) return Astro.redirect("/portal/teams/");
+
+const activeStaffRole = (staff ?? []).find((item: any) => item.user_id === session.user.id)?.staff_role ?? "";
+const canPost = session.permissions.has("*") || session.permissions.has("team_posts.create") || session.permissions.has("teams.manage") || ["coach", "assistant_coach", "team_manager"].includes(activeStaffRole);
+const canSubmitReport = session.permissions.has("*") || session.permissions.has("match_reports.submit") || session.permissions.has("teams.manage") || ["coach", "assistant_coach", "team_manager"].includes(activeStaffRole);
+const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
+---
+
+<PortalLayout title={team.name} section="Team board" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <section class="grid gap-5">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+
+      <article class="surface p-5 md:p-7">
+        <p class="eyebrow">{team.seasons?.name ?? "Season"} {team.age_groups?.name ? `- ${team.age_groups.name}` : ""}</p>
+        <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{team.name}</h2>
+        <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
+          {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""}. Team posts and polls are private to authorised team members, family and staff.
+        </p>
+      </article>
+
+      {(posts ?? []).length === 0 && <EmptyState title="No team posts yet" text="Pinned announcements, polls and activity notices will appear here when team staff publish them." />}
+
+      {(posts ?? []).map((post: any) => {
+        const userReaction = (post.team_post_reactions ?? []).find((reaction: any) => reaction.user_id === session.user.id);
+        const userResponse = (post.team_poll_options ?? []).flatMap((option: any) => option.team_poll_responses ?? []).find((response: any) => response.user_id === session.user.id);
+        return (
+          <article id={`post-${post.id}`} class="surface p-5 md:p-7">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div class="flex flex-wrap gap-2">
+                  {post.is_pinned && <StatusBadge label="Pinned" tone="green" />}
+                  <StatusBadge label={statusLabel(post.post_type)} tone="ink" />
+                </div>
+                <h2 class="mt-3 font-display text-3xl font-black uppercase leading-none">{post.title}</h2>
+                <p class="mt-2 text-sm text-eagles-ink/60">
+                  By {post.profiles?.preferred_name || post.profiles?.full_name || "Team staff"} - {formatDateTime(post.published_at)}
+                </p>
+              </div>
+            </div>
+            {post.body && <p class="mt-4 whitespace-pre-line text-base leading-7 text-eagles-ink/75">{post.body}</p>}
+
+            {post.post_type === "poll" && (
+              <form class="mt-5 grid gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-poll-response/">
+                <input type="hidden" name="team_id" value={team.id} />
+                <input type="hidden" name="post_id" value={post.id} />
+                <p class="font-black">Poll response</p>
+                {(post.team_poll_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((option: any) => {
+                  const count = (option.team_poll_responses ?? []).length;
+                  return (
+                    <label class="flex items-center justify-between gap-3 border border-eagles-line bg-white p-3" style="border-radius:8px">
+                      <span class="flex items-center gap-3">
+                        <input type="radio" name="option_id" value={option.id} checked={userResponse?.option_id === option.id} />
+                        <span class="font-bold">{option.label}</span>
+                      </span>
+                      {post.allow_poll_results && <span class="text-sm font-black text-eagles-green">{count}</span>}
+                    </label>
+                  );
+                })}
+                <button class="justify-self-start bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">
+                  {userResponse ? "Update response" : "Submit response"}
+                </button>
+              </form>
+            )}
+
+            <form class="mt-5 flex flex-wrap gap-2 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction/">
+              <input type="hidden" name="team_id" value={team.id} />
+              <input type="hidden" name="post_id" value={post.id} />
+              {reactionLabels.map((reaction) => (
+                <button class:list={["border px-3 py-2 text-sm font-black hover:border-eagles-green", userReaction?.reaction === reaction ? "border-eagles-green bg-eagles-green text-white" : "border-eagles-line bg-white text-eagles-ink"]} style="border-radius:8px" name="reaction" value={reaction} type="submit">
+                  {statusLabel(reaction)}
+                </button>
+              ))}
+            </form>
+          </article>
+        );
+      })}
+    </section>
+
+    <aside class="grid gap-5 content-start">
+      {canPost && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Create post</h2>
+          <input type="hidden" name="team_id" value={team.id} />
+          <label><span class="label">Type</span><select class="field" name="post_type"><option value="announcement">Announcement</option><option value="activity">Activity notice</option><option value="poll">Poll</option></select></label>
+          <label><span class="label">Title</span><input class="field" name="title" maxlength="140" required /></label>
+          <label><span class="label">Body</span><textarea class="field min-h-32" name="body"></textarea></label>
+          <label class="flex items-center gap-3"><input type="checkbox" name="is_pinned" value="true" /><span class="font-bold">Pin post</span></label>
+          <label><span class="label">Poll options</span><input class="field" name="poll_options" placeholder="Yes, No, Maybe" /></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Publish</button>
+        </form>
+      )}
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Team details</h2>
+        <dl class="mt-4 grid gap-3 text-sm">
+          <div><dt class="font-black">Competition</dt><dd>{team.competitions?.name ?? "Not set"}</dd></div>
+          <div><dt class="font-black">Training venue</dt><dd>{team.venues?.name ?? "To be confirmed"}</dd></div>
+          <div><dt class="font-black">Status</dt><dd>{statusLabel(team.status)}</dd></div>
+        </dl>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Team staff</h2>
+        <div class="mt-4 grid gap-3">
+          {(staff ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Assigned coaches and managers will appear here.</p>}
+          {(staff ?? []).map((item: any) => (
+            <p class="border-t border-eagles-line pt-3 text-sm">
+              <strong>{item.profiles?.preferred_name || item.profiles?.full_name || item.profiles?.email}</strong><br />
+              {statusLabel(item.staff_role)}
+            </p>
+          ))}
+        </div>
+      </article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Squad</h2>
+        <div class="mt-4 grid gap-2">
+          {(squad ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">The active squad will appear here once assigned.</p>}
+          {(squad ?? []).map((item: any) => (
+            <p class="flex items-center justify-between border-t border-eagles-line pt-2 text-sm">
+              <span>{item.player_records?.profiles?.preferred_name || item.player_records?.profiles?.full_name || "Player"}</span>
+              {item.squad_number !== null && <strong>#{item.squad_number}</strong>}
+            </p>
+          ))}
+        </div>
+      </article>
+    </aside>
+  </div>
+
+  <section id="match-reports" class="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+    <article class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Match reports</h2>
+      <div class="mt-5 grid gap-3">
+        {(reports ?? []).length === 0 && <EmptyState title="No match reports yet" text="Coach and manager reports will appear here after they are submitted." />}
+        {(reports ?? []).map((report: any) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p class="font-black">{report.fixtures?.opponent ? `v ${report.fixtures.opponent}` : "Team report"} {report.final_score_for !== null && report.final_score_against !== null ? `${report.final_score_for}-${report.final_score_against}` : ""}</p>
+                <p class="mt-1 text-sm text-eagles-ink/70">By {report.profiles?.preferred_name || report.profiles?.full_name || "Team staff"} - {formatDateTime(report.created_at)}</p>
+              </div>
+              <StatusBadge label={statusLabel(report.status)} tone={report.status === "reviewed" || report.status === "closed" ? "green" : "amber"} />
+            </div>
+            {report.highlights && <p class="mt-3 whitespace-pre-line text-sm leading-6 text-eagles-ink/75">{report.highlights}</p>}
+            {report.improvement_notes && <p class="mt-3 text-sm leading-6 text-eagles-ink/70"><strong>Focus next:</strong> {report.improvement_notes}</p>}
+            {report.reviewer_notes && <p class="mt-3 bg-eagles-mist p-3 text-sm" style="border-radius:8px"><strong>Reviewer notes</strong><br />{report.reviewer_notes}</p>}
+          </article>
+        ))}
+      </div>
+    </article>
+
+    {canSubmitReport && (
+      <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report/">
+        <input type="hidden" name="team_id" value={team.id} />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Submit report</h2>
+        <label><span class="label">Fixture</span><select class="field" name="fixture_id"><option value="">General team report</option>{(fixtures ?? []).map((fixture: any) => <option value={fixture.id}>{fixture.round ? `${fixture.round} - ` : ""}{fixture.opponent} - {formatDateTime(fixture.starts_at)}</option>)}</select></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Eagles score</span><input class="field" name="final_score_for" type="number" min="0" max="99" /></label>
+          <label><span class="label">Opponent score</span><input class="field" name="final_score_against" type="number" min="0" max="99" /></label>
+        </div>
+        <label><span class="label">Result</span><select class="field" name="result"><option value="">Not set</option><option value="win">Win</option><option value="draw">Draw</option><option value="loss">Loss</option><option value="abandoned">Abandoned</option></select></label>
+        <label><span class="label">Highlights</span><textarea class="field min-h-24" name="highlights"></textarea></label>
+        <label><span class="label">Improvement notes</span><textarea class="field min-h-24" name="improvement_notes"></textarea></label>
+        <label><span class="label">Conduct issues</span><textarea class="field min-h-20" name="conduct_issues"></textarea></label>
+        <label><span class="label">Injury notes</span><textarea class="field min-h-20" name="injury_notes"></textarea></label>
+        <label><span class="label">Private notes</span><textarea class="field min-h-20" name="private_notes"></textarea></label>
+        <label><span class="label">Save as</span><select class="field" name="status"><option value="submitted">Submit for review</option><option value="draft">Draft</option></select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save report</button>
+      </form>
+    )}
+  </section>
+</PortalLayout>

@@ -1,34 +1,40 @@
 # Role Management
 
-Roles, permissions, role requests, and role assignments are controlled in Supabase.
+Roles and permissions are controlled in Supabase through `roles`, `permissions`, `role_permissions` and `user_role_assignments`.
 
-## Public Roles
+## Operating Model
 
-Authenticated users may request requestable roles such as coach, manager, volunteer coordinator, canteen roles, and player/guardian roles where configured.
+Members cannot request roles or team access from the portal. Authorised administrators assign roles in `/admin/users/[id]/`.
 
-Users cannot request or grant `super_administrator` from the public portal.
+Historical `role_requests` records remain in the database for audit continuity, but the latest migration removes role request routes and revokes request/review RPC execution from normal authenticated users.
 
-## Requests
+## Effective Permissions
 
-Portal users submit role requests from `/portal/role-requests/`.
+Effective permissions are the union of valid active role assignments. The database helper checks:
 
-Supported request states include:
+- assignment status is `active`,
+- start time has passed,
+- expiry time has not passed,
+- team scope matches where supplied,
+- season scope matches where supplied,
+- role permissions include the requested permission or `*`.
 
-- `submitted`
-- `under_review`
-- `approved`
-- `rejected`
-- `withdrawn`
-- `cancelled`
+The portal session loader asks Supabase for each known permission instead of trusting browser state or user-editable metadata.
 
-Users may withdraw their own pending requests.
+## Protected Roles
 
-## Assignments
+System roles such as `general_user`, `club_administrator` and `super_administrator` are seeded and protected. Normal administrators cannot grant `super_administrator`; only a current super administrator can do that through the protected RPC.
 
-Admins with the right permissions assign and revoke roles from the admin portal. Role assignments may be scoped to a team, season, or both depending on the role.
+## Team Access
 
-Super administrator assignment remains deliberately separate. The first super administrator must be created by the trusted SQL bootstrap function, and future super-administrator grants require an existing active super administrator.
+Team access is derived from:
 
-## Database Enforcement
+- active team-scoped role assignments,
+- active team staff rows,
+- player records on the team,
+- active family guardian relationships to players,
+- authorised team or club administrators.
 
-Role workflows use RLS-aware public RPCs granted to authenticated users only. Server routes call those RPCs after validating the signed-in user.
+The `public.member_team_ids()` RPC returns a member-safe list of accessible team ids and relationship labels for portal pages.
+
+Active `coach`, `assistant_coach` and `team_manager` rows in `team_staff` also permit team operations such as publishing team posts and submitting match reports for that team through the protected RLS helper.

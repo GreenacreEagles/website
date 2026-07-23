@@ -3,54 +3,232 @@ import EmptyState from "@components/EmptyState.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
-import { formatDate, statusLabel } from "@lib/format";
+import { formatDate, formatMoney, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: familyMemberships }, { data: playerRecords }] = await Promise.all([
-  session.supabase.from("family_members").select("id,relationship,status,is_primary_guardian,can_manage,can_spend,spending_limit_cents,families(id,name)").eq("user_id", session.user.id),
-  session.supabase.from("player_records").select("id,registration_status,photo_consent,code_of_conduct_accepted_at,seasons(name,year)").eq("user_id", session.user.id).order("created_at", { ascending: false })
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+
+const [{ data: familyMemberships }, { data: playerRecords }, { data: pendingInvitations }] = await Promise.all([
+  session.supabase
+    .from("family_members")
+    .select("id,family_id,user_id,relationship,status,is_primary_guardian,can_manage,can_spend,spending_limit_cents,families(id,name)")
+    .eq("user_id", session.user.id),
+  session.supabase
+    .from("player_records")
+    .select("id,registration_status,photo_consent,code_of_conduct_accepted_at,seasons(name,year)")
+    .eq("user_id", session.user.id)
+    .order("created_at", { ascending: false }),
+  (session.supabase as any)
+    .from("family_relationship_invitations")
+    .select("id,family_id,relationship,message,expires_at,families(name),profiles:invited_by(full_name,preferred_name)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
 ]);
+
+const membershipList = familyMemberships ?? [];
+const invitationList = pendingInvitations ?? [];
+const playerRecordList = playerRecords ?? [];
+const familyIds = [...new Set(membershipList.map((member: any) => member.family_id).filter(Boolean))] as string[];
+const manageableFamilyIds = membershipList
+  .filter((member: any) => member.status === "active" && (member.can_manage || member.can_spend || member.is_primary_guardian))
+  .map((member: any) => member.family_id) as string[];
+const uniqueById = (items: any[]) => [...new Map(items.filter(Boolean).map((item) => [item.id, item])).values()];
+
+let familyMembers: any[] = [];
+let familyVouchers: any[] = [];
+let familyWallets: any[] = [];
+let voucherAssignments: any[] = [];
+
+if (familyIds.length > 0) {
+  const [{ data: members }, { data: vouchers }, { data: ownVouchers }, { data: wallets }, { data: assignments }] = await Promise.all([
+    session.supabase
+      .from("family_members")
+      .select("id,family_id,user_id,relationship,status,is_primary_guardian,can_manage,can_spend,spending_limit_cents,profiles:user_id(full_name,preferred_name,email),families(name)")
+      .in("family_id", familyIds)
+      .order("created_at"),
+    session.supabase
+      .from("voucher_issuances")
+      .select("id,beneficiary_id,family_id,voucher_type,status,remaining_value_cents,expires_at,issue_reason,profiles:beneficiary_id(full_name,preferred_name)")
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: false })
+      .limit(40),
+    session.supabase
+      .from("voucher_issuances")
+      .select("id,beneficiary_id,family_id,voucher_type,status,remaining_value_cents,expires_at,issue_reason,profiles:beneficiary_id(full_name,preferred_name)")
+      .eq("beneficiary_id", session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    session.supabase
+      .from("wallet_accounts")
+      .select("id,owner_id,family_id,account_type,status,wallet_balances(balance_cents),profiles:owner_id(full_name,preferred_name),families(name)")
+      .or(`family_id.in.(${familyIds.join(",")})`)
+      .limit(30),
+    (session.supabase as any)
+      .from("family_voucher_assignments")
+      .select("id,family_id,created_at,note,profiles:to_user_id(full_name,preferred_name),voucher_issuances(voucher_type,remaining_value_cents)")
+      .in("family_id", familyIds)
+      .order("created_at", { ascending: false })
+      .limit(20)
+  ]);
+  familyMembers = members ?? [];
+  familyVouchers = uniqueById([...(vouchers ?? []), ...(ownVouchers ?? [])]);
+  familyWallets = wallets ?? [];
+  voucherAssignments = assignments ?? [];
+}
+
+const childMembers = familyMembers.filter((member) => ["child", "player", "dependent"].includes(member.relationship) && member.status === "active");
+const childUserIds = [...new Set(childMembers.map((member) => member.user_id).filter(Boolean))] as string[];
+if (childUserIds.length > 0) {
+  const { data: childWallets } = await session.supabase
+    .from("wallet_accounts")
+    .select("id,owner_id,family_id,account_type,status,wallet_balances(balance_cents),profiles:owner_id(full_name,preferred_name),families(name)")
+    .in("owner_id", childUserIds)
+    .limit(30);
+  familyWallets = uniqueById([...familyWallets, ...(childWallets ?? [])]);
+}
+const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => voucher.status === "active" && voucher.remaining_value_cents > 0 && voucher.beneficiary_id === session.user.id);
 ---
 
-<PortalLayout title="Family and players" section="Members" session={session}>
-  <div class="grid gap-6 xl:grid-cols-2">
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Family links</h2>
-      <div class="mt-5 grid gap-3">
-        {(familyMemberships ?? []).length === 0 && <EmptyState title="No family group linked" text="Family groups will show here when guardians, players and spending permissions are connected." />}
-        {(familyMemberships ?? []).map((member: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black text-eagles-ink">{member.families?.name ?? "Family group"}</p>
-            <p class="mt-1 text-sm text-eagles-ink/70">{statusLabel(member.relationship)} {member.is_primary_guardian ? "- primary guardian" : ""}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <StatusBadge label={statusLabel(member.status)} tone={member.status === "active" ? "green" : "amber"} />
-              {member.can_manage && <StatusBadge label="Can manage" tone="ink" />}
-              {member.can_spend && <StatusBadge label="Can spend" tone="green" />}
-            </div>
-          </article>
-        ))}
-      </div>
+<PortalLayout title="Family" section="Members" session={session}>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <section class="grid gap-5">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Family links</h2>
+        <div class="mt-5 grid gap-3">
+          {membershipList.length === 0 && <EmptyState title="No family group linked" text="Family groups appear here when administrators link players and guardians, or when you accept an approved guardian invitation." />}
+          {membershipList.map((member: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black text-eagles-ink">{member.families?.name ?? "Family group"}</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">{statusLabel(member.relationship)} {member.is_primary_guardian ? "- primary guardian" : ""}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <StatusBadge label={statusLabel(member.status)} tone={member.status === "active" ? "green" : "amber"} />
+                {member.can_manage && <StatusBadge label="Can manage" tone="ink" />}
+                {member.can_spend && <StatusBadge label="Can spend" tone="green" />}
+                {member.spending_limit_cents !== null && <StatusBadge label={`Limit ${formatMoney(member.spending_limit_cents)}`} tone="amber" />}
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Family members</h2>
+        <div class="mt-5 grid gap-3 md:grid-cols-2">
+          {familyMembers.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Linked guardians and children will appear here.</p>}
+          {familyMembers.map((member: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{member.profiles?.preferred_name || member.profiles?.full_name || member.profiles?.email}</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">{member.families?.name ?? "Family"} - {statusLabel(member.relationship)}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <StatusBadge label={statusLabel(member.status)} tone={member.status === "active" ? "green" : "amber"} />
+                {member.can_spend && <StatusBadge label="Spending enabled" tone="green" />}
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Wallets and vouchers</h2>
+        <div class="mt-5 grid gap-3 md:grid-cols-2">
+          {familyWallets.length === 0 && familyVouchers.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Family wallet balances and child vouchers will appear here when issued.</p>}
+          {familyWallets.map((wallet: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{wallet.profiles?.preferred_name || wallet.profiles?.full_name || wallet.families?.name || "Family wallet"}</p>
+              <p class="mt-2 text-3xl font-black text-eagles-green">{formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">{statusLabel(wallet.account_type)} - {statusLabel(wallet.status)}</p>
+            </article>
+          ))}
+          {familyVouchers.map((voucher: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{voucher.issue_reason ?? statusLabel(voucher.voucher_type)}</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">For {voucher.profiles?.preferred_name || voucher.profiles?.full_name || "family member"} - expires {formatDate(voucher.expires_at)}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <StatusBadge label={formatMoney(voucher.remaining_value_cents)} tone="green" />
+                <StatusBadge label={statusLabel(voucher.status)} tone={voucher.status === "active" ? "green" : "amber"} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
     </section>
 
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
-      <div class="mt-5 grid gap-3">
-        {(playerRecords ?? []).length === 0 && <EmptyState title="No player record yet" text="Player registrations and season records will appear here once connected by the club registrar." />}
-        {(playerRecords ?? []).map((record: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black text-eagles-ink">{record.seasons?.name ?? "Season"} registration</p>
-            <p class="mt-1 text-sm text-eagles-ink/70">Code of conduct: {formatDate(record.code_of_conduct_accepted_at)}</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <StatusBadge label={statusLabel(record.registration_status)} tone={record.registration_status === "active" ? "green" : "amber"} />
-              <StatusBadge label={record.photo_consent ? "Photo consent" : "Photo consent not set"} tone={record.photo_consent ? "green" : "amber"} />
+    <aside class="grid gap-5 content-start">
+      {invitationList.length > 0 && (
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Invitations</h2>
+          <div class="mt-4 grid gap-3">
+            {invitationList.map((invitation: any) => (
+              <form class="border-t border-eagles-line pt-3" method="post" action="/api/portal/family-invitation-accept/">
+                <input type="hidden" name="invitation_id" value={invitation.id} />
+                <p class="font-black">{invitation.families?.name ?? "Family group"}</p>
+                <p class="mt-1 text-sm text-eagles-ink/70">Invited as {statusLabel(invitation.relationship)} by {invitation.profiles?.preferred_name || invitation.profiles?.full_name || "a guardian"}.</p>
+                <button class="mt-3 bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Accept invitation</button>
+              </form>
+            ))}
+          </div>
+        </article>
+      )}
+
+      {manageableFamilyIds.length > 0 && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-invite/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Invite guardian</h2>
+          <label><span class="label">Family</span><select class="field" name="family_id">{membershipList.filter((member: any) => manageableFamilyIds.includes(member.family_id)).map((member: any) => <option value={member.family_id}>{member.families?.name ?? "Family"}</option>)}</select></label>
+          <label><span class="label">Email</span><input class="field" type="email" name="email" required /></label>
+          <label><span class="label">Relationship</span><select class="field" name="relationship"><option value="guardian">Guardian</option><option value="parent">Parent</option><option value="carer">Carer</option></select></label>
+          <label><span class="label">Message</span><textarea class="field min-h-20" name="message"></textarea></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Send invitation</button>
+        </form>
+      )}
+
+      {assignableVouchers.length > 0 && childMembers.length > 0 && (
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-voucher-assignment/">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Assign voucher</h2>
+          <label><span class="label">Voucher</span><select class="field" name="voucher_id">{assignableVouchers.map((voucher: any) => <option value={voucher.id}>{voucher.issue_reason ?? statusLabel(voucher.voucher_type)} - {formatMoney(voucher.remaining_value_cents)}</option>)}</select></label>
+          <label><span class="label">Child</span><select class="field" name="child_id">{childMembers.map((member: any) => <option value={member.user_id}>{member.profiles?.preferred_name || member.profiles?.full_name || member.profiles?.email}</option>)}</select></label>
+          <label><span class="label">Note</span><input class="field" name="note" placeholder="Optional" /></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign to child</button>
+        </form>
+      )}
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Player records</h2>
+        <div class="mt-4 grid gap-3">
+          {playerRecordList.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Player registrations and season records will appear here once connected by the registrar.</p>}
+          {playerRecordList.map((record: any) => (
+            <div class="border-t border-eagles-line pt-3">
+              <p class="font-black">{record.seasons?.name ?? "Season"} registration</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">Code of conduct: {formatDate(record.code_of_conduct_accepted_at)}</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <StatusBadge label={statusLabel(record.registration_status)} tone={record.registration_status === "registered" ? "green" : "amber"} />
+                <StatusBadge label={record.photo_consent ? "Photo consent" : "Photo consent not set"} tone={record.photo_consent ? "green" : "amber"} />
+              </div>
             </div>
-          </article>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      </article>
+
+      {voucherAssignments.length > 0 && (
+        <article class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Recent assignments</h2>
+          <div class="mt-4 grid gap-3">
+            {voucherAssignments.map((assignment: any) => (
+              <p class="border-t border-eagles-line pt-3 text-sm">
+                <strong>{assignment.profiles?.preferred_name || assignment.profiles?.full_name || "Family member"}</strong><br />
+                {statusLabel(assignment.voucher_issuances?.voucher_type)} - {formatMoney(assignment.voucher_issuances?.remaining_value_cents)} assigned
+              </p>
+            ))}
+          </div>
+        </article>
+      )}
+    </aside>
   </div>
 </PortalLayout>

@@ -2,23 +2,29 @@
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
-import { formatDate } from "@lib/format";
+import { formatDate, formatDateTime, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
-const session = await requirePermission(Astro, ["club_structure.manage", "roles.assign"]);
+const session = await requirePermission(Astro, ["club_structure.manage", "teams.manage", "roles.assign"]);
 if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: seasons }, { data: teams }, { data: ageGroups }, { data: competitions }, { data: venues }] = await Promise.all([
+const [{ data: seasons }, { data: teams }, { data: ageGroups }, { data: competitions }, { data: venues }, { data: profiles }, { data: teamStaff }, { data: teamPlayers }, { data: trainingSessions }, { data: matchReports }] = await Promise.all([
   session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
   session.supabase.from("teams").select("id,name,division,colour,status,external_fixture_url,seasons(id,name),age_groups(id,name),competitions(id,name),home:home_venue_id(name),training:training_venue_id(name)").order("name"),
   session.supabase.from("age_groups").select("id,name").order("sort_order"),
   session.supabase.from("competitions").select("id,name").order("name"),
-  session.supabase.from("venues").select("id,name,suburb").order("name")
+  session.supabase.from("venues").select("id,name,suburb").order("name"),
+  session.supabase.from("profiles").select("id,full_name,preferred_name,email").order("full_name").limit(300),
+  session.supabase.from("team_staff").select("id,team_id,staff_role,status,starts_on,ends_on,teams(name),profiles:user_id(full_name,preferred_name,email)").order("created_at", { ascending: false }).limit(120),
+  session.supabase.from("team_players").select("id,team_id,status,squad_number,teams(name),player_records(id,profiles:user_id(full_name,preferred_name,email),seasons(name))").order("created_at", { ascending: false }).limit(160),
+  session.supabase.from("training_sessions").select("id,starts_at,ends_at,status,notes,teams(name),venues(name,suburb)").order("starts_at", { ascending: false }).limit(80),
+  session.supabase.from("match_reports").select("id,team_id,status,result,final_score_for,final_score_against,highlights,reviewer_notes,created_at,teams(name),profiles:author_id(full_name,preferred_name,email)").order("created_at", { ascending: false }).limit(80)
 ]);
-const canManage = session.permissions.has("*") || session.permissions.has("club_structure.manage");
+const canManage = session.permissions.has("*") || session.permissions.has("club_structure.manage") || session.permissions.has("teams.manage");
+const canReviewReports = session.permissions.has("*") || session.permissions.has("match_reports.review");
 ---
 
 <PortalLayout title="Seasons & teams" section="Administration" session={session}>
@@ -72,6 +78,19 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
           <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
           <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create team</button>
         </form>
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+          <input type="hidden" name="action" value="teamStaff" />
+          <h2 class="font-display text-2xl font-black uppercase leading-none">Assign team staff</h2>
+          <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select team</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
+          <label><span class="label">Person</span><select class="field" name="user_id" required><option value="">Select person</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.preferred_name || profile.full_name || profile.email}</option>)}</select></label>
+          <label><span class="label">Role</span><select class="field" name="staff_role"><option value="coach">Coach</option><option value="assistant_coach">Assistant coach</option><option value="team_manager">Team manager</option><option value="trainer">Trainer</option></select></label>
+          <div class="grid gap-3 md:grid-cols-2">
+            <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
+            <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
+          </div>
+          <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
+          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign staff</button>
+        </form>
       </aside>
     )}
 
@@ -101,6 +120,71 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
               </div>
               <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
             </div>
+          ))}
+        </div>
+      </article>
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Squads and staff</h2>
+        <div class="mt-5 grid gap-4 xl:grid-cols-2">
+          <section class="grid gap-3">
+            <h3 class="text-sm font-black uppercase text-eagles-green">Players</h3>
+            {(teamPlayers ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">Player assignments appear here after registrar setup.</p>}
+            {(teamPlayers ?? []).map((link: any) => (
+              <p class="border border-eagles-line bg-white p-3 text-sm" style="border-radius:8px">
+                <strong>{link.player_records?.profiles?.preferred_name || link.player_records?.profiles?.full_name || "Player"}</strong><br />
+                {link.teams?.name ?? "Team"} {link.squad_number !== null ? `- #${link.squad_number}` : ""} - {statusLabel(link.status)}
+              </p>
+            ))}
+          </section>
+          <section class="grid gap-3">
+            <h3 class="text-sm font-black uppercase text-eagles-green">Staff</h3>
+            {(teamStaff ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">Coaches, managers and trainers appear here once assigned.</p>}
+            {(teamStaff ?? []).map((staff: any) => (
+              <p class="border border-eagles-line bg-white p-3 text-sm" style="border-radius:8px">
+                <strong>{staff.profiles?.preferred_name || staff.profiles?.full_name || staff.profiles?.email}</strong><br />
+                {staff.teams?.name ?? "Team"} - {statusLabel(staff.staff_role)} - {statusLabel(staff.status)}
+              </p>
+            ))}
+          </section>
+        </div>
+      </article>
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Training sessions</h2>
+        <div class="mt-5 grid gap-3">
+          {(trainingSessions ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">Training sessions are created from the structure forms and appear here for operational review.</p>}
+          {(trainingSessions ?? []).map((item: any) => (
+            <div class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{item.teams?.name ?? "Club session"} - {formatDateTime(item.starts_at)}</p>
+              <p class="mt-1 text-sm text-eagles-ink/70">{item.venues?.name ?? "Venue TBC"} {item.notes ? `- ${item.notes}` : ""}</p>
+              <div class="mt-2"><StatusBadge label={statusLabel(item.status)} tone={item.status === "scheduled" ? "green" : "amber"} /></div>
+            </div>
+          ))}
+        </div>
+      </article>
+      <article id="match-reports" class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Match reports</h2>
+        <div class="mt-5 grid gap-3">
+          {(matchReports ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">Coach and manager reports appear here after submission.</p>}
+          {(matchReports ?? []).map((report: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="font-black">{report.teams?.name ?? "Team"} {report.final_score_for !== null && report.final_score_against !== null ? `${report.final_score_for}-${report.final_score_against}` : ""}</p>
+                  <p class="text-sm text-eagles-ink/70">By {report.profiles?.preferred_name || report.profiles?.full_name || report.profiles?.email || "Team staff"} - {formatDateTime(report.created_at)}</p>
+                </div>
+                <StatusBadge label={statusLabel(report.status)} tone={report.status === "reviewed" || report.status === "closed" ? "green" : "amber"} />
+              </div>
+              {report.highlights && <p class="mt-3 whitespace-pre-line text-sm leading-6 text-eagles-ink/75">{report.highlights}</p>}
+              {report.reviewer_notes && <p class="mt-3 bg-eagles-mist p-3 text-sm" style="border-radius:8px"><strong>Reviewer notes</strong><br />{report.reviewer_notes}</p>}
+              {canReviewReports && (
+                <form class="mt-4 grid gap-3 border-t border-eagles-line pt-4" method="post" action="/api/admin/match-report-review/">
+                  <input type="hidden" name="report_id" value={report.id} />
+                  <label><span class="label">Review status</span><select class="field" name="status"><option value="reviewed">Reviewed</option><option value="changes_requested">Changes requested</option><option value="closed">Closed</option></select></label>
+                  <label><span class="label">Reviewer notes</span><textarea class="field min-h-20" name="reviewer_notes"></textarea></label>
+                  <button class="justify-self-start bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save review</button>
+                </form>
+              )}
+            </article>
           ))}
         </div>
       </article>

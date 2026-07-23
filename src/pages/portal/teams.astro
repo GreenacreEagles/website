@@ -1,16 +1,19 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
-import { formatDate, statusLabel } from "@lib/format";
+import { formatDateTime, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
-const teamIds = session.roleAssignments.map((assignment) => assignment.team?.id).filter(Boolean) as string[];
 const canViewClubTeams = session.permissions.has("*") || session.permissions.has("club_structure.manage") || session.permissions.has("teams.manage");
+const { data: memberTeams } = await (session.supabase as any).rpc("member_team_ids");
+const teamRelationship = new Map((memberTeams ?? []).map((item: any) => [item.team_id, item.relationship]));
+const teamIds = [...teamRelationship.keys()] as string[];
 
 let teams: any[] = [];
 if (canViewClubTeams || teamIds.length > 0) {
@@ -23,38 +26,72 @@ if (canViewClubTeams || teamIds.length > 0) {
   teams = data ?? [];
 }
 
-const { data: training } = await session.supabase
-  .from("training_sessions")
-  .select("id,starts_at,ends_at,status,notes,teams(name),venues(name,suburb)")
-  .order("starts_at", { ascending: true })
-  .limit(12);
+const [{ data: training }, { data: recentPosts }] = await Promise.all([
+  session.supabase
+    .from("training_sessions")
+    .select("id,starts_at,ends_at,status,notes,teams(id,name),venues(name,suburb)")
+    .order("starts_at", { ascending: true })
+    .limit(12),
+  (session.supabase as any)
+    .from("team_posts")
+    .select("id,team_id,title,post_type,is_pinned,published_at")
+    .eq("status", "published")
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false })
+    .limit(30)
+]);
+
+const postsByTeam = new Map<string, any[]>();
+(recentPosts ?? []).forEach((post: any) => {
+  const posts = postsByTeam.get(post.team_id) ?? [];
+  posts.push(post);
+  postsByTeam.set(post.team_id, posts);
+});
 ---
 
 <PortalLayout title="Teams" section="Football" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-4">
       {teams.length === 0 && (
-        <EmptyState title="No teams linked yet" text="Approved team roles and player registrations will appear here once they are connected to your account." href="/portal/role-requests/" action="Request team access" />
+        <EmptyState title="No teams linked yet" text="Teams appear here when an administrator assigns you as a player, guardian, coach, assistant coach, team manager or another approved team-scoped role." />
       )}
-      {teams.map((team) => (
-        <article class="surface p-5">
-          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <p class="eyebrow">{team.seasons?.name ?? "Season"} {team.age_groups?.name ? `- ${team.age_groups.name}` : ""}</p>
-              <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{team.name}</h2>
-              <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
-                {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""}
-              </p>
+      {teams.map((team) => {
+        const teamPosts = postsByTeam.get(team.id) ?? [];
+        const relationship = canViewClubTeams ? "administrator" : teamRelationship.get(team.id) ?? "member";
+        return (
+          <article class="surface p-5">
+            <div class="grid gap-4 md:grid-cols-[96px_1fr_auto] md:items-start">
+              <div class="flex h-24 w-24 items-center justify-center bg-eagles-green text-sm font-black text-white" style="border-radius:8px">GEFC</div>
+              <div>
+                <p class="eyebrow">{team.seasons?.name ?? "Season"} {team.age_groups?.name ? `- ${team.age_groups.name}` : ""}</p>
+                <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{team.name}</h2>
+                <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
+                  {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""} - your access is through {statusLabel(relationship as string)}.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2 md:justify-end">
+                <StatusBadge label={statusLabel(team.status)} tone="green" />
+                {teamPosts.length > 0 && <StatusBadge label={`${teamPosts.length} posts`} tone="ink" />}
+              </div>
             </div>
-            <span class="inline-flex bg-eagles-mist px-3 py-2 text-xs font-black uppercase text-eagles-green" style="border-radius:8px">{statusLabel(team.status)}</span>
-          </div>
-          <dl class="mt-5 grid gap-3 text-sm md:grid-cols-3">
-            <div><dt class="font-black">Training venue</dt><dd>{team.venues?.name ?? "To be confirmed"}</dd></div>
-            <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
-            <div><dt class="font-black">Fixtures</dt><dd>{team.external_fixture_url ? <a class="text-eagles-green font-black" href={team.external_fixture_url}>View official draw</a> : "In portal"}</dd></div>
-          </dl>
-        </article>
-      ))}
+            <dl class="mt-5 grid gap-3 text-sm md:grid-cols-3">
+              <div><dt class="font-black">Training venue</dt><dd>{team.venues?.name ?? "To be confirmed"}</dd></div>
+              <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
+              <div><dt class="font-black">Board</dt><dd><a class="font-black text-eagles-green hover:text-eagles-ink" href={`/portal/teams/${team.id}/`}>Open team page</a></dd></div>
+            </dl>
+            {teamPosts.length > 0 && (
+              <div class="mt-5 grid gap-2 border-t border-eagles-line pt-4">
+                {teamPosts.slice(0, 3).map((post: any) => (
+                  <a class="flex flex-col gap-1 bg-eagles-mist p-3 hover:bg-eagles-lime" style="border-radius:8px" href={`/portal/teams/${team.id}/#post-${post.id}`}>
+                    <span class="font-black">{post.title}</span>
+                    <span class="text-sm text-eagles-ink/70">{post.is_pinned ? "Pinned - " : ""}{statusLabel(post.post_type)} - {formatDateTime(post.published_at)}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </article>
+        );
+      })}
     </section>
 
     <aside class="surface p-5">
@@ -64,7 +101,7 @@ const { data: training } = await session.supabase
         {(training ?? []).map((item: any) => (
           <div class="border-t border-eagles-line pt-3">
             <p class="font-black text-eagles-ink">{item.teams?.name ?? "Club session"}</p>
-            <p class="text-sm text-eagles-ink/70">{formatDate(item.starts_at)} at {item.venues?.name ?? "club venue"}</p>
+            <p class="text-sm text-eagles-ink/70">{formatDateTime(item.starts_at)} at {item.venues?.name ?? "club venue"}</p>
           </div>
         ))}
       </div>

@@ -22,7 +22,7 @@ export const POST: APIRoute = async (context) => {
   const session = await requirePermission(context, ["roles.assign"]);
   if (!session) return context.redirect("/admin/");
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
-  const fallback = parsed.success && parsed.data.return_to ? parsed.data.return_to : "/admin/role-assignments/";
+  const fallback = parsed.success && parsed.data.return_to ? parsed.data.return_to : "/admin/users/";
   if (!parsed.success) return context.redirect(redirectWithMessage(fallback, "error", parsed.error.issues[0]?.message ?? "Check the assignment details."));
 
   const { error } = await session.supabase.rpc("assign_user_role", {

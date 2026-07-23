@@ -25,7 +25,7 @@ Date: 2026-07-21
 - Follow-up fixes in `20260721154500_portal_policy_fixes.sql`, `20260721155000_fix_request_role_rpc.sql`, and `20260721155500_harden_portal_public_rpcs.sql` exist in source and were applied live through Supabase MCP SQL, but Supabase CLI access returned 403 before they could be recorded in remote migration history.
 - Active super administrators: 0. The first super administrator still needs to be bootstrapped manually through the trusted SQL process in `docs/super-admin-bootstrap.md`.
 - Security advisors: public security-definer RPC warnings have been resolved. Remaining Auth advisory: enable leaked-password protection in Supabase Auth settings.
-- Live rollback smoke checks passed for default-user safety, requestable-role requests, blocked super-admin self-request, blocked unauthorized role assignment, and scoped role assignment by a super administrator.
+- Live rollback smoke checks originally covered default-user safety, requestable-role requests, blocked super-admin self-request, blocked unauthorized role assignment, and scoped role assignment by a super administrator. The current portal model deprecates role requests; updated smoke coverage checks that authenticated users no longer have execute grants for request RPCs and that scoped assignments surface through member team access.
 
 ## Cloudflare
 

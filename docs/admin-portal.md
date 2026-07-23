@@ -1,26 +1,43 @@
-# Admin Portal
+# Administration Portal
 
-The admin portal is available under `/admin/` and is protected by server-side permission checks.
+The admin portal is separate from the member portal under `/admin/`. Members only see an `Admin` entry point when their effective permissions include an administration permission. Direct admin routes are also protected by server-side guards and Supabase RLS/RPC checks.
 
-## Current Admin Areas
+## Navigation
 
-- `/admin/`: dashboard summary for users, teams, role requests, and assignments.
-- `/admin/users/`: user search and status overview.
-- `/admin/users/[id]/`: user profile, role requests, assignments, and direct role actions.
-- `/admin/role-assignments/`: assign and revoke roles.
-- `/admin/role-requests/`: review, approve, reject, or mark role requests under review.
-- `/admin/roles/`: role catalog and permission visibility.
-- `/admin/teams/`: seasons and teams foundation.
-- `/admin/audit/`: audit event viewer.
+- `/admin/`: live operational dashboard.
+- `/admin/users/`: user search and profile review.
+- `/admin/users/[id]/`: user profile, role history, role assignment and revocation.
+- `/admin/roles/`: role and permission catalogue.
+- `/admin/teams/`: seasons, competitions, venues, teams, staff assignments, squad visibility, training scheduling and match report review.
+- `/admin/players/`: players and family administration foundation.
+- `/admin/volunteers/`: volunteer opportunities, shifts and assignments.
+- `/admin/canteen/`: catalogue, vouchers and order operations.
+- `/admin/merchandise/`: merchandise catalogue and orders.
+- `/admin/events/`: event publishing and registrations.
+- `/admin/content/`: public content and Resource Guide foundations.
+- `/admin/audit/`: audit log.
+- `/admin/settings/`: system settings for authorised users.
 
-## Access Model
+Removed as separate admin surfaces: role assignments, request review, fixtures and communications. Role assignment happens in the Users section. Role requests are deprecated and historical records remain only for audit continuity.
 
-Admin navigation is permission-aware. Users see only the areas they have permission to manage.
+## Dashboard
 
-The current phase focuses on account, role, and team foundations. Canteen operations, volunteer rosters, player management, fixtures, content publishing, payments, and communications remain future build phases.
+The dashboard cards come from live Supabase counts: users, new users, active players, families, teams, volunteer assignments, upcoming events, event registrations, canteen order activity, vouchers, content and audit activity. No fake metrics are used.
 
-## Operational Notes
+## Role Assignment
 
-No one can access the admin portal until the first super administrator is bootstrapped in Supabase.
+Administrators assign and revoke roles from `/admin/users/[id]/`. The assignment RPC enforces:
 
-All privileged actions should continue to be implemented through server routes plus Supabase RLS/RPC checks, not client-side permission decisions.
+- valid active administrator permission,
+- scoped team and season fields where required,
+- no normal administrator granting `super_administrator`,
+- no self-escalation or self-removal of critical admin access,
+- role history and audit records.
+
+Member-driven role or team access requests are disabled in source and by the latest migration revoking request RPC execution from `authenticated`.
+
+## Teams And Match Reports
+
+Administrators manage the club hierarchy from `/admin/teams/`. The page now includes team staff assignment for coaches, assistant coaches, team managers and trainers; active squad visibility from player-team links; internal training-session review; and a match-report review queue.
+
+Coaches and team managers submit reports from the member team page. Report review actions stay in administration and require `match_reports.review`.

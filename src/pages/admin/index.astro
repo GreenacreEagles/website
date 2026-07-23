@@ -7,23 +7,58 @@ export const prerender = false;
 const session = await requireAdmin(Astro);
 if (!session) return Astro.redirect("/login/");
 
-const { data: summaryData } = await session.supabase.rpc("admin_dashboard_summary");
-const summary = (summaryData ?? {}) as Record<string, number>;
+const [
+  profiles,
+  recentUsers,
+  players,
+  families,
+  teams,
+  volunteers,
+  events,
+  eventRegistrations,
+  canteenOrders,
+  canteenOpenOrders,
+  vouchers,
+  expiringVouchers,
+  articles,
+  auditLogs
+] = await Promise.all([
+  session.supabase.from("profiles").select("id", { count: "exact", head: true }),
+  session.supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString()),
+  session.supabase.from("player_records").select("id", { count: "exact", head: true }).eq("registration_status", "registered"),
+  session.supabase.from("families").select("id", { count: "exact", head: true }),
+  session.supabase.from("teams").select("id", { count: "exact", head: true }).eq("status", "active"),
+  session.supabase.from("volunteer_assignments").select("id", { count: "exact", head: true }).in("status", ["assigned", "confirmed"]),
+  session.supabase.from("club_events").select("id", { count: "exact", head: true }).eq("status", "published").gte("starts_at", new Date().toISOString()),
+  session.supabase.from("event_registrations").select("id", { count: "exact", head: true }).in("status", ["interest", "confirmed", "waitlisted"]),
+  session.supabase.from("canteen_orders").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+  session.supabase.from("canteen_orders").select("id", { count: "exact", head: true }).in("order_status", ["new", "accepted", "preparing"]),
+  session.supabase.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active"),
+  session.supabase.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active").lte("expires_at", new Date(Date.now() + 14 * 86400000).toISOString()),
+  session.supabase.from("content_articles").select("id", { count: "exact", head: true }).eq("workflow_status", "published"),
+  session.supabase.from("audit_logs").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
+]);
+
 const cards = [
-  ["Total profiles", summary.total_profiles ?? 0],
-  ["Recent signups", summary.recent_signups ?? 0],
-  ["Pending requests", summary.pending_role_requests ?? 0],
-  ["Active assignments", summary.active_role_assignments ?? 0],
-  ["Expired assignments", summary.expired_assignments ?? 0],
-  ["Expiring soon", summary.expiring_soon ?? 0],
-  ["Multiple-role users", summary.users_with_multiple_roles ?? 0],
-  ["Incomplete profiles", summary.incomplete_profiles ?? 0],
-  ["Recent admin actions", summary.recent_admin_actions ?? 0]
+  ["Total users", profiles.count ?? 0],
+  ["New users", recentUsers.count ?? 0],
+  ["Active players", players.count ?? 0],
+  ["Active families", families.count ?? 0],
+  ["Teams", teams.count ?? 0],
+  ["Active volunteers", volunteers.count ?? 0],
+  ["Upcoming events", events.count ?? 0],
+  ["Event registrations", eventRegistrations.count ?? 0],
+  ["Canteen orders today", canteenOrders.count ?? 0],
+  ["Orders awaiting action", canteenOpenOrders.count ?? 0],
+  ["Unclaimed vouchers", vouchers.count ?? 0],
+  ["Vouchers expiring soon", expiringVouchers.count ?? 0],
+  ["Published content", articles.count ?? 0],
+  ["Recent audit activity", auditLogs.count ?? 0]
 ];
 ---
 
 <PortalLayout title="Admin dashboard" section="Administration" session={session}>
-  <section class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+  <section class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
     {cards.map(([label, value]) => (
       <article class="surface p-5">
         <p class="text-sm font-black uppercase tracking-[.14em] text-eagles-green">{label}</p>

@@ -9,6 +9,8 @@ export const ADMIN_PERMISSIONS = [
   "families.manage",
   "players.manage",
   "teams.manage",
+  "team_posts.create",
+  "team_posts.moderate",
   "match_reports.read",
   "match_reports.review",
   "content.manage",
@@ -29,6 +31,7 @@ export const ADMIN_PERMISSIONS = [
 
 export const PORTAL_PERMISSIONS = [
   ...ADMIN_PERMISSIONS,
+  "families.invite",
   "teams.read",
   "coaching_resources.read",
   "match_reports.submit",

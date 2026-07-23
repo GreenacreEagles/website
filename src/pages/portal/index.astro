@@ -3,38 +3,135 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { canAccessAdmin, hasAnyPermission } from "@lib/auth/permissions";
-import { formatDate, statusLabel } from "@lib/format";
+import { formatDate, formatDateTime, formatMoney, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
-const { data: roleRequests } = await session.supabase
-  .from("role_requests")
-  .select("id,status,created_at,reason,roles:requested_role_id(name),teams(name),seasons(name)")
-  .eq("requester_id", session.user.id)
-  .order("created_at", { ascending: false })
-  .limit(5);
-
-const { data: announcements } = await session.supabase
-  .from("club_announcements")
-  .select("title,message,priority,starts_at")
-  .eq("status", "published")
-  .order("priority", { ascending: false })
-  .limit(3);
-
 const isAdmin = canAccessAdmin(session.permissions);
-const adminCards = [
-  ["Users", "Review profiles and account status.", "/admin/users/", ["users.read"]],
-  ["Role requests", "Approve or reject access requests.", "/admin/role-requests/", ["roles.review"]],
-  ["Role assignments", "Grant or revoke approved roles.", "/admin/role-assignments/", ["roles.assign"]],
-  ["Audit activity", "Review sensitive platform changes.", "/admin/audit/", ["audit.read"]]
-].filter((card) => hasAnyPermission(session.permissions, card[3] as string[]));
+
+const [
+  { data: notifications },
+  { data: announcements },
+  { data: orders },
+  { data: vouchers },
+  { data: registrations },
+  { data: volunteerAssignments },
+  { data: teamPosts },
+  { data: wallets }
+] = await Promise.all([
+  session.supabase
+    .from("notifications")
+    .select("id,title,body,related_entity_type,related_entity_id,created_at,read_at")
+    .eq("recipient_id", session.user.id)
+    .order("created_at", { ascending: false })
+    .limit(8),
+  session.supabase
+    .from("club_announcements")
+    .select("title,message,priority,starts_at")
+    .eq("status", "published")
+    .order("priority", { ascending: false })
+    .limit(3),
+  session.supabase
+    .from("canteen_orders")
+    .select("id,order_number,order_status,payment_status,total_cents,pickup_window_start")
+    .or(`customer_id.eq.${session.user.id},recipient_id.eq.${session.user.id}`)
+    .in("order_status", ["new", "accepted", "preparing", "ready"])
+    .order("created_at", { ascending: false })
+    .limit(4),
+  session.supabase
+    .from("voucher_issuances")
+    .select("id,voucher_type,status,remaining_value_cents,expires_at,issue_reason")
+    .eq("beneficiary_id", session.user.id)
+    .eq("status", "active")
+    .order("expires_at", { ascending: true, nullsFirst: false })
+    .limit(4),
+  session.supabase
+    .from("event_registrations")
+    .select("id,status,club_events(title,starts_at)")
+    .or(`registered_by.eq.${session.user.id},attendee_id.eq.${session.user.id}`)
+    .order("created_at", { ascending: false })
+    .limit(4),
+  session.supabase
+    .from("volunteer_assignments")
+    .select("id,status,volunteer_shifts(starts_at,ends_at,volunteer_opportunities(title),venues(name))")
+    .eq("user_id", session.user.id)
+    .in("status", ["assigned", "confirmed"])
+    .limit(4),
+  (session.supabase as any)
+    .from("team_posts")
+    .select("id,team_id,title,post_type,published_at,teams(name)")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(4),
+  session.supabase
+    .from("wallet_accounts")
+    .select("id,account_type,status,wallet_balances(balance_cents)")
+    .eq("owner_id", session.user.id)
+    .limit(3)
+]);
+
+const actionUrl = (notification: any) => {
+  if (notification.related_entity_type === "canteen_order") return "/portal/canteen/";
+  if (notification.related_entity_type === "voucher") return "/portal/vouchers/";
+  if (notification.related_entity_type === "event_registration") return "/portal/events/";
+  if (notification.related_entity_type === "volunteer_assignment") return "/portal/volunteers/";
+  if (notification.related_entity_type === "team_post") return notification.related_entity_id ? `/portal/teams/${notification.related_entity_id}/` : "/portal/teams/";
+  return "/portal/";
+};
+
+const tiles = [
+  ["My Teams", "Announcements, polls and team activity.", "/portal/teams/", "TEAM", []],
+  ["My Family", "Children, guardians and linked balances.", "/portal/family/", "FAM", []],
+  ["Wallet", "Balances, vouchers, tickets and QR codes.", "/portal/vouchers/", "PAY", []],
+  ["Canteen", "Order food or buy an item voucher.", "/portal/canteen/", "FOOD", []],
+  ["Events", "Registrations, tickets and family attendance.", "/portal/events/", "EVNT", []],
+  ["Volunteer Duties", "Assigned shifts and attendance.", "/portal/volunteers/", "DUTY", []],
+  ["Coaching Resources", "Published guides and club resources.", "/portal/coaching/", "GUIDE", ["coaching_resources.read", "teams.manage"]],
+  ["My Account", "Profile and contact details.", "/portal/account/", "ME", []],
+  ["My Roles", "Active, future and historical access.", "/portal/roles/", "ROLE", []],
+  ["Canteen Staff", "Orders, voucher scanning and pickup queue.", "/portal/canteen-staff/", "SCAN", ["canteen.orders.manage", "canteen.vouchers.redeem"]],
+  ["Admin", "Club operations and administration.", "/admin/", "ADMIN", []]
+].filter((tile) => {
+  if (tile[0] === "Admin") return isAdmin;
+  const required = tile[4] as string[];
+  return required.length === 0 || hasAnyPermission(session.permissions, required);
+});
+
+const walletBalance = (wallets ?? []).reduce((total: number, wallet: any) => total + (wallet.wallet_balances?.[0]?.balance_cents ?? 0), 0);
+
+const attentionItems = [
+  ...(orders ?? []).map((order: any) => ({
+    title: order.order_status === "ready" ? `Order ${order.order_number} is ready` : `Order ${order.order_number} is ${statusLabel(order.order_status)}`,
+    text: `${formatMoney(order.total_cents)} - ${formatDateTime(order.pickup_window_start)}`,
+    href: "/portal/canteen/",
+    tone: order.order_status === "ready" ? "green" : "ink"
+  })),
+  ...(vouchers ?? []).map((voucher: any) => ({
+    title: voucher.issue_reason ?? `${statusLabel(voucher.voucher_type)} voucher`,
+    text: `${formatMoney(voucher.remaining_value_cents)} available${voucher.expires_at ? ` until ${formatDate(voucher.expires_at)}` : ""}`,
+    href: "/portal/vouchers/",
+    tone: "green"
+  })),
+  ...(registrations ?? []).map((registration: any) => ({
+    title: registration.club_events?.title ?? "Event registration",
+    text: `${statusLabel(registration.status)} - ${formatDateTime(registration.club_events?.starts_at)}`,
+    href: "/portal/events/",
+    tone: "ink"
+  })),
+  ...(volunteerAssignments ?? []).map((assignment: any) => ({
+    title: assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Volunteer assignment",
+    text: `${statusLabel(assignment.status)} - ${formatDateTime(assignment.volunteer_shifts?.starts_at)} at ${assignment.volunteer_shifts?.venues?.name ?? "club venue"}`,
+    href: "/portal/volunteers/",
+    tone: "amber"
+  }))
+].slice(0, 8);
 ---
 
 <PortalLayout title="Your club dashboard" section="Member portal" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="grid gap-5">
       <article class="surface p-5 md:p-7">
         <p class="eyebrow">Welcome</p>
@@ -42,49 +139,82 @@ const adminCards = [
           {session.profile.preferred_name || session.profile.full_name || "Greenacre Eagles member"}
         </h2>
         <p class="mt-3 text-base leading-7 text-eagles-ink/70">
-          Your portal access is based on approved club roles. Selecting a relationship during signup helps the club understand who you are, but operational access is only granted after review.
+          Your match-day portal brings team posts, family actions, wallet items, canteen orders, event tickets and volunteer duties into one place.
         </p>
-        <div class="mt-5 flex flex-wrap gap-3">
-          <a class="inline-flex bg-eagles-green px-4 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href="/portal/account/">Update profile</a>
-          <a class="inline-flex border border-eagles-line bg-white px-4 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green" style="border-radius:8px" href="/portal/role-requests/">Request access</a>
+        <div class="mt-5 grid gap-3 sm:grid-cols-3">
+          <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+            <p class="text-xs font-black uppercase text-eagles-green">Wallet</p>
+            <p class="mt-1 text-3xl font-black">{formatMoney(walletBalance)}</p>
+          </div>
+          <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+            <p class="text-xs font-black uppercase text-eagles-green">Unread</p>
+            <p class="mt-1 text-3xl font-black">{session.unreadNotifications}</p>
+          </div>
+          <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+            <p class="text-xs font-black uppercase text-eagles-green">Roles</p>
+            <p class="mt-1 text-3xl font-black">{session.roleAssignments.length}</p>
+          </div>
         </div>
       </article>
 
-      <div class="grid gap-5 md:grid-cols-2">
-        <article class="surface p-5">
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Account status</h2>
-          <div class="mt-4"><StatusBadge label={statusLabel(session.profile.account_status)} tone="green" /></div>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Created {formatDate(session.profile.created_at)}. Profile {session.profile.onboarding_completed_at ? "is complete" : "still needs a few details"}.</p>
-        </article>
-        <article class="surface p-5">
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Active roles</h2>
-          <p class="mt-4 text-4xl font-black text-eagles-green">{session.roleAssignments.length}</p>
-          <a class="mt-3 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/roles/">View my roles</a>
-        </article>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {tiles.map(([title, text, href, code]) => (
+          <a class="surface grid min-h-40 content-between p-5 hover:border-eagles-green focus-ring" href={href as string}>
+            <span class="inline-flex h-12 w-12 items-center justify-center bg-eagles-green text-xs font-black text-white" style="border-radius:8px">{code}</span>
+            <span>
+              <h2 class="font-display text-2xl font-black uppercase leading-none">{title}</h2>
+              <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{text}</p>
+            </span>
+          </a>
+        ))}
       </div>
 
-      {isAdmin && (
-        <section class="grid gap-5 md:grid-cols-2">
-          {adminCards.map(([title, text, href]) => (
-            <a class="surface block p-5 hover:border-eagles-green" href={href as string}>
-              <h2 class="font-display text-2xl font-black uppercase leading-none">{title}</h2>
-              <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{text}</p>
+      <section class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Needs attention</h2>
+        <div class="mt-5 grid gap-3">
+          {attentionItems.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No canteen, voucher, event or volunteer actions need attention right now.</p>}
+          {attentionItems.map((item) => (
+            <a class="flex flex-col gap-2 border border-eagles-line bg-white p-4 hover:border-eagles-green md:flex-row md:items-center md:justify-between" style="border-radius:8px" href={item.href}>
+              <span>
+                <span class="font-black text-eagles-ink">{item.title}</span>
+                <span class="mt-1 block text-sm text-eagles-ink/70">{item.text}</span>
+              </span>
+              <StatusBadge label="Open" tone={item.tone as any} />
             </a>
           ))}
-        </section>
-      )}
+        </div>
+      </section>
     </section>
 
     <aside class="grid gap-5 content-start">
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Recent requests</h2>
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Notifications</h2>
         <div class="mt-4 grid gap-3">
-          {(roleRequests ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No access requests yet.</p>}
-          {(roleRequests ?? []).map((request: any) => (
-            <div class="border-t border-eagles-line pt-3">
-              <p class="font-bold text-eagles-ink">{request.roles?.name ?? "Club role"}</p>
-              <p class="text-sm text-eagles-ink/60">{statusLabel(request.status)} · {formatDate(request.created_at)}</p>
-            </div>
+          {(notifications ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No notifications yet.</p>}
+          {(notifications ?? []).map((notification: any) => (
+            <a class:list={["block border-t border-eagles-line pt-3", !notification.read_at && "font-black"]} href={actionUrl(notification)}>
+              <p class="text-eagles-ink">{notification.title}</p>
+              <p class="mt-1 text-sm font-normal leading-5 text-eagles-ink/70">{notification.body}</p>
+            </a>
+          ))}
+        </div>
+        {(notifications ?? []).some((notification: any) => !notification.read_at) && (
+          <form class="mt-4" method="post" action="/api/portal/notification/">
+            <input type="hidden" name="action" value="mark_all_read" />
+            <button class="text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">Mark all read</button>
+          </form>
+        )}
+      </article>
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Team board</h2>
+        <div class="mt-4 grid gap-3">
+          {(teamPosts ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">New team posts and polls will appear here.</p>}
+          {(teamPosts ?? []).map((post: any) => (
+            <a class="border-t border-eagles-line pt-3" href={`/portal/teams/${post.team_id}/#post-${post.id}`}>
+              <p class="font-bold text-eagles-ink">{post.title}</p>
+              <p class="mt-1 text-sm leading-5 text-eagles-ink/70">{post.teams?.name ?? "Team"} - {statusLabel(post.post_type)}</p>
+            </a>
           ))}
         </div>
       </article>
@@ -93,7 +223,7 @@ const adminCards = [
         <h2 class="font-display text-2xl font-black uppercase leading-none">Club notices</h2>
         <div class="mt-4 grid gap-3">
           {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No current member notices.</p>}
-          {(announcements ?? []).map((notice) => (
+          {(announcements ?? []).map((notice: any) => (
             <div class="border-t border-eagles-line pt-3">
               <p class="font-bold text-eagles-ink">{notice.title}</p>
               <p class="mt-1 text-sm leading-6 text-eagles-ink/70">{notice.message}</p>

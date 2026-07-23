@@ -32,30 +32,36 @@
 
 - [x] Build permission-aware admin layout.
 - [x] Build user search and role assignment screens.
+- [x] Move role assignment into Users and remove the separate role assignment admin route.
 - [x] Prevent super-admin escalation except through protected workflow.
-- [x] Add role request review.
+- [x] Deprecate role requests, remove request/review routes, and retain historical records.
 - [x] Add audit log viewer.
 - [x] Add role catalog and role assignment views.
 - [x] Add season and team administration foundation.
-- [x] Add rollback smoke checks for role requests and role assignment security.
+- [x] Add rollback smoke checks for disabled role requests and role assignment security.
 - [ ] Reconcile remote migration history for MCP-applied follow-up migrations after Supabase CLI privileges are restored.
 - [ ] Bootstrap the first approved super administrator.
 
 ## Phase 4: Club Operations
 
 - [x] Build seasons and teams administration foundation.
-- [ ] Build squads, staff, fixtures, and match reports.
-- [ ] Build family and guardian management.
+- [x] Remove fixtures from member/admin navigation while preserving fixture data internally.
+- [x] Add private team posts, reactions and poll foundations with RLS.
+- [x] Build family relationship invitations, member acceptance, admin family linking and player/team assignment controls.
+- [x] Add guardian-visible family wallets/vouchers and child canteen order beneficiary selection.
+- [x] Build full squads, staff and match reports management.
+- [x] Build family and guardian management foundation.
 - [ ] Build volunteer shifts and assignments.
 - [ ] Build coaching resource library.
 
 ## Phase 5: Commerce
 
 - [ ] Build canteen catalogue management.
-- [ ] Build canteen customer ordering.
+- [x] Build canteen customer ordering foundation with linked-child beneficiary support.
 - [ ] Build canteen operations queue.
 - [ ] Build secure voucher QR issuing, scanning, redemption, and reversal.
-- [ ] Build wallet ledger operations.
+- [x] Build family voucher assignment audit trail and protected assignment RPC.
+- [ ] Build full wallet ledger operations and top-up/payment flow.
 - [ ] Build merchandise catalogue and order management.
 - [ ] Add payment-provider abstraction and webhook idempotency.
 
@@ -63,6 +69,7 @@
 
 - [ ] Move public editable content into database-backed workflow where needed.
 - [ ] Build announcements, news, sponsor and event publishing.
+- [x] Absorb member notifications into the portal dashboard.
 - [ ] Build notification preferences and communication outbox worker.
 
 ## Phase 7: Production Hardening

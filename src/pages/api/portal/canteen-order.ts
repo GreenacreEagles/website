@@ -8,6 +8,7 @@ export const prerender = false;
 const schema = z.object({
   product_id: uuidSchema,
   venue_id: optionalUuidSchema,
+  beneficiary_id: optionalUuidSchema,
   quantity: z.coerce.number().int().min(1).max(20),
   pickup_window_start: z.string().optional(),
   special_instructions: z.string().trim().max(500).optional()
@@ -32,6 +33,22 @@ export const POST: APIRoute = async (context) => {
     return context.redirect(redirectWithMessage("/portal/canteen/", "error", "That canteen item is not available."));
   }
 
+  let recipientId = parsed.data.beneficiary_id ?? session.user.id;
+  if (recipientId !== session.user.id) {
+    const { data: relatedChild } = await session.supabase
+      .from("family_members")
+      .select("family_id,user_id,relationship,status")
+      .eq("user_id", recipientId)
+      .in("relationship", ["child", "player", "dependent"])
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (!relatedChild) {
+      return context.redirect(redirectWithMessage("/portal/canteen/", "error", "You can only order for linked family members."));
+    }
+  }
+
   const subtotal = product.price_cents * parsed.data.quantity;
   const { data: order, error: orderError } = await session.supabase
     .from("canteen_orders")
@@ -39,6 +56,7 @@ export const POST: APIRoute = async (context) => {
       order_number: orderNumber(),
       venue_id: parsed.data.venue_id ?? null,
       customer_id: session.user.id,
+      recipient_id: recipientId,
       pickup_window_start: parsed.data.pickup_window_start || null,
       subtotal_cents: subtotal,
       total_cents: subtotal,

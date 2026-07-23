@@ -17,12 +17,12 @@ export const POST: APIRoute = async (context) => {
   if (!session) return context.redirect("/login/");
 
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
-  if (!parsed.success) return context.redirect(redirectWithMessage("/portal/notifications/", "error", "Notification could not be updated."));
+  if (!parsed.success) return context.redirect(redirectWithMessage("/portal/", "error", "Notification could not be updated."));
 
   const readAt = new Date().toISOString();
   const query = session.supabase.from("notifications").update({ read_at: readAt }).eq("recipient_id", session.user.id);
   const { error } =
     parsed.data.action === "mark_all_read" ? await query.is("read_at", null) : await query.eq("id", parsed.data.notification_id as string);
 
-  return context.redirect(redirectWithMessage("/portal/notifications/", error ? "error" : "success", error ? "Notification could not be updated." : "Notifications updated."));
+  return context.redirect(redirectWithMessage("/portal/", error ? "error" : "success", error ? "Notification could not be updated." : "Notifications updated."));
 };

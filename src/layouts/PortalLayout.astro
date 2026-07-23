@@ -23,44 +23,37 @@ const portalNav: NavItem[] = [
   { href: "/portal/", label: "Dashboard" },
   { href: "/portal/account/", label: "My account" },
   { href: "/portal/roles/", label: "My roles" },
-  { href: "/portal/role-requests/", label: "Role requests" },
   { href: "/portal/teams/", label: "Teams" },
-  { href: "/portal/fixtures/", label: "Fixtures" },
   { href: "/portal/family/", label: "Family" },
   { href: "/portal/events/", label: "Events" },
   { href: "/portal/volunteers/", label: "Volunteers" },
   { href: "/portal/canteen/", label: "Canteen" },
   { href: "/portal/canteen-staff/", label: "Canteen staff", permissions: ["canteen.orders.manage", "canteen.vouchers.redeem"] },
   { href: "/portal/vouchers/", label: "Wallet" },
-  { href: "/portal/merchandise/", label: "Merchandise" },
-  { href: "/portal/coaching/", label: "Coaching", permissions: ["coaching_resources.read", "teams.manage"] },
-  { href: "/portal/notifications/", label: "Notifications" }
+  { href: "/portal/coaching/", label: "Coaching resources", permissions: ["coaching_resources.read", "teams.manage"] }
 ];
 
 const adminNav: NavItem[] = [
-  { href: "/admin/", label: "Admin dashboard" },
+  { href: "/admin/", label: "Dashboard" },
   { href: "/admin/users/", label: "Users", permissions: ["users.read"] },
-  { href: "/admin/role-assignments/", label: "Role assignments", permissions: ["roles.assign", "roles.read"] },
-  { href: "/admin/role-requests/", label: "Request review", permissions: ["roles.review"] },
   { href: "/admin/roles/", label: "Roles & permissions", permissions: ["roles.read"] },
   { href: "/admin/teams/", label: "Seasons & teams", permissions: ["club_structure.manage", "roles.assign"] },
-  { href: "/admin/fixtures/", label: "Fixtures", permissions: ["club_structure.manage", "teams.manage", "match_reports.read"] },
   { href: "/admin/players/", label: "Players & families", permissions: ["players.manage", "families.manage", "users.read"] },
   { href: "/admin/volunteers/", label: "Volunteers", permissions: ["volunteers.manage"] },
   { href: "/admin/canteen/", label: "Canteen", permissions: ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"] },
   { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage"] },
   { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
+  { href: "/admin/content/", label: "Resource guide", permissions: ["coaching_resources.manage", "content.manage"] },
   { href: "/admin/content/", label: "Content", permissions: ["content.manage"] },
-  { href: "/admin/communications/", label: "Communications", permissions: ["communications.manage"] },
-  { href: "/admin/sponsors/", label: "Sponsors", permissions: ["sponsors.manage"] },
-  { href: "/admin/settings/", label: "Settings", permissions: ["settings.manage"] },
-  { href: "/admin/audit/", label: "Audit activity", permissions: ["audit.read"] }
+  { href: "/admin/audit/", label: "Audit log", permissions: ["audit.read"] },
+  { href: "/admin/settings/", label: "System settings", permissions: ["settings.manage"] }
 ];
 
 const visiblePortalNav = portalNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const visibleAdminNav = adminNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const showAdmin = canAccessAdmin(session.permissions);
 const activePath = Astro.url.pathname;
+const inAdmin = activePath.startsWith("/admin/");
 const displayName = session.profile.preferred_name || session.profile.full_name || session.user.email || "Greenacre Eagles member";
 ---
 
@@ -83,19 +76,27 @@ const displayName = session.profile.preferred_name || session.profile.full_name 
             <button class="text-sm font-black text-eagles-green" type="submit">Sign out</button>
           </form>
         </div>
-        <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
-          {visiblePortalNav.map((item) => (
-            <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
-          ))}
-        </nav>
+        {!inAdmin && (
+          <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
+            {visiblePortalNav.map((item) => (
+              <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+            ))}
+          </nav>
+        )}
         {showAdmin && (
           <div class="border-t border-eagles-line px-4 py-4 lg:px-6">
-            <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Administration</p>
-            <nav class="mt-3 flex gap-2 overflow-x-auto text-sm font-black lg:grid" aria-label="Admin navigation">
-              {visibleAdminNav.map((item) => (
-                <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
-              ))}
-            </nav>
+            {!inAdmin && <a class="inline-flex w-full justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/admin/">Admin</a>}
+            {inAdmin && (
+              <>
+                <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Administration</p>
+                <nav class="mt-3 flex gap-2 overflow-x-auto text-sm font-black lg:grid" aria-label="Admin navigation">
+                  {visibleAdminNav.map((item) => (
+                    <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+                  ))}
+                </nav>
+                <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/">Back to portal</a>
+              </>
+            )}
           </div>
         )}
         <div class="hidden border-t border-eagles-line p-6 lg:block">

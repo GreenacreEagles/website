@@ -10,36 +10,110 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["players.manage", "families.manage", "users.read"]);
 if (!session) return Astro.redirect("/login/");
 
-const [{ data: players }, { data: families }, { data: teamPlayers }] = await Promise.all([
-  session.supabase.from("player_records").select("id,registration_status,photo_consent,code_of_conduct_accepted_at,profiles:user_id(full_name,preferred_name,email),seasons(name,year)").order("created_at", { ascending: false }).limit(100),
-  session.supabase.from("families").select("id,name,created_at,family_members(id,status,relationship,is_primary_guardian,profiles:user_id(full_name,email))").order("name").limit(100),
-  session.supabase.from("team_players").select("id,status,squad_number,teams(name),player_records(profiles:user_id(full_name,email),seasons(name))").order("created_at", { ascending: false }).limit(80)
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+
+const [{ data: players }, { data: families }, { data: teamPlayers }, { data: profiles }, { data: seasons }, { data: teams }] = await Promise.all([
+  session.supabase.from("player_records").select("id,user_id,registration_status,photo_consent,code_of_conduct_accepted_at,profiles:user_id(full_name,preferred_name,email),seasons(name,year)").order("created_at", { ascending: false }).limit(100),
+  session.supabase.from("families").select("id,name,created_at,family_members(id,status,relationship,is_primary_guardian,can_manage,can_spend,profiles:user_id(full_name,email))").order("name").limit(100),
+  session.supabase.from("team_players").select("id,status,squad_number,teams(name),player_records(id,profiles:user_id(full_name,email),seasons(name))").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("profiles").select("id,full_name,preferred_name,email").order("full_name").limit(300),
+  session.supabase.from("seasons").select("id,name,status").order("starts_on", { ascending: false }),
+  session.supabase.from("teams").select("id,name,season_id,status").order("name")
 ]);
 ---
 
 <PortalLayout title="Players and families" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
-      <div class="mt-5 grid gap-3">
-        {(players ?? []).length === 0 && <EmptyState title="No player records" text="Player registrations will appear here once the registrar connects them." />}
-        {(players ?? []).map((player: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black">{player.profiles?.preferred_name || player.profiles?.full_name || player.profiles?.email}</p>
-            <p class="text-sm text-eagles-ink/70">{player.seasons?.name ?? "Season"} - code of conduct {formatDate(player.code_of_conduct_accepted_at)}</p>
-            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(player.registration_status)} tone="green" /><StatusBadge label={player.photo_consent ? "Photo consent" : "No photo consent"} tone={player.photo_consent ? "green" : "amber"} /></div>
-          </article>
-        ))}
-      </div>
-    </section>
-    <aside class="grid gap-5 content-start">
-      <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Families</h2>
-        <div class="mt-4 grid gap-3">
-          {(families ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No family groups yet.</p>}
-          {(families ?? []).map((family: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{family.name}</strong><br />{family.family_members?.length ?? 0} linked members</p>)}
+  <div class="grid gap-6 xl:grid-cols-[1fr_440px]">
+    <section class="grid gap-5">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
+        <div class="mt-5 grid gap-3">
+          {(players ?? []).length === 0 && <EmptyState title="No player records" text="Player registrations will appear here once the registrar connects them." />}
+          {(players ?? []).map((player: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{player.profiles?.preferred_name || player.profiles?.full_name || player.profiles?.email}</p>
+              <p class="text-sm text-eagles-ink/70">{player.seasons?.name ?? "Season"} - code of conduct {formatDate(player.code_of_conduct_accepted_at)}</p>
+              <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(player.registration_status)} tone={player.registration_status === "registered" ? "green" : "amber"} /><StatusBadge label={player.photo_consent ? "Photo consent" : "No photo consent"} tone={player.photo_consent ? "green" : "amber"} /></div>
+            </article>
+          ))}
         </div>
       </article>
+
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Families</h2>
+        <div class="mt-5 grid gap-3">
+          {(families ?? []).length === 0 && <EmptyState title="No family groups" text="Create a family group, then link guardians and children." />}
+          {(families ?? []).map((family: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <p class="font-black">{family.name}</p>
+              <p class="text-sm text-eagles-ink/70">{family.family_members?.length ?? 0} linked members</p>
+              <div class="mt-3 grid gap-2 md:grid-cols-2">
+                {(family.family_members ?? []).map((member: any) => (
+                  <p class="bg-eagles-mist p-3 text-sm" style="border-radius:8px">
+                    <strong>{member.profiles?.full_name || member.profiles?.email}</strong><br />
+                    {statusLabel(member.relationship)} - {statusLabel(member.status)}
+                  </p>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
+    </section>
+
+    <aside class="grid gap-5 content-start">
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
+        <input type="hidden" name="action" value="family" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Create family</h2>
+        <label><span class="label">Family name</span><input class="field" name="name" required /></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create family</button>
+      </form>
+
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
+        <input type="hidden" name="action" value="familyMember" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Link family member</h2>
+        <label><span class="label">Family</span><select class="field" name="family_id" required><option value="">Select</option>{(families ?? []).map((family: any) => <option value={family.id}>{family.name}</option>)}</select></label>
+        <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
+        <label><span class="label">Relationship</span><select class="field" name="relationship"><option value="parent">Parent</option><option value="guardian">Guardian</option><option value="carer">Carer</option><option value="child">Child</option><option value="player">Player</option><option value="dependent">Dependent</option><option value="sibling">Sibling</option><option value="adult_player">Adult player</option></select></label>
+        <div class="grid gap-2 text-sm font-bold">
+          <label class="flex items-center gap-2"><input type="checkbox" name="is_primary_guardian" />Primary guardian</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="can_manage" />Can manage family</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="can_spend" />Can spend or assign vouchers</label>
+        </div>
+        <label><span class="label">Spending limit</span><input class="field" name="spending_limit" type="number" min="0" step="0.01" /></label>
+        <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="pending">Pending</option><option value="revoked">Revoked</option></select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Link member</button>
+      </form>
+
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
+        <input type="hidden" name="action" value="player" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Create player record</h2>
+        <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
+        <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select</option>{(seasons ?? []).map((season: any) => <option value={season.id}>{season.name}</option>)}</select></label>
+        <label><span class="label">Status</span><select class="field" name="registration_status"><option value="pending">Pending</option><option value="registered">Registered</option><option value="not_started">Not started</option><option value="transferred">Transferred</option><option value="withdrawn">Withdrawn</option></select></label>
+        <label><span class="label">External ref</span><input class="field" name="external_registration_ref" /></label>
+        <label class="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="photo_consent" />Photo consent</label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create player</button>
+      </form>
+
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
+        <input type="hidden" name="action" value="teamPlayer" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Assign player to team</h2>
+        <label><span class="label">Player</span><select class="field" name="player_id" required><option value="">Select</option>{(players ?? []).map((player: any) => <option value={player.id}>{player.profiles?.full_name || player.profiles?.email} - {player.seasons?.name}</option>)}</select></label>
+        <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
+        <label><span class="label">Squad number</span><input class="field" name="squad_number" type="number" min="0" /></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
+          <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
+        </div>
+        <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign to team</button>
+      </form>
+
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Team links</h2>
         <div class="mt-4 grid gap-3">
