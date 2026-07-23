@@ -235,6 +235,92 @@ select 'wallet ledger reversal restores balance',
   'reversal credit links back to original debit'
 from reversed_wallet_entry;
 
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
+
+with provider_top_up as (
+  select *
+  from public.create_wallet_top_up(
+    (
+      select id
+      from public.wallet_accounts
+      where owner_id = '00000000-0000-4000-8000-000000000212'
+      limit 1
+    ),
+    1200,
+    'stripe',
+    'smoke-provider-top-up'
+  )
+)
+insert into smoke_results
+select 'member can create provider-backed wallet top-up',
+  provider_top_up.payment_status = 'requires_action'
+  and provider_top_up.amount_cents = 1200,
+  'provider top-up waits for webhook settlement'
+from provider_top_up;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+with processed as (
+  select *
+  from public.process_payment_webhook(
+    'stripe',
+    'evt_smoke_wallet_top_up',
+    'payment.succeeded',
+    'pi_smoke_wallet_top_up',
+    (
+      select id
+      from public.payments
+      where idempotency_key = 'smoke-provider-top-up'
+      limit 1
+    ),
+    'succeeded',
+    '{"source":"smoke"}'::jsonb
+  )
+)
+insert into smoke_results
+select 'payment webhook settles provider wallet top-up',
+  processed.event_status = 'processed'
+  and processed.payment_status = 'succeeded'
+  and exists (
+    select 1
+    from public.wallet_balances wb
+    join public.wallet_accounts wa on wa.id = wb.wallet_account_id
+    where wa.owner_id = '00000000-0000-4000-8000-000000000212'
+      and wb.balance_cents = 2200
+  ),
+  'webhook processor credits wallet once'
+from processed;
+
+with replayed as (
+  select *
+  from public.process_payment_webhook(
+    'stripe',
+    'evt_smoke_wallet_top_up',
+    'payment.succeeded',
+    'pi_smoke_wallet_top_up',
+    (
+      select id
+      from public.payments
+      where idempotency_key = 'smoke-provider-top-up'
+      limit 1
+    ),
+    'succeeded',
+    '{"source":"smoke","replayed":true}'::jsonb
+  )
+)
+insert into smoke_results
+select 'payment webhook replay is idempotent',
+  replayed.already_processed
+  and exists (
+    select 1
+    from public.wallet_balances wb
+    join public.wallet_accounts wa on wa.id = wb.wallet_account_id
+    where wa.owner_id = '00000000-0000-4000-8000-000000000212'
+      and wb.balance_cents = 2200
+  ),
+  'duplicate provider event does not duplicate wallet credit'
+from replayed;
+
 insert into public.canteen_categories (id, name, display_order, is_active)
 values ('00000000-0000-4000-8000-000000000215', 'Smoke Canteen', 0, true);
 

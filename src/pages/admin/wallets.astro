@@ -14,7 +14,7 @@ const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const canAdjust = session.permissions.has("*") || session.permissions.has("wallet.adjust");
 
-const [{ data: wallets }, { data: payments }, { data: ledger }, { data: profiles }] = await Promise.all([
+const [{ data: wallets }, { data: payments }, { data: ledger }, { data: profiles }, { data: providers }, { data: webhooks }] = await Promise.all([
   session.supabase
     .from("wallet_accounts")
     .select("id,owner_id,family_id,account_type,status,created_at,wallet_balances(balance_cents),profiles:owner_id(full_name,email),families(name)")
@@ -31,7 +31,16 @@ const [{ data: wallets }, { data: payments }, { data: ledger }, { data: profiles
     .select("id,wallet_account_id,amount_cents,direction,transaction_type,description,created_at,reversal_of,wallet_accounts(account_type,profiles:owner_id(full_name,email),families(name))")
     .order("created_at", { ascending: false })
     .limit(80),
-  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(250)
+  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(250),
+  session.supabase
+    .from("payment_providers" as any)
+    .select("provider_key,display_name,provider_type,is_active,supports_webhooks,updated_at")
+    .order("display_name"),
+  session.supabase
+    .from("payment_webhook_events" as any)
+    .select("id,provider,provider_event_id,event_type,payment_id,provider_payment_id,status,error_message,received_at,processed_at")
+    .order("received_at", { ascending: false })
+    .limit(12)
 ]);
 
 const walletList = (wallets ?? []) as any[];
@@ -163,6 +172,38 @@ const ledgerWalletName = (entry: any) => {
             <p class="border-t border-eagles-line pt-3 text-sm">
               <strong>{formatMoney(payment.amount_cents)}</strong> - {statusLabel(payment.status)}<br />
               {payment.profiles?.full_name ?? payment.profiles?.email ?? "Member"} - {formatDateTime(payment.updated_at)}
+            </p>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Payment providers</h2>
+        <div class="mt-4 grid gap-3">
+          {((providers ?? []) as any[]).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Provider records will appear after the payment migration is applied.</p>}
+          {((providers ?? []) as any[]).map((provider: any) => (
+            <div class="border-t border-eagles-line pt-3 text-sm">
+              <div class="flex items-start justify-between gap-3">
+                <p>
+                  <strong>{provider.display_name}</strong><br />
+                  {statusLabel(provider.provider_type)} - {provider.supports_webhooks ? "Webhooks on" : "Manual"}
+                </p>
+                <StatusBadge label={provider.is_active ? "Active" : "Inactive"} tone={provider.is_active ? "green" : "ink"} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Webhook events</h2>
+        <div class="mt-4 grid gap-3">
+          {((webhooks ?? []) as any[]).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Provider webhook deliveries will appear here after payment processors call the webhook endpoint.</p>}
+          {((webhooks ?? []) as any[]).map((webhook: any) => (
+            <p class="border-t border-eagles-line pt-3 text-sm">
+              <strong>{statusLabel(webhook.status)}</strong> - {webhook.provider} - {statusLabel(webhook.event_type)}<br />
+              {webhook.provider_payment_id ?? webhook.provider_event_id} - {formatDateTime(webhook.processed_at ?? webhook.received_at)}
+              {webhook.error_message && <><br /><span class="text-red-700">{webhook.error_message}</span></>}
             </p>
           ))}
         </div>

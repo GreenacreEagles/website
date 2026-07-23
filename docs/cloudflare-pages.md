@@ -44,12 +44,16 @@ Required runtime variables:
 - `SITE_URL`: set this to the active production Worker or custom domain.
 - `PUBLIC_SUPABASE_URL`: Supabase project URL for browser auth and portal calls.
 - `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
+- `SUPABASE_SERVICE_ROLE_KEY`: server-only Supabase key used by trusted webhook routes.
+- `PAYMENT_WEBHOOK_SECRET`: shared secret expected by `/api/webhooks/payments/`.
 
 ## Environment Variables
 
 - `SITE_URL`: set this to the production domain once confirmed, for example `https://greenacreeaglesfc.com.au`.
 - `PUBLIC_SUPABASE_URL`: Supabase project URL for browser auth and portal calls.
 - `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
+- `SUPABASE_SERVICE_ROLE_KEY`: server-only Supabase key used by trusted webhook routes.
+- `PAYMENT_WEBHOOK_SECRET`: long random shared secret sent by payment provider webhook configuration.
 - `NODE_VERSION`: `22`
 
 Production and preview variables have been configured in Cloudflare Pages for the current Pages domain. Update `SITE_URL` after a custom domain is attached.

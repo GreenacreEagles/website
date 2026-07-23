@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../types/database.types";
 
 type RuntimeContext = {
@@ -45,6 +46,22 @@ export const createSupabaseServerClient = (context: RuntimeContext) => {
           });
         });
       }
+    }
+  });
+};
+
+export const createSupabaseServiceClient = (context: RuntimeContext) => {
+  const supabaseUrl = readEnv(context, "PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = readEnv(context, "SUPABASE_SERVICE_ROLE_KEY") ?? readEnv(context, "SUPABASE_SECRET_KEY");
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Supabase service role environment variables are not configured.");
+  }
+
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
     }
   });
 };

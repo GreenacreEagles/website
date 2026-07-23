@@ -63,7 +63,7 @@
 - [x] Build family voucher assignment audit trail and protected assignment RPC.
 - [x] Build full wallet ledger operations and top-up/payment flow.
 - [x] Build merchandise catalogue and order management.
-- [ ] Add payment-provider abstraction and webhook idempotency.
+- [x] Add payment-provider abstraction and webhook idempotency.
 
 ## Phase 6: Content And Communications
 

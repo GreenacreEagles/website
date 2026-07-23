@@ -48,4 +48,4 @@ The canteen order flow supports purchasing for `Me` or a linked child. The serve
 
 ## Current Limits
 
-The wallet operations phase adds member wallet creation, manual top-up requests, treasurer settlement, controlled wallet adjustments and ledger reversal. Remaining gaps are external payment-provider top-ups, child spending controls at checkout, family relationship removal safeguards and full R2-backed attachment workflows.
+The wallet operations phase adds member wallet creation, manual top-up requests, treasurer settlement, payment-provider webhook settlement, controlled wallet adjustments and ledger reversal. Remaining gaps are live processor credential configuration, child spending controls at checkout, family relationship removal safeguards and full R2-backed attachment workflows.

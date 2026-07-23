@@ -59,3 +59,5 @@ Merchandise order status changes run through `public.update_merchandise_order_st
 Members create wallet accounts and manual top-up requests from `/portal/vouchers/`. Top-up requests create `payments` rows with wallet metadata; they do not credit the wallet until an authorised treasurer or wallet operator settles them.
 
 Administrators use `/admin/wallets/` to review pending top-ups, mark them succeeded, failed or cancelled, create member wallets, record controlled credit/debit adjustments and reverse mistaken ledger entries. Settlement and adjustment actions run through wallet RPCs so ledger writes are idempotent and auditable.
+
+Payment providers are registered in `payment_providers`, and provider delivery attempts are recorded in `payment_webhook_events`. Processor callbacks should post to `/api/webhooks/payments/` with `PAYMENT_WEBHOOK_SECRET`; the API uses the Supabase service role key to call `public.process_payment_webhook`, which ignores replayed provider events and prevents duplicate wallet credits.
