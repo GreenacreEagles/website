@@ -18,8 +18,8 @@ const canRedeemVouchers = session.permissions.has("*") || session.permissions.ha
 const [{ data: venues }, { data: orders }, { data: redemptions }] = await Promise.all([
   session.supabase.from("canteen_venues").select("id,name,is_active").eq("is_active", true).order("name"),
   session.supabase
-    .from("canteen_orders")
-    .select("id,order_number,order_status,payment_status,total_cents,special_instructions,pickup_window_start,created_at,canteen_venues(name),profiles:customer_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)")
+    .from("canteen_orders" as any)
+    .select("id,order_number,order_status,payment_status,total_cents,special_instructions,pickup_code,pickup_window_start,created_at,canteen_venues(name),profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents,fulfilment_type_snapshot,voucher_issuance_id)")
     .in("order_status", ["accepted", "preparing", "ready_for_pickup"])
     .order("created_at", { ascending: true })
     .limit(80),
@@ -29,6 +29,7 @@ const [{ data: venues }, { data: orders }, { data: redemptions }] = await Promis
     .order("created_at", { ascending: false })
     .limit(12)
 ]);
+const staffOrders = (orders ?? []) as any[];
 
 const nextActions: Record<string, { label: string; value: string }[]> = {
   accepted: [
@@ -56,18 +57,20 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
             <p class="eyebrow">Live queue</p>
             <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">Orders to prepare</h2>
           </div>
-          <p class="text-sm font-bold text-eagles-ink/70">{(orders ?? []).length} open orders</p>
+          <p class="text-sm font-bold text-eagles-ink/70">{staffOrders.length} open orders</p>
         </div>
 
         <div class="mt-5 grid gap-3">
-          {(orders ?? []).length === 0 && <EmptyState title="No open canteen orders" text="New orders will appear here as soon as members place them." />}
-          {(orders ?? []).map((order: any) => (
+          {staffOrders.length === 0 && <EmptyState title="No open canteen orders" text="New orders will appear here as soon as members place them." />}
+          {staffOrders.map((order: any) => (
             <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
               <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Order {order.order_number}</p>
                   <h3 class="mt-1 text-xl font-black text-eagles-ink">{order.profiles?.full_name ?? order.profiles?.email ?? "Member"}</h3>
                   <p class="mt-1 text-sm text-eagles-ink/70">{formatDateTime(order.created_at)} · {order.canteen_venues?.name ?? "Any canteen"}</p>
+                  {order.recipient?.full_name && order.recipient?.full_name !== order.profiles?.full_name && <p class="mt-1 text-sm font-bold text-eagles-ink/70">For {order.recipient.full_name}</p>}
+                  {order.pickup_code && <p class="mt-2 inline-flex bg-eagles-mist px-3 py-1 font-mono text-xs font-black text-eagles-ink" style="border-radius:8px">{order.pickup_code}</p>}
                 </div>
                 <div class="flex flex-wrap gap-2 md:justify-end">
                   <StatusBadge label={statusLabel(order.order_status)} tone="green" />
@@ -78,7 +81,11 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
               <div class="mt-4 grid gap-2">
                 {(order.canteen_order_items ?? []).map((item: any) => (
                   <p class="flex justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
-                    <span><strong>{item.quantity}x</strong> {item.product_name_snapshot}</span>
+                    <span>
+                      <strong>{item.quantity}x</strong> {item.product_name_snapshot}
+                      <span class="ml-2 text-xs font-bold uppercase text-eagles-ink/50">{statusLabel(item.fulfilment_type_snapshot)}</span>
+                      {item.voucher_issuance_id && <span class="ml-2 text-xs font-black text-eagles-green">Voucher issued</span>}
+                    </span>
                     <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
                   </p>
                 ))}
@@ -87,6 +94,15 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
 
               {canManageOrders && (
                 <div class="mt-4 flex flex-wrap gap-2">
+                  {["unpaid", "awaiting_payment"].includes(order.payment_status) && (
+                    <form method="post" action="/api/admin/canteen-order-status/">
+                      <input type="hidden" name="order_id" value={order.id} />
+                      <input type="hidden" name="payment_status" value="paid" />
+                      <input type="hidden" name="reason" value="Payment received at canteen" />
+                      <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
+                      <button class="border border-eagles-green px-4 py-3 text-sm font-black text-eagles-green" style="border-radius:8px" type="submit">Mark paid</button>
+                    </form>
+                  )}
                   {(nextActions[order.order_status] ?? []).map((action) => (
                     <form method="post" action="/api/admin/canteen-order-status/">
                       <input type="hidden" name="order_id" value={order.id} />
@@ -119,7 +135,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
           </div>
           <label><span class="label">Canteen</span><select class="field" name="venue_id" required>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
           <label><span class="label">Amount to claim</span><input class="field" name="amount" type="number" min="0.01" step="0.01" placeholder="5.00" required /></label>
-          <label><span class="label">Link to order</span><select class="field" name="order_id"><option value="">No order</option>{(orders ?? []).map((order) => <option value={order.id}>{order.order_number}</option>)}</select></label>
+          <label><span class="label">Link to order</span><select class="field" name="order_id"><option value="">No order</option>{staffOrders.map((order) => <option value={order.id}>{order.order_number}</option>)}</select></label>
           <label><span class="label">Device label</span><input class="field" name="device_label" placeholder="Canteen iPad" /></label>
           <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Claim voucher</button>
         </form>

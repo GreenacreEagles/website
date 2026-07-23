@@ -15,7 +15,9 @@ const statusMessages: Record<string, string> = {
 
 const schema = z.object({
   order_id: uuidSchema,
-  order_status: z.enum(["accepted", "preparing", "ready_for_pickup", "collected", "cancelled"]),
+  order_status: z.enum(["accepted", "preparing", "ready_for_pickup", "collected", "cancelled"]).optional(),
+  payment_status: z.enum(["unpaid", "awaiting_payment", "paid", "partially_refunded", "refunded"]).optional(),
+  reason: z.string().trim().max(500).optional(),
   return_to: z.string().trim().optional()
 });
 
@@ -29,40 +31,39 @@ export const POST: APIRoute = async (context) => {
     return context.redirect(redirectWithMessage(redirectTo, "error", parsed.error.issues[0]?.message ?? "Check the order details."));
   }
 
-  const { data: existing, error: existingError } = await session.supabase
-    .from("canteen_orders")
-    .select("id,order_number,order_status,customer_id,recipient_id")
-    .eq("id", parsed.data.order_id)
-    .single();
-
-  if (existingError || !existing) {
-    return context.redirect(redirectWithMessage(redirectTo, "error", existingError?.message ?? "Order was not found."));
+  if (!parsed.data.order_status && !parsed.data.payment_status) {
+    return context.redirect(redirectWithMessage(redirectTo, "error", "Choose an order or payment status."));
   }
 
-  const { error } = await session.supabase
-    .from("canteen_orders")
-    .update({ order_status: parsed.data.order_status })
-    .eq("id", parsed.data.order_id);
+  const { data, error } = await session.supabase.rpc("update_canteen_order_state" as any, {
+    target_order_id: parsed.data.order_id,
+    target_order_status: parsed.data.order_status ?? null,
+    target_payment_status: parsed.data.payment_status ?? null,
+    change_reason: parsed.data.reason || null
+  });
 
   if (error) return context.redirect(redirectWithMessage(redirectTo, "error", error.message));
 
-  await session.supabase.from("order_status_history").insert({
-    order_id: parsed.data.order_id,
-    old_status: existing.order_status,
-    new_status: parsed.data.order_status,
-    changed_by: session.user.id
-  });
-
-  if (["ready_for_pickup", "collected"].includes(parsed.data.order_status)) {
+  const result = Array.isArray(data) ? data[0] : null;
+  const newOrderStatus = result?.new_order_status ?? parsed.data.order_status;
+  const notificationRecipient = result?.recipient_id ?? result?.customer_id;
+  if (notificationRecipient && newOrderStatus && ["ready_for_pickup", "collected"].includes(newOrderStatus)) {
     await session.supabase.from("notifications").insert({
-      recipient_id: existing.recipient_id ?? existing.customer_id,
-      title: parsed.data.order_status === "ready_for_pickup" ? "Canteen order ready" : "Canteen order collected",
+      recipient_id: notificationRecipient,
+      title: newOrderStatus === "ready_for_pickup" ? "Canteen order ready" : "Canteen order collected",
       body:
-        parsed.data.order_status === "ready_for_pickup"
-          ? `Order ${existing.order_number} is ready to collect from the canteen.`
-          : `Order ${existing.order_number} has been marked as collected.`
+        newOrderStatus === "ready_for_pickup"
+          ? `Order ${result?.order_number ?? ""} is ready to collect from the canteen.`
+          : `Order ${result?.order_number ?? ""} has been marked as collected.`
     });
   }
 
-  return context.redirect(redirectWithMessage(redirectTo, "success", statusMessages[parsed.data.order_status]));
+  const success =
+    parsed.data.payment_status === "paid" && result?.issued_vouchers > 0
+      ? `Payment recorded and ${result.issued_vouchers} voucher item added to wallet.`
+      : parsed.data.order_status
+        ? statusMessages[parsed.data.order_status]
+        : "Payment status updated.";
+
+  return context.redirect(redirectWithMessage(redirectTo, "success", success));
 };

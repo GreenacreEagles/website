@@ -106,8 +106,12 @@ const schemas = {
     name: z.string().trim().min(2).max(120),
     description: nullableText(500),
     price: centsFromDollars,
+    fulfilment_type: z.enum(["direct_order", "item_voucher"]).default("direct_order"),
     preparation_minutes: z.coerce.number().int().min(0).max(120).default(5),
     max_quantity_per_order: optionalNumber,
+    stock_quantity: optionalNumber,
+    low_stock_threshold: z.coerce.number().int().min(0).max(9999).default(5),
+    voucher_valid_days: z.coerce.number().int().min(1).max(365).default(14),
     dietary_info: nullableText(200),
     allergen_info: nullableText(200),
     is_active: boolFromCheckbox,
@@ -243,18 +247,22 @@ export const POST: APIRoute = async (context) => {
   } else if (action === "canteenCategory") {
     ({ error } = await session.supabase.from("canteen_categories").insert(data));
   } else if (action === "canteenProduct") {
-    ({ error } = await session.supabase.from("canteen_products").insert({
+    ({ error } = await session.supabase.from("canteen_products" as any).insert({
       category_id: data.category_id ?? null,
       name: data.name,
       description: data.description ?? null,
       price_cents: data.price,
+      fulfilment_type: data.fulfilment_type,
       dietary_info: splitList(data.dietary_info),
       allergen_info: splitList(data.allergen_info),
       preparation_minutes: data.preparation_minutes,
       max_quantity_per_order: data.max_quantity_per_order,
+      stock_quantity: data.stock_quantity,
+      low_stock_threshold: data.low_stock_threshold,
+      voucher_valid_days: data.voucher_valid_days,
       is_active: data.is_active,
       is_sold_out: data.is_sold_out
-    }));
+    } as any));
   } else if (action === "voucher") {
     const rawToken = token();
     ({ error } = await session.supabase.from("voucher_issuances").insert({

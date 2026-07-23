@@ -56,9 +56,9 @@
 
 ## Phase 5: Commerce
 
-- [ ] Build canteen catalogue management.
+- [x] Build canteen catalogue management.
 - [x] Build canteen customer ordering foundation with linked-child beneficiary support.
-- [ ] Build canteen operations queue.
+- [x] Build canteen operations queue.
 - [ ] Build secure voucher QR issuing, scanning, redemption, and reversal.
 - [x] Build family voucher assignment audit trail and protected assignment RPC.
 - [ ] Build full wallet ledger operations and top-up/payment flow.

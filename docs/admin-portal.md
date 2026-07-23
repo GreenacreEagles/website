@@ -41,3 +41,9 @@ Member-driven role or team access requests are disabled in source and by the lat
 Administrators manage the club hierarchy from `/admin/teams/`. The page now includes team staff assignment for coaches, assistant coaches, team managers and trainers; active squad visibility from player-team links; internal training-session review; and a match-report review queue.
 
 Coaches and team managers submit reports from the member team page. Report review actions stay in administration and require `match_reports.review`.
+
+## Canteen Operations
+
+Administrators manage canteen venues, categories, products, stock levels and fulfilment modes from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.
+
+Order state changes run through `public.update_canteen_order_state`, which enforces canteen order permissions, locks the order row, records status history and issues purchased voucher items only after the order is marked paid. Staff use `/portal/canteen-staff/` for the live preparation queue, pickup codes, payment marking and voucher scanning.

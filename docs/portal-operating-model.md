@@ -34,4 +34,4 @@ Notifications use the existing `notifications` table. The dashboard supports unr
 
 ## Current Limits
 
-The first three source phases add foundations for team boards, portal navigation cleanup, family/guardian invitations, admin family linking, child canteen beneficiaries, family voucher assignment, squad/staff administration and match-report submission/review. Full production completion still requires applying the latest migration, regenerating database types, payment-provider integration, wallet debit/top-up settlement, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.
+The first commerce source phase adds canteen catalogue management, stock-aware ordering, staff order transitions, payment marking, pickup codes and automatic wallet voucher issuance for paid voucher products. Full production completion still requires applying the latest migration, regenerating database types, payment-provider integration, wallet debit/top-up settlement, voucher reversal, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.

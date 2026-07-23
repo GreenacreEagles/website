@@ -100,6 +100,106 @@ select 'team staff report can be saved',
   ),
   'match report inserted for active team staff';
 
+insert into public.canteen_categories (id, name, display_order, is_active)
+values ('00000000-0000-4000-8000-000000000215', 'Smoke Canteen', 0, true);
+
+insert into public.canteen_products (
+  id,
+  category_id,
+  name,
+  price_cents,
+  fulfilment_type,
+  stock_quantity,
+  low_stock_threshold,
+  voucher_valid_days,
+  is_active,
+  is_sold_out
+)
+values (
+  '00000000-0000-4000-8000-000000000216',
+  '00000000-0000-4000-8000-000000000215',
+  'Smoke Voucher Snack',
+  250,
+  'item_voucher',
+  6,
+  2,
+  7,
+  true,
+  false
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
+
+do $$
+begin
+  perform *
+  from public.create_canteen_order(
+    '00000000-0000-4000-8000-000000000216',
+    null,
+    null,
+    2,
+    null,
+    'Smoke test order'
+  );
+end $$;
+
+insert into smoke_results
+select 'member can create stock-backed canteen voucher order',
+  exists (
+    select 1
+    from public.canteen_orders co
+    join public.canteen_order_items coi on coi.order_id = co.id
+    where co.customer_id = '00000000-0000-4000-8000-000000000212'
+      and co.payment_status = 'unpaid'
+      and co.order_status = 'accepted'
+      and co.pickup_code like 'GEORDER:%'
+      and coi.product_id = '00000000-0000-4000-8000-000000000216'
+      and coi.fulfilment_type_snapshot = 'item_voucher'
+  ),
+  'member order inserted with voucher fulfilment snapshot';
+
+insert into smoke_results
+select 'canteen order reserves stock',
+  stock_quantity = 4,
+  'stock decremented from 6 to 4'
+from public.canteen_products
+where id = '00000000-0000-4000-8000-000000000216';
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+with paid as (
+  select *
+  from public.update_canteen_order_state(
+    (
+      select id
+      from public.canteen_orders
+      where customer_id = '00000000-0000-4000-8000-000000000212'
+        and order_number like 'GE-%'
+      order by created_at desc
+      limit 1
+    ),
+    null,
+    'paid',
+    'Smoke test payment'
+  )
+)
+insert into smoke_results
+select 'paid canteen voucher order issues wallet voucher',
+  paid.issued_vouchers = 1
+  and exists (
+    select 1
+    from public.canteen_order_items coi
+    join public.voucher_issuances vi on vi.id = coi.voucher_issuance_id
+    where coi.order_id = paid.order_id
+      and vi.beneficiary_id = '00000000-0000-4000-8000-000000000212'
+      and vi.voucher_type = 'specific_product'
+      and vi.remaining_value_cents = 500
+      and vi.redemption_limit = 2
+      and vi.status = 'active'
+  ),
+  'paid item_voucher order creates a wallet voucher'
+from paid;
+
 select check_name, passed, detail from smoke_results order by check_name;
 
 rollback;
