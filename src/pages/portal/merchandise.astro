@@ -11,9 +11,10 @@ const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 
 const [{ data: products }, { data: orders }] = await Promise.all([
-  session.supabase.from("merchandise_products").select("id,name,description,category,status,featured,image_url,merchandise_variants(size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status", "active").order("featured", { ascending: false }).limit(60),
-  session.supabase.from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at").eq("customer_id", session.user.id).order("created_at", { ascending: false }).limit(20)
+  session.supabase.from("merchandise_products").select("id,name,description,category,status,featured,image_url,merchandise_variants(id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status", "active").order("featured", { ascending: false }).limit(60),
+  session.supabase.from("merchandise_orders" as any).select("id,order_number,status,total_cents,pickup_or_delivery,created_at,merchandise_order_items(product_name_snapshot,variant_label_snapshot,quantity,line_total_cents)").eq("customer_id", session.user.id).order("created_at", { ascending: false }).limit(20)
 ]);
+const merchOrders = (orders ?? []) as any[];
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
@@ -43,13 +44,13 @@ const error = Astro.url.searchParams.get("error");
                     <select class="field" name="variant_id" required>
                       {variants.map((variant: any) => (
                         <option value={variant.id}>
-                          {[variant.size, variant.colour].filter(Boolean).join(" / ") || product.name} - {formatMoney(variant.sale_price_cents ?? variant.price_cents)}
+                          {[variant.size, variant.colour].filter(Boolean).join(" / ") || product.name} - {formatMoney(variant.sale_price_cents ?? variant.price_cents)} - {variant.stock_quantity} left
                         </option>
                       ))}
                     </select>
                   </label>
                   <div class="grid gap-3 md:grid-cols-2">
-                    <label><span class="label">Qty</span><input class="field" name="quantity" type="number" min="1" max="10" value="1" /></label>
+                    <label><span class="label">Qty</span><input class="field" name="quantity" type="number" min="1" max={Math.min(10, firstVariant?.stock_quantity ?? 10)} value="1" /></label>
                     <label><span class="label">Collect</span><select class="field" name="pickup_or_delivery"><option value="pickup">Pickup</option><option value="delivery">Delivery</option></select></label>
                   </div>
                   <label><span class="label">Notes</span><input class="field" name="notes" placeholder="Player name, team, pickup note" /></label>
@@ -65,11 +66,18 @@ const error = Astro.url.searchParams.get("error");
     <aside class="surface p-5">
       <h2 class="font-display text-2xl font-black uppercase leading-none">My orders</h2>
       <div class="mt-4 grid gap-3">
-        {(orders ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Your merchandise orders will appear here.</p>}
-        {(orders ?? []).map((order) => (
+        {merchOrders.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Your merchandise orders will appear here.</p>}
+        {merchOrders.map((order) => (
           <div class="border-t border-eagles-line pt-3">
             <p class="font-black">Order {order.order_number}</p>
             <p class="text-sm text-eagles-ink/70">{formatMoney(order.total_cents)} - {formatDateTime(order.created_at)}</p>
+            <div class="mt-2 grid gap-1">
+              {(order.merchandise_order_items ?? []).map((item: any) => (
+                <p class="text-xs font-bold text-eagles-ink/60">
+                  {item.quantity}x {item.product_name_snapshot}{item.variant_label_snapshot ? ` - ${item.variant_label_snapshot}` : ""}
+                </p>
+              ))}
+            </div>
             <StatusBadge label={statusLabel(order.status)} tone={order.status === "completed" ? "green" : "amber"} />
           </div>
         ))}

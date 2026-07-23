@@ -12,8 +12,6 @@ const schema = z.object({
   notes: z.string().trim().max(500).optional()
 });
 
-const orderNumber = () => `GM-${Date.now().toString(36).toUpperCase()}`;
-
 export const POST: APIRoute = async (context) => {
   const session = await requireUser(context);
   if (!session) return context.redirect("/login/");
@@ -23,29 +21,15 @@ export const POST: APIRoute = async (context) => {
     return context.redirect(redirectWithMessage("/portal/merchandise/", "error", parsed.error.issues[0]?.message ?? "Check the merchandise order."));
   }
 
-  const { data: variant, error: variantError } = await session.supabase
-    .from("merchandise_variants")
-    .select("id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active,merchandise_products(name,status)")
-    .eq("id", parsed.data.variant_id)
-    .single();
-
-  if (variantError || !variant || !variant.is_active || variant.stock_quantity < parsed.data.quantity || (variant.merchandise_products as any)?.status !== "active") {
-    return context.redirect(redirectWithMessage("/portal/merchandise/", "error", "That merchandise item is not available."));
-  }
-
-  const unitPrice = variant.sale_price_cents ?? variant.price_cents;
-  const total = unitPrice * parsed.data.quantity;
-  const productName = (variant.merchandise_products as any)?.name ?? "Club merchandise";
-  const details = [productName, variant.size, variant.colour].filter(Boolean).join(" - ");
-
-  const { error } = await session.supabase.from("merchandise_orders").insert({
-    order_number: orderNumber(),
-    customer_id: session.user.id,
-    total_cents: total,
-    status: "awaiting_payment",
-    pickup_or_delivery: parsed.data.pickup_or_delivery,
-    notes: `${parsed.data.quantity}x ${details}${parsed.data.notes ? `\n${parsed.data.notes}` : ""}`
+  const { data, error } = await session.supabase.rpc("create_merchandise_order" as any, {
+    target_variant_id: parsed.data.variant_id,
+    order_quantity: parsed.data.quantity,
+    target_pickup_or_delivery: parsed.data.pickup_or_delivery,
+    target_notes: parsed.data.notes || null
   });
 
-  return context.redirect(redirectWithMessage("/portal/merchandise/", error ? "error" : "success", error?.message ?? "Merchandise order placed."));
+  const created = Array.isArray(data) ? data[0] : null;
+  const message = created?.order_number ? `Merchandise order ${created.order_number} placed.` : "Merchandise order placed.";
+
+  return context.redirect(redirectWithMessage("/portal/merchandise/", error ? "error" : "success", error?.message ?? message));
 };

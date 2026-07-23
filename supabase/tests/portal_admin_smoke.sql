@@ -103,6 +103,9 @@ select 'team staff report can be saved',
 insert into public.canteen_categories (id, name, display_order, is_active)
 values ('00000000-0000-4000-8000-000000000215', 'Smoke Canteen', 0, true);
 
+insert into public.canteen_venues (id, name, is_active)
+values ('00000000-0000-4000-8000-000000000219', 'Smoke Canteen Window', true);
+
 insert into public.canteen_products (
   id,
   category_id,
@@ -199,6 +202,157 @@ select 'paid canteen voucher order issues wallet voucher',
   ),
   'paid item_voucher order creates a wallet voucher'
 from paid;
+
+with redeemed as (
+  select *
+  from public.redeem_voucher(
+    (
+      select vi.redemption_code
+      from public.canteen_order_items coi
+      join public.voucher_issuances vi on vi.id = coi.voucher_issuance_id
+      where coi.product_id = '00000000-0000-4000-8000-000000000216'
+      order by vi.created_at desc
+      limit 1
+    ),
+    '00000000-0000-4000-8000-000000000219',
+    250,
+    null,
+    'Smoke test scanner'
+  )
+)
+insert into smoke_results
+select 'canteen worker can redeem wallet voucher',
+  redeemed.remaining_value_cents = 250
+  and exists (
+    select 1
+    from public.voucher_redemptions vr
+    where vr.id = redeemed.redemption_id
+      and vr.amount_cents = 250
+      and vr.status = 'completed'
+  ),
+  'voucher redemption debits remaining balance'
+from redeemed;
+
+with reversed as (
+  select public.reverse_voucher_redemption(
+    (
+      select vr.id
+      from public.voucher_redemptions vr
+      join public.voucher_issuances vi on vi.id = vr.voucher_id
+      where vi.beneficiary_id = '00000000-0000-4000-8000-000000000212'
+      order by vr.created_at desc
+      limit 1
+    ),
+    'Smoke test reversal'
+  ) as reversal_id
+)
+insert into smoke_results
+select 'voucher redemption reversal restores voucher balance',
+  exists (
+    select 1
+    from public.voucher_reversals vrev
+    join public.voucher_redemptions vr on vr.id = vrev.redemption_id
+    join public.voucher_issuances vi on vi.id = vr.voucher_id
+    where vrev.id = reversed.reversal_id
+      and vrev.reason = 'Smoke test reversal'
+      and vr.status = 'reversed'
+      and vi.remaining_value_cents = 500
+      and vi.redemption_count = 0
+      and vi.status = 'active'
+  ),
+  'voucher reversal restores amount and writes reversal audit row'
+from reversed;
+
+insert into public.merchandise_products (id, name, category, status)
+values ('00000000-0000-4000-8000-000000000217', 'Smoke Hoodie', 'Smoke Shop', 'active');
+
+insert into public.merchandise_variants (
+  id,
+  product_id,
+  sku,
+  size,
+  colour,
+  price_cents,
+  stock_quantity,
+  low_stock_threshold,
+  is_active
+)
+values (
+  '00000000-0000-4000-8000-000000000218',
+  '00000000-0000-4000-8000-000000000217',
+  'SMOKE-HOODIE-M',
+  'M',
+  'Green',
+  4500,
+  5,
+  1,
+  true
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
+
+do $$
+begin
+  perform *
+  from public.create_merchandise_order(
+    '00000000-0000-4000-8000-000000000218',
+    2,
+    'pickup',
+    'Smoke merchandise order'
+  );
+end $$;
+
+insert into smoke_results
+select 'member can create stock-backed merchandise order',
+  exists (
+    select 1
+    from public.merchandise_orders mo
+    join public.merchandise_order_items moi on moi.order_id = mo.id
+    where mo.customer_id = '00000000-0000-4000-8000-000000000212'
+      and mo.status = 'awaiting_payment'
+      and mo.total_cents = 9000
+      and moi.variant_id = '00000000-0000-4000-8000-000000000218'
+      and moi.quantity = 2
+      and moi.line_total_cents = 9000
+  ),
+  'member order inserted with line item snapshot';
+
+insert into smoke_results
+select 'merchandise order reserves stock',
+  stock_quantity = 3,
+  'stock decremented from 5 to 3'
+from public.merchandise_variants
+where id = '00000000-0000-4000-8000-000000000218';
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+with moved as (
+  select *
+  from public.update_merchandise_order_state(
+    (
+      select id
+      from public.merchandise_orders
+      where customer_id = '00000000-0000-4000-8000-000000000212'
+        and order_number like 'GM-%'
+      order by created_at desc
+      limit 1
+    ),
+    'paid',
+    'Smoke test payment'
+  )
+)
+insert into smoke_results
+select 'merchandise manager can mark order paid',
+  moved.new_status = 'paid'
+  and exists (
+    select 1
+    from public.merchandise_order_status_history
+    where order_id = moved.order_id
+      and old_status = 'awaiting_payment'
+      and new_status = 'paid'
+  ),
+  'status RPC records merchandise history'
+from moved;
 
 select check_name, passed, detail from smoke_results order by check_name;
 

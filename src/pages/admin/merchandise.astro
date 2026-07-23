@@ -10,35 +10,155 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["merchandise.manage"]);
 if (!session) return Astro.redirect("/login/");
 
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
 const [{ data: products }, { data: orders }] = await Promise.all([
-  session.supabase.from("merchandise_products").select("id,name,category,status,featured,merchandise_variants(size,colour,price_cents,stock_quantity,is_active)").order("updated_at", { ascending: false }).limit(100),
-  session.supabase.from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at,profiles:customer_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("merchandise_products").select("id,name,description,category,image_url,status,featured,merchandise_variants(id,sku,size,colour,price_cents,sale_price_cents,stock_quantity,low_stock_threshold,is_active)").order("updated_at", { ascending: false }).limit(100),
+  session.supabase.from("merchandise_orders" as any).select("id,order_number,status,total_cents,pickup_or_delivery,notes,created_at,profiles:customer_id(full_name,email),merchandise_order_items(product_name_snapshot,variant_label_snapshot,sku_snapshot,quantity,line_total_cents)").order("created_at", { ascending: false }).limit(80)
 ]);
+const productSummaries = (products ?? []).map((product: any) => ({
+  ...product,
+  variants: (product.merchandise_variants ?? []).map((variant: any) => ({
+    ...variant,
+    displayPrice: variant.sale_price_cents ?? variant.price_cents,
+    lowStock: variant.stock_quantity <= variant.low_stock_threshold
+  }))
+}));
+const merchOrders = (orders ?? []) as any[];
+const orderActions: Record<string, { label: string; value: string; tone?: "green" | "red" | "ink" }[]> = {
+  awaiting_payment: [
+    { label: "Mark paid", value: "paid", tone: "green" },
+    { label: "Cancel", value: "cancelled", tone: "red" }
+  ],
+  paid: [
+    { label: "Processing", value: "processing", tone: "green" },
+    { label: "Awaiting stock", value: "awaiting_stock", tone: "ink" },
+    { label: "Ready", value: "ready_for_pickup", tone: "green" },
+    { label: "Shipped", value: "shipped", tone: "green" },
+    { label: "Cancel", value: "cancelled", tone: "red" }
+  ],
+  processing: [
+    { label: "Ready", value: "ready_for_pickup", tone: "green" },
+    { label: "Shipped", value: "shipped", tone: "green" },
+    { label: "Awaiting stock", value: "awaiting_stock", tone: "ink" },
+    { label: "Cancel", value: "cancelled", tone: "red" }
+  ],
+  awaiting_stock: [
+    { label: "Processing", value: "processing", tone: "green" },
+    { label: "Ready", value: "ready_for_pickup", tone: "green" },
+    { label: "Cancel", value: "cancelled", tone: "red" }
+  ],
+  ready_for_pickup: [
+    { label: "Collected", value: "collected", tone: "green" },
+    { label: "Cancel", value: "cancelled", tone: "red" }
+  ],
+  shipped: [{ label: "Complete", value: "completed", tone: "green" }],
+  collected: [{ label: "Complete", value: "completed", tone: "green" }]
+};
 ---
 
 <PortalLayout title="Merchandise management" section="Administration" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Products</h2>
-      <div class="mt-5 grid gap-3">
-        {(products ?? []).length === 0 && <EmptyState title="No merchandise products" text="Club shop products and stock levels will appear here." />}
-        {(products ?? []).map((product: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black">{product.name}</p>
-            <p class="text-sm text-eagles-ink/70">{product.category ?? "Club shop"} - {product.merchandise_variants?.length ?? 0} variants</p>
-            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(product.status)} tone={product.status === "active" ? "green" : "amber"} />{product.featured && <StatusBadge label="Featured" tone="ink" />}</div>
-          </article>
-        ))}
-      </div>
+    <section class="grid gap-5">
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Products</h2>
+        <div class="mt-5 grid gap-3">
+          {productSummaries.length === 0 && <EmptyState title="No merchandise products" text="Club shop products and stock levels will appear here." />}
+          {productSummaries.map((product: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="font-black">{product.name}</p>
+                  <p class="text-sm text-eagles-ink/70">{product.category ?? "Club shop"} - {product.merchandise_variants?.length ?? 0} variants</p>
+                </div>
+                <div class="flex gap-2"><StatusBadge label={statusLabel(product.status)} tone={product.status === "active" ? "green" : "amber"} />{product.featured && <StatusBadge label="Featured" tone="ink" />}</div>
+              </div>
+              <div class="mt-4 grid gap-2">
+                {product.variants.map((variant: any) => (
+                  <p class="flex flex-wrap justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
+                    <span>
+                      <strong>{[variant.size, variant.colour].filter(Boolean).join(" / ") || "Default"}</strong>
+                      {variant.sku && <span class="ml-2 font-mono text-xs text-eagles-ink/50">{variant.sku}</span>}
+                    </span>
+                    <span class="font-bold">{formatMoney(variant.displayPrice)} - <span class={variant.lowStock ? "text-amber-700" : "text-eagles-ink/70"}>{variant.stock_quantity} in stock</span> - {variant.is_active ? "active" : "hidden"}</span>
+                  </p>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
+      <article class="surface p-5 md:p-7">
+        <h2 class="font-display text-3xl font-black uppercase leading-none">Orders</h2>
+        <div class="mt-5 grid gap-3">
+          {merchOrders.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No merchandise orders yet.</p>}
+          {merchOrders.map((order: any) => (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p class="font-black">Order {order.order_number} - {formatMoney(order.total_cents)}</p>
+                  <p class="text-sm text-eagles-ink/70">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} - {formatDateTime(order.created_at)} - {statusLabel(order.pickup_or_delivery)}</p>
+                </div>
+                <StatusBadge label={statusLabel(order.status)} tone={["completed", "paid", "ready_for_pickup"].includes(order.status) ? "green" : order.status === "cancelled" ? "red" : "amber"} />
+              </div>
+              <div class="mt-3 grid gap-2">
+                {(order.merchandise_order_items ?? []).map((item: any) => (
+                  <p class="flex justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
+                    <span><strong>{item.quantity}x</strong> {item.product_name_snapshot}{item.variant_label_snapshot ? ` - ${item.variant_label_snapshot}` : ""}</span>
+                    <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
+                  </p>
+                ))}
+              </div>
+              {order.notes && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold text-eagles-ink whitespace-pre-line" style="border-radius:8px">{order.notes}</p>}
+              <div class="mt-4 flex flex-wrap gap-2">
+                {(orderActions[order.status] ?? []).map((action) => (
+                  <form method="post" action="/api/admin/merchandise-order-status/">
+                    <input type="hidden" name="order_id" value={order.id} />
+                    <input type="hidden" name="status" value={action.value} />
+                    <input type="hidden" name="return_to" value="/admin/merchandise/" />
+                    <button class:list={["px-3 py-2 text-xs font-black", action.tone === "red" ? "bg-red-50 text-red-700" : action.tone === "ink" ? "bg-eagles-ink text-white" : "bg-eagles-green text-white"]} style="border-radius:8px" type="submit">{action.label}</button>
+                  </form>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
     </section>
-    <aside class="surface p-5">
-      <h2 class="font-display text-2xl font-black uppercase leading-none">Orders</h2>
-      <div class="mt-4 grid gap-3">
-        {(orders ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No merchandise orders yet.</p>}
-        {(orders ?? []).map((order: any) => (
-          <p class="border-t border-eagles-line pt-3 text-sm"><strong>Order {order.order_number}</strong><br />{order.profiles?.full_name ?? order.profiles?.email} - {formatMoney(order.total_cents)} - {formatDateTime(order.created_at)}</p>
-        ))}
-      </div>
+    <aside class="grid gap-5 content-start">
+      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
+      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="merchandiseProduct" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add product</h2>
+        <label><span class="label">Name</span><input class="field" name="name" required /></label>
+        <label><span class="label">Description</span><textarea class="field min-h-20" name="description"></textarea></label>
+        <label><span class="label">Category</span><input class="field" name="category" placeholder="Training gear" /></label>
+        <label><span class="label">Image URL</span><input class="field" name="image_url" type="url" /></label>
+        <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label>
+        <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="featured" /> Featured</label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add product</button>
+      </form>
+      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
+        <input type="hidden" name="action" value="merchandiseVariant" />
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Add variant</h2>
+        <label><span class="label">Product</span><select class="field" name="product_id" required>{(products ?? []).map((product) => <option value={product.id}>{product.name}</option>)}</select></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Size</span><input class="field" name="size" placeholder="M" /></label>
+          <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
+        </div>
+        <label><span class="label">SKU</span><input class="field" name="sku" /></label>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" required /></label>
+          <label><span class="label">Sale price</span><input class="field" name="sale_price" type="number" min="0" step="0.01" /></label>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <label><span class="label">Stock</span><input class="field" name="stock_quantity" type="number" min="0" value="0" required /></label>
+          <label><span class="label">Low stock alert</span><input class="field" name="low_stock_threshold" type="number" min="0" value="0" /></label>
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add variant</button>
+      </form>
     </aside>
   </div>
 </PortalLayout>

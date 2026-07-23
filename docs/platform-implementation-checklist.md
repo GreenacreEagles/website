@@ -59,10 +59,10 @@
 - [x] Build canteen catalogue management.
 - [x] Build canteen customer ordering foundation with linked-child beneficiary support.
 - [x] Build canteen operations queue.
-- [ ] Build secure voucher QR issuing, scanning, redemption, and reversal.
+- [x] Build secure voucher QR issuing, scanning, redemption, and reversal.
 - [x] Build family voucher assignment audit trail and protected assignment RPC.
 - [ ] Build full wallet ledger operations and top-up/payment flow.
-- [ ] Build merchandise catalogue and order management.
+- [x] Build merchandise catalogue and order management.
 - [ ] Add payment-provider abstraction and webhook idempotency.
 
 ## Phase 6: Content And Communications

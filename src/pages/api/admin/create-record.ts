@@ -127,6 +127,25 @@ const schemas = {
     value: centsFromDollars,
     expires_at: nullableDate
   }),
+  merchandiseProduct: z.object({
+    name: z.string().trim().min(2).max(160),
+    description: nullableText(800),
+    category: nullableText(100),
+    image_url: nullableText(300),
+    featured: boolFromCheckbox,
+    status: z.enum(["draft", "active", "archived"]).default("active")
+  }),
+  merchandiseVariant: z.object({
+    product_id: uuidSchema,
+    sku: nullableText(80),
+    size: nullableText(40),
+    colour: nullableText(80),
+    price: centsFromDollars,
+    sale_price: z.preprocess((value) => (value === "" ? null : Math.round(Number(value || 0) * 100)), z.number().int().min(0).nullable().optional()),
+    stock_quantity: z.coerce.number().int().min(0).max(9999),
+    low_stock_threshold: z.coerce.number().int().min(0).max(9999).default(0),
+    is_active: boolFromCheckbox
+  }),
   event: z.object({
     title: z.string().trim().min(2).max(160),
     slug: nullableText(120),
@@ -194,6 +213,8 @@ const actionConfig = {
   canteenCategory: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen category created." },
   canteenProduct: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen product created." },
   voucher: { permissions: ["canteen.vouchers.manage"], redirect: "/admin/canteen/", success: "Voucher issued." },
+  merchandiseProduct: { permissions: ["merchandise.manage"], redirect: "/admin/merchandise/", success: "Merchandise product created." },
+  merchandiseVariant: { permissions: ["merchandise.manage"], redirect: "/admin/merchandise/", success: "Merchandise variant created." },
   event: { permissions: ["events.manage"], redirect: "/admin/events/", success: "Event created." },
   announcement: { permissions: ["content.manage"], redirect: "/admin/content/", success: "Announcement created." },
   sponsor: { permissions: ["sponsors.manage"], redirect: "/admin/sponsors/", success: "Sponsor saved." },
@@ -288,6 +309,27 @@ export const POST: APIRoute = async (context) => {
       });
     }
     success = "Voucher issued and added to the member wallet.";
+  } else if (action === "merchandiseProduct") {
+    ({ error } = await session.supabase.from("merchandise_products").insert({
+      name: data.name,
+      description: data.description ?? null,
+      category: data.category ?? null,
+      image_url: data.image_url ?? null,
+      featured: data.featured,
+      status: data.status
+    }));
+  } else if (action === "merchandiseVariant") {
+    ({ error } = await session.supabase.from("merchandise_variants").insert({
+      product_id: data.product_id,
+      sku: data.sku ?? null,
+      size: data.size ?? null,
+      colour: data.colour ?? null,
+      price_cents: data.price,
+      sale_price_cents: data.sale_price,
+      stock_quantity: data.stock_quantity,
+      low_stock_threshold: data.low_stock_threshold,
+      is_active: data.is_active
+    }));
   } else if (action === "event") {
     ({ error } = await session.supabase.from("club_events").insert({
       ...data,

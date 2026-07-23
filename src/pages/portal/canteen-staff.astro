@@ -7,13 +7,14 @@ import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
-const session = await requirePermission(Astro, ["canteen.orders.manage", "canteen.vouchers.redeem"]);
+const session = await requirePermission(Astro, ["canteen.orders.manage", "canteen.vouchers.redeem", "canteen.vouchers.reverse"]);
 if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
 const canRedeemVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.redeem");
+const canReverseVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.reverse");
 
 const [{ data: venues }, { data: orders }, { data: redemptions }] = await Promise.all([
   session.supabase.from("canteen_venues").select("id,name,is_active").eq("is_active", true).order("name"),
@@ -24,10 +25,10 @@ const [{ data: venues }, { data: orders }, { data: redemptions }] = await Promis
     .order("created_at", { ascending: true })
     .limit(80),
   session.supabase
-    .from("voucher_redemptions")
-    .select("id,amount_cents,created_at,device_label,status,canteen_venues(name),voucher_issuances(issue_reason,beneficiary_id)")
+    .from("voucher_redemptions" as any)
+    .select("id,amount_cents,created_at,device_label,status,canteen_venues(name),voucher_issuances(issue_reason,beneficiary_id,profiles:beneficiary_id(full_name,email)),voucher_reversals(id,reason,created_at)")
     .order("created_at", { ascending: false })
-    .limit(12)
+    .limit(20)
 ]);
 const staffOrders = (orders ?? []) as any[];
 
@@ -147,8 +148,29 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
           {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear here after staff scan a wallet QR code.</p>}
           {(redemptions ?? []).map((redemption: any) => (
             <div class="border-t border-eagles-line pt-3">
-              <p class="font-black">{formatMoney(redemption.amount_cents)} · {statusLabel(redemption.status)}</p>
-              <p class="text-sm text-eagles-ink/70">{redemption.canteen_venues?.name ?? "Canteen"} · {formatDateTime(redemption.created_at)}</p>
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="font-black">{formatMoney(redemption.amount_cents)} - {statusLabel(redemption.status)}</p>
+                  <p class="text-sm text-eagles-ink/70">
+                    {redemption.voucher_issuances?.profiles?.full_name ?? redemption.voucher_issuances?.profiles?.email ?? "Member"} - {redemption.voucher_issuances?.issue_reason ?? "Canteen voucher"}
+                  </p>
+                </div>
+                <StatusBadge label={statusLabel(redemption.status)} tone={redemption.status === "reversed" ? "red" : "green"} />
+              </div>
+              <p class="text-sm text-eagles-ink/70">{redemption.canteen_venues?.name ?? "Canteen"} - {formatDateTime(redemption.created_at)}</p>
+              {redemption.voucher_reversals?.[0] && (
+                <p class="mt-2 bg-red-50 p-2 text-xs font-bold text-red-700" style="border-radius:8px">
+                  Reversed {formatDateTime(redemption.voucher_reversals[0].created_at)} - {redemption.voucher_reversals[0].reason}
+                </p>
+              )}
+              {canReverseVouchers && redemption.status === "completed" && (
+                <form class="mt-3 grid gap-2" method="post" action="/api/admin/reverse-voucher-redemption/">
+                  <input type="hidden" name="redemption_id" value={redemption.id} />
+                  <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
+                  <label><span class="label">Reversal reason</span><input class="field" name="reason" placeholder="Mistaken scan or duplicate claim" required /></label>
+                  <button class="bg-red-50 px-3 py-2 text-xs font-black text-red-700" style="border-radius:8px" type="submit">Reverse claim</button>
+                </form>
+              )}
             </div>
           ))}
         </div>

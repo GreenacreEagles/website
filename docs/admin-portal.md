@@ -46,4 +46,10 @@ Coaches and team managers submit reports from the member team page. Report revie
 
 Administrators manage canteen venues, categories, products, stock levels and fulfilment modes from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.
 
-Order state changes run through `public.update_canteen_order_state`, which enforces canteen order permissions, locks the order row, records status history and issues purchased voucher items only after the order is marked paid. Staff use `/portal/canteen-staff/` for the live preparation queue, pickup codes, payment marking and voucher scanning.
+Order state changes run through `public.update_canteen_order_state`, which enforces canteen order permissions, locks the order row, records status history and issues purchased voucher items only after the order is marked paid. Staff use `/portal/canteen-staff/` for the live preparation queue, pickup codes, payment marking, voucher scanning and permission-gated claim reversal. Canteen administrators can review voucher claims and reverse mistaken scans from `/admin/canteen/`.
+
+## Merchandise
+
+Administrators manage merchandise products and stock variants from `/admin/merchandise/`. Member orders run through `public.create_merchandise_order`, which locks the selected variant, snapshots the ordered item and reserves stock atomically.
+
+Merchandise order status changes run through `public.update_merchandise_order_state`. The RPC enforces merchandise-management permission, records order status history, notifies the customer and releases reserved stock when an order is cancelled or refunded.

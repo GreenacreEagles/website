@@ -7,23 +7,25 @@ import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
-const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"]);
+const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.reverse"]);
 if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: venues }, { data: groundVenues }, { data: categories }, { data: products }, { data: orders }, { data: vouchers }, { data: profiles }, { data: teams }] = await Promise.all([
+const [{ data: venues }, { data: groundVenues }, { data: categories }, { data: products }, { data: orders }, { data: vouchers }, { data: redemptions }, { data: profiles }, { data: teams }] = await Promise.all([
   session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
   session.supabase.from("venues").select("id,name").order("name"),
   session.supabase.from("canteen_categories").select("id,name,is_active").order("display_order"),
   session.supabase.from("canteen_products" as any).select("id,name,price_cents,is_active,is_sold_out,fulfilment_type,stock_quantity,low_stock_threshold,voucher_valid_days,max_quantity_per_order,canteen_categories(name)").order("name").limit(100),
   session.supabase.from("canteen_orders" as any).select("id,order_number,order_status,payment_status,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_venues(name),canteen_order_items(product_name_snapshot,quantity,line_total_cents,fulfilment_type_snapshot,voucher_issuance_id)").order("created_at", { ascending: false }).limit(80),
   session.supabase.from("voucher_issuances").select("id,voucher_type,status,remaining_value_cents,expires_at,profiles:beneficiary_id(full_name,email)").order("created_at", { ascending: false }).limit(80),
+  session.supabase.from("voucher_redemptions" as any).select("id,amount_cents,created_at,device_label,status,canteen_venues(name),voucher_issuances(issue_reason,profiles:beneficiary_id(full_name,email)),voucher_reversals(id,reason,created_at)").order("created_at", { ascending: false }).limit(40),
   session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(200),
   session.supabase.from("teams").select("id,name").order("name")
 ]);
 const canManageCatalog = session.permissions.has("*") || session.permissions.has("canteen.manage");
 const canManageVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.manage");
+const canReverseVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.reverse");
 const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
 const orderActions: Record<string, { label: string; value: string }[]> = {
   accepted: [
@@ -181,6 +183,33 @@ const productSummaries = (products ?? []).map((product: any) => ({
       ))}</div></article>
       <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Venues</h2><div class="mt-4 grid gap-3">{(venues ?? []).map((venue) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{venue.name}</strong><br />{venue.is_active ? "active" : "inactive"}</p>)}</div></article>
       <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Vouchers</h2><div class="mt-4 grid gap-3">{(vouchers ?? []).map((voucher: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{voucher.profiles?.full_name ?? "Member"}</strong><br />{formatMoney(voucher.remaining_value_cents)} - {statusLabel(voucher.status)}</p>)}</div></article>
+      <article class="surface p-5">
+        <h2 class="font-display text-2xl font-black uppercase leading-none">Voucher claims</h2>
+        <div class="mt-4 grid gap-3">
+          {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear after canteen staff scan wallet QR codes.</p>}
+          {(redemptions ?? []).map((redemption: any) => (
+            <div class="border-t border-eagles-line pt-3 text-sm">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="font-black">{formatMoney(redemption.amount_cents)} - {statusLabel(redemption.status)}</p>
+                  <p class="text-eagles-ink/70">{redemption.voucher_issuances?.profiles?.full_name ?? redemption.voucher_issuances?.profiles?.email ?? "Member"}</p>
+                  <p class="text-eagles-ink/70">{redemption.canteen_venues?.name ?? "Canteen"} - {formatDateTime(redemption.created_at)}</p>
+                </div>
+                <StatusBadge label={statusLabel(redemption.status)} tone={redemption.status === "reversed" ? "red" : "green"} />
+              </div>
+              {redemption.voucher_reversals?.[0] && <p class="mt-2 bg-red-50 p-2 text-xs font-bold text-red-700" style="border-radius:8px">Reversed - {redemption.voucher_reversals[0].reason}</p>}
+              {canReverseVouchers && redemption.status === "completed" && (
+                <form class="mt-3 grid gap-2" method="post" action="/api/admin/reverse-voucher-redemption/">
+                  <input type="hidden" name="redemption_id" value={redemption.id} />
+                  <input type="hidden" name="return_to" value="/admin/canteen/" />
+                  <label><span class="label">Reversal reason</span><input class="field" name="reason" placeholder="Mistaken scan or duplicate claim" required /></label>
+                  <button class="bg-red-50 px-3 py-2 text-xs font-black text-red-700" style="border-radius:8px" type="submit">Reverse claim</button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
+      </article>
     </aside>
   </div>
 </PortalLayout>
