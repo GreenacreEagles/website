@@ -82,4 +82,4 @@
 - [x] Configure Cloudflare Pages build/env vars for the current Pages domain.
 - [ ] Confirm Cloudflare Pages `SESSION` KV and `IMAGES` bindings for the server-rendered Astro adapter.
 - [ ] Configure custom domain.
-- [ ] Document backup, recovery, and administrator runbooks.
+- [x] Document backup, recovery, and administrator runbooks.

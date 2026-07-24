@@ -110,3 +110,5 @@ The public foundation now supports database-backed publishing for selected edita
 - Markdown remains available for seeded or static sections such as teams, galleries, events, weekly highlights and fundraisers.
 
 Do not add GitHub Pages, Jekyll, or GitHub Pages-specific build steps.
+
+Operational backup, recovery, rollback and incident procedures live in `docs/administrator-runbook.md`.

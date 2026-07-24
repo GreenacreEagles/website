@@ -71,7 +71,7 @@ Cloudflare-specific static hosting files:
 - `public/_redirects` for Pages redirects.
 - `public/_headers` for baseline security headers and static asset caching.
 
-See `docs/cloudflare-pages.md` for the full deployment and future admin direction.
+See `docs/cloudflare-pages.md` for the full deployment direction and `docs/administrator-runbook.md` for backup, recovery and incident procedures.
 
 ## Admin Editing
 
