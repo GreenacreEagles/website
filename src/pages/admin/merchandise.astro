@@ -73,7 +73,7 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
             <label><span class="label">Description</span><textarea class="field min-h-20" name="description"></textarea></label>
             <label><span class="label">Category</span><input class="field" name="category" placeholder="Training gear" /></label>
             <label><span class="label">Image URL</span><input class="field" name="image_url" type="url" /></label>
-            <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label>
+            <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
             <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="featured" /> Featured</label>
             <FormActions submitLabel="Add product" />
           </form>

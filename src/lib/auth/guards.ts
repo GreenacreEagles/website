@@ -10,12 +10,12 @@ export const requireUser = async (context: GuardContext) => {
 
 export const requireAdmin = async (context: GuardContext) => {
   const session = await getPortalSession(context);
-  if (!session || !canAccessAdmin(session.permissions)) return null;
+  if (!session || session.isChildAccount || !canAccessAdmin(session.permissions)) return null;
   return session;
 };
 
 export const requirePermission = async (context: GuardContext, permissions: string[]) => {
   const session = await getPortalSession(context);
-  if (!session || !hasAnyPermission(session.permissions, permissions)) return null;
+  if (!session || session.isChildAccount || !hasAnyPermission(session.permissions, permissions)) return null;
   return session;
 };

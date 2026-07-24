@@ -86,7 +86,7 @@ export const fetchPublicArticles = async (limit = 20): Promise<PublicArticle[]> 
   const { data, error } = await supabase
     .from("content_articles")
     .select("id,title,slug,summary,body,category,featured_image_url,publish_at,updated_at,tags")
-    .eq("workflow_status", "published")
+    .eq("workflow_status", "active")
     .or(`publish_at.is.null,publish_at.lte.${new Date().toISOString()}`)
     .order("publish_at", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false })
@@ -115,7 +115,7 @@ export const fetchPublicArticleBySlug = async (slug: string): Promise<PublicArti
     .from("content_articles")
     .select("id,title,slug,summary,body,category,featured_image_url,publish_at,updated_at,tags")
     .eq("slug", slug)
-    .eq("workflow_status", "published")
+    .eq("workflow_status", "active")
     .or(`publish_at.is.null,publish_at.lte.${new Date().toISOString()}`)
     .maybeSingle();
 
@@ -170,7 +170,7 @@ export const fetchPublicAnnouncement = async (): Promise<PublicAnnouncement | nu
   const { data, error } = await supabase
     .from("club_announcements")
     .select("id,title,message,priority")
-    .eq("status", "published")
+    .eq("status", "active")
     .in("audience", ["public", "members"])
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gt.${now}`)

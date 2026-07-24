@@ -8,6 +8,7 @@ export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
@@ -22,8 +23,7 @@ const preferenceCategories = [
 ] as const;
 const preferenceChannels = [
   ["in_app", "Portal"],
-  ["email", "Email"],
-  ["sms", "SMS"]
+  ["email", "Email"]
 ] as const;
 const { data: notificationPreferences } = await session.supabase
   .from("notification_preferences" as any)
@@ -60,14 +60,11 @@ const preferenceEnabled = (channel: string, category: string) => {
           <span class="label">Mobile</span>
           <input class="field" name="mobile" autocomplete="tel" value={profile.mobile ?? ""} />
         </label>
-        <label>
-          <span class="label">Relationship to the club</span>
-          <select class="field" name="relationship_to_club">
-            {["", "Parent or guardian", "Player", "Coach", "Volunteer", "Supporter"].map((option) => (
-              <option value={option} selected={(profile.relationship_to_club ?? "") === option}>{option || "Select one"}</option>
-            ))}
-          </select>
-        </label>
+        <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+          <span class="label">Club relationship</span>
+          <p class="mt-2 text-sm font-bold text-eagles-ink">{profile.relationship_to_club || "GEFC User"}</p>
+          <p class="mt-1 text-xs leading-5 text-eagles-ink/60">Club relationships and privileged roles are assigned by authorised administrators.</p>
+        </div>
       </div>
       <div class="grid gap-4 md:grid-cols-2">
         <label>
@@ -81,12 +78,11 @@ const preferenceEnabled = (channel: string, category: string) => {
       </div>
       <div class="grid gap-3 text-sm leading-6 text-eagles-ink/70">
         <label class="flex items-center gap-3"><input name="communication_email" type="checkbox" checked={profile.communication_email} /> Email updates</label>
-        <label class="flex items-center gap-3"><input name="communication_sms" type="checkbox" checked={profile.communication_sms} /> SMS updates where available</label>
       </div>
       <section class="grid gap-4 border border-eagles-line bg-white p-4" style="border-radius:8px">
         <div>
           <h3 class="font-display text-2xl font-black uppercase leading-none">Notification preferences</h3>
-          <p class="mt-2 text-sm leading-6 text-eagles-ink/70">Choose where routine updates should appear. Critical account and safety messages may still be sent when required.</p>
+          <p class="mt-2 text-sm leading-6 text-eagles-ink/70">Choose portal and email delivery for routine updates. Critical account, safety and purchase messages are required for system operation and cannot be fully disabled.</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[520px] text-left text-sm">

@@ -9,6 +9,7 @@ export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
 const isAdmin = canAccessAdmin(session.permissions);
 
@@ -31,14 +32,14 @@ const [
   session.supabase
     .from("club_announcements")
     .select("title,message,priority,starts_at")
-    .eq("status", "published")
+    .eq("status", "active")
     .order("priority", { ascending: false })
     .limit(3),
   session.supabase
     .from("canteen_orders")
     .select("id,order_number,order_status,payment_status,total_cents,pickup_window_start")
     .or(`customer_id.eq.${session.user.id},recipient_id.eq.${session.user.id}`)
-    .in("order_status", ["new", "accepted", "preparing", "ready"])
+    .in("order_status", ["accepted", "preparing", "ready_for_pickup"])
     .order("created_at", { ascending: false })
     .limit(4),
   session.supabase
@@ -63,7 +64,7 @@ const [
   (session.supabase as any)
     .from("team_posts")
     .select("id,team_id,title,post_type,published_at,teams(name)")
-    .eq("status", "published")
+    .eq("status", "active")
     .order("published_at", { ascending: false })
     .limit(4),
   session.supabase
@@ -88,12 +89,10 @@ const tiles = [
   ["My Family", "Children, guardians and linked balances.", "/portal/family/", "FAM", []],
   ["Wallet", "Balances, vouchers, tickets and QR codes.", "/portal/vouchers/", "PAY", []],
   ["Canteen", "Order food or buy an item voucher.", "/portal/canteen/", "FOOD", []],
-  ["Events", "Registrations, tickets and family attendance.", "/portal/events/", "EVNT", []],
-  ["Volunteer Duties", "Assigned shifts and attendance.", "/portal/volunteers/", "DUTY", []],
-  ["Coaching Resources", "Published guides and club resources.", "/portal/coaching/", "GUIDE", ["coaching_resources.read", "teams.manage"]],
+  ["Merchandise", "Open the club store and check your orders.", "/portal/merchandise/", "SHOP", []],
+  ["Coaching Resources", "Active guides and club resources.", "/portal/coaching/", "GUIDE", ["coaching_resources.read", "teams.manage"]],
+  ["Club Notice Board", "Club-wide announcements, events and updates.", "/portal/notice-board/", "NEWS", []],
   ["My Account", "Profile and contact details.", "/portal/account/", "ME", []],
-  ["My Roles", "Active, future and historical access.", "/portal/roles/", "ROLE", []],
-  ["Canteen Staff", "Orders, voucher scanning and pickup queue.", "/portal/canteen-staff/", "SCAN", ["canteen.orders.manage", "canteen.vouchers.redeem"]],
   ["Admin", "Club operations and administration.", "/admin/", "ADMIN", []]
 ].filter((tile) => {
   if (tile[0] === "Admin") return isAdmin;
@@ -105,10 +104,10 @@ const walletBalance = (wallets ?? []).reduce((total: number, wallet: any) => tot
 
 const attentionItems = [
   ...(orders ?? []).map((order: any) => ({
-    title: order.order_status === "ready" ? `Order ${order.order_number} is ready` : `Order ${order.order_number} is ${statusLabel(order.order_status)}`,
+    title: order.order_status === "ready_for_pickup" ? `Order ${order.order_number} is ready` : `Order ${order.order_number} is ${statusLabel(order.order_status)}`,
     text: `${formatMoney(order.total_cents)} - ${formatDateTime(order.pickup_window_start)}`,
     href: "/portal/canteen/",
-    tone: order.order_status === "ready" ? "green" : "ink"
+    tone: order.order_status === "ready_for_pickup" ? "green" : "ink"
   })),
   ...(vouchers ?? []).map((voucher: any) => ({
     title: voucher.issue_reason ?? `${statusLabel(voucher.voucher_type)} voucher`,

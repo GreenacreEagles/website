@@ -60,6 +60,130 @@ const productSummaries = (products ?? []).map((product: any) => ({
     <AdminFeedback success={success} error={error} />
     <AdminPageHeader title="Canteen operations" intro="Run match day orders, catalogue setup and vouchers with global creation actions separated from live order handling.">
       <Fragment slot="actions">
+        {canManageOrders && (
+          <AdminDialog id="scan-canteen-code" title="Scan wallet or voucher" actionLabel="Scan Code" intro="Use the camera when available, or enter the wallet or voucher code manually." size="xl">
+            <div class="grid gap-5">
+              <section class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+                <div class="grid gap-4 lg:grid-cols-[1fr_280px]">
+                  <div class="overflow-hidden bg-eagles-ink" style="border-radius:8px">
+                    <video class="aspect-video w-full object-cover" data-qr-video muted playsinline></video>
+                  </div>
+                  <div class="grid content-between gap-3">
+                    <p class="text-sm font-bold leading-6 text-eagles-ink/70" data-qr-status>Camera scanning is ready when your browser supports it.</p>
+                    <div class="flex flex-wrap gap-2">
+                      <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="button" data-qr-start>Start Camera</button>
+                      <button class="border border-eagles-line bg-white px-4 py-3 text-sm font-black text-eagles-ink" style="border-radius:8px" type="button" data-qr-stop>Stop</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <div class="grid gap-4 lg:grid-cols-2">
+                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/wallet-qr-purchase/">
+                  <input type="hidden" name="return_to" value="/admin/canteen/" />
+                  <div>
+                    <p class="font-display text-2xl font-black uppercase leading-none">Wallet purchase</p>
+                    <p class="mt-1 text-sm text-eagles-ink/70">Confirm the amount before debiting the member wallet.</p>
+                  </div>
+                  <label><span class="label">Wallet QR or code</span><input class="field" name="code" data-scan-code placeholder="GEWALLET:..." required /></label>
+                  <div class="grid gap-3 md:grid-cols-2">
+                    <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
+                    <label><span class="label">Description</span><input class="field" name="description" value="Canteen purchase" required /></label>
+                  </div>
+                  <FormActions submitLabel="Confirm wallet purchase" />
+                </form>
+                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/redeem-voucher/">
+                  <input type="hidden" name="return_to" value="/admin/canteen/" />
+                  <input type="hidden" name="device_label" value="Admin canteen scanner" />
+                  <div>
+                    <p class="font-display text-2xl font-black uppercase leading-none">Voucher redemption</p>
+                    <p class="mt-1 text-sm text-eagles-ink/70">Claim a fixed or declining canteen voucher.</p>
+                  </div>
+                  <label><span class="label">Voucher QR or code</span><input class="field" name="redemption_code" data-scan-code placeholder="GEVOUCHER:..." required /></label>
+                  <div class="grid gap-3 md:grid-cols-2">
+                    <label><span class="label">Venue</span><select class="field" name="venue_id" required>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+                    <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
+                  </div>
+                  <FormActions submitLabel="Confirm voucher claim" />
+                </form>
+              </div>
+            </div>
+            <script is:inline>
+              (() => {
+                const dialog = document.getElementById("scan-canteen-code");
+                if (!dialog || dialog.dataset.scannerBound === "true") return;
+                dialog.dataset.scannerBound = "true";
+                const video = dialog.querySelector("[data-qr-video]");
+                const status = dialog.querySelector("[data-qr-status]");
+                const setStatus = (message) => {
+                  if (status) status.textContent = message;
+                };
+                let stream = null;
+                let detector = null;
+                let scanning = false;
+                let lastCode = "";
+                let lastAt = 0;
+
+                const stop = () => {
+                  scanning = false;
+                  stream?.getTracks().forEach((track) => track.stop());
+                  stream = null;
+                  if (video) video.srcObject = null;
+                  setStatus("Scanner stopped. Manual entry remains available.");
+                };
+
+                const applyCode = (raw) => {
+                  const code = String(raw || "").trim();
+                  const now = Date.now();
+                  if (!code || (code === lastCode && now - lastAt < 3000)) return;
+                  lastCode = code;
+                  lastAt = now;
+                  const targets = [...dialog.querySelectorAll("[data-scan-code]")];
+                  const preferred = code.toUpperCase().startsWith("GEVOUCHER:") ? "redemption_code" : "code";
+                  const target = targets.find((input) => input.name === preferred) || targets[0];
+                  if (target) {
+                    target.value = code;
+                    target.dispatchEvent(new Event("input", { bubbles: true }));
+                    target.focus();
+                  }
+                  setStatus(`Scanned ${code}. Check the amount, then confirm.`);
+                  stop();
+                };
+
+                const tick = async () => {
+                  if (!scanning || !detector || !video) return;
+                  try {
+                    const codes = await detector.detect(video);
+                    if (codes?.[0]?.rawValue) applyCode(codes[0].rawValue);
+                  } catch (error) {
+                    setStatus("Camera scanning paused. You can still enter the code manually.");
+                  }
+                  if (scanning) window.setTimeout(tick, 300);
+                };
+
+                dialog.querySelector("[data-qr-start]")?.addEventListener("click", async () => {
+                  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+                    setStatus("This browser does not support camera QR scanning. Enter the code manually.");
+                    return;
+                  }
+                  try {
+                    detector = new BarcodeDetector({ formats: ["qr_code"] });
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    video.srcObject = stream;
+                    await video.play();
+                    scanning = true;
+                    setStatus("Point the camera at a wallet or voucher QR code.");
+                    tick();
+                  } catch (error) {
+                    setStatus("Camera access was not available. Enter the code manually.");
+                  }
+                });
+
+                dialog.querySelector("[data-qr-stop]")?.addEventListener("click", stop);
+                dialog.addEventListener("close", stop);
+              })();
+            </script>
+          </AdminDialog>
+        )}
         {canManageCatalog && (
           <AdminDialog id="add-canteen-venue" title="Add canteen venue" actionLabel="Add venue" size="lg">
             <form class="grid gap-4" method="post" action="/api/admin/create-record/">

@@ -9,15 +9,13 @@ const schema = z.object({
   full_name: z.string().trim().min(2).max(120),
   preferred_name: z.string().trim().max(80).optional(),
   mobile: auPhoneSchema,
-  relationship_to_club: z.string().trim().max(80).optional(),
   emergency_contact_name: z.string().trim().max(120).optional(),
   emergency_contact_phone: auPhoneSchema,
-  communication_email: z.string().optional(),
-  communication_sms: z.string().optional()
+  communication_email: z.string().optional()
 });
 
 const preferenceCategories = ["general", "team", "commerce", "events", "volunteers", "resources"] as const;
-const preferenceChannels = ["in_app", "email", "sms"] as const;
+const preferenceChannels = ["in_app", "email"] as const;
 
 export const POST: APIRoute = async (context) => {
   const session = await requireUser(context);
@@ -33,11 +31,10 @@ export const POST: APIRoute = async (context) => {
       full_name: parsed.data.full_name,
       preferred_name: parsed.data.preferred_name || null,
       mobile: parsed.data.mobile || null,
-      relationship_to_club: parsed.data.relationship_to_club || null,
       emergency_contact_name: parsed.data.emergency_contact_name || null,
       emergency_contact_phone: parsed.data.emergency_contact_phone || null,
       communication_email: parsed.data.communication_email === "on",
-      communication_sms: parsed.data.communication_sms === "on",
+      communication_sms: false,
       onboarding_completed_at: new Date().toISOString()
     })
     .eq("id", session.user.id);

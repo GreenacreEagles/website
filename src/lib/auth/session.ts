@@ -39,6 +39,7 @@ export type PortalSession = {
   permissions: Set<string>;
   roleAssignments: RoleAssignmentSummary[];
   unreadNotifications: number;
+  isChildAccount: boolean;
 };
 
 const isActiveAssignment = (assignment: RoleAssignmentSummary) => {
@@ -90,6 +91,14 @@ export const getPortalSession = async (context: AstroContext): Promise<PortalSes
     .eq("recipient_id", user.id)
     .is("read_at", null);
 
+  const { data: childAccount } = await (supabase as any)
+    .from("managed_child_accounts")
+    .select("id,login_disabled")
+    .eq("child_user_id", user.id)
+    .maybeSingle();
+
+  if (childAccount?.login_disabled) return null;
+
   return {
     supabase,
     user: {
@@ -100,7 +109,8 @@ export const getPortalSession = async (context: AstroContext): Promise<PortalSes
     profile,
     permissions,
     roleAssignments: ((assignments ?? []) as unknown as RoleAssignmentSummary[]).filter(isActiveAssignment),
-    unreadNotifications: unreadNotifications ?? 0
+    unreadNotifications: unreadNotifications ?? 0,
+    isChildAccount: Boolean(childAccount)
   };
 };
 

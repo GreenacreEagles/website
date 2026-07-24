@@ -9,6 +9,7 @@ export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
+if (session.isChildAccount) return Astro.redirect("/portal/vouchers/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");

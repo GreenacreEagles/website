@@ -20,38 +20,33 @@ const { title, section = "Portal", session } = Astro.props;
 const pageTitle = `${title} | Greenacre Eagles FC`;
 
 const portalNav: NavItem[] = [
-  { href: "/portal/", label: "Dashboard" },
   { href: "/portal/account/", label: "My account" },
-  { href: "/portal/roles/", label: "My roles" },
   { href: "/portal/teams/", label: "Teams" },
   { href: "/portal/family/", label: "Family" },
-  { href: "/portal/events/", label: "Events" },
-  { href: "/portal/volunteers/", label: "Volunteers" },
-  { href: "/portal/canteen/", label: "Canteen" },
-  { href: "/portal/canteen-staff/", label: "Canteen staff", permissions: ["canteen.orders.manage", "canteen.vouchers.redeem", "canteen.vouchers.reverse"] },
   { href: "/portal/vouchers/", label: "Wallet" },
-  { href: "/portal/coaching/", label: "Coaching resources", permissions: ["coaching_resources.read", "teams.manage"] }
+  { href: "/portal/canteen/", label: "Canteen" },
+  { href: "/portal/merchandise/", label: "Merchandise" },
+  { href: "/portal/coaching/", label: "Coaching Resources", permissions: ["coaching_resources.read", "teams.manage"] },
+  { href: "/portal/notice-board/", label: "Club Notice Board" }
 ];
 
 const adminNav: NavItem[] = [
-  { href: "/admin/", label: "Dashboard" },
-  { href: "/admin/users/", label: "Users", permissions: ["users.read"] },
-  { href: "/admin/roles/", label: "Roles & permissions", permissions: ["roles.read"] },
-  { href: "/admin/teams/", label: "Seasons & teams", permissions: ["club_structure.manage", "roles.assign"] },
-  { href: "/admin/players/", label: "Players & families", permissions: ["players.manage", "families.manage", "users.read"] },
-  { href: "/admin/volunteers/", label: "Volunteers", permissions: ["volunteers.manage"] },
+  { href: "/admin/", label: "Admin Overview" },
   { href: "/admin/canteen/", label: "Canteen", permissions: ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"] },
-  { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage"] },
-  { href: "/admin/wallets/", label: "Wallets", permissions: ["wallet.read", "wallet.adjust", "finance.read"] },
   { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
-  { href: "/admin/content/", label: "Content & resources", permissions: ["coaching_resources.manage", "content.manage"] },
-  { href: "/admin/audit/", label: "Audit log", permissions: ["audit.read"] },
-  { href: "/admin/settings/", label: "System settings", permissions: ["settings.manage"] }
+  { href: "/admin/news/", label: "News", permissions: ["content.manage"] },
+  { href: "/admin/highlights/", label: "Highlights", permissions: ["content.manage"] },
+  { href: "/admin/coaching-resources/", label: "Coaching Resources", permissions: ["coaching_resources.manage"] },
+  { href: "/admin/teams/", label: "Teams", permissions: ["club_structure.manage", "roles.assign", "teams.manage"] },
+  { href: "/admin/sponsors/", label: "Sponsors", permissions: ["sponsors.manage"] },
+  { href: "/admin/wallets/", label: "Wallet", permissions: ["wallet.read", "wallet.adjust", "wallet.vouchers.manage", "finance.read"] },
+  { href: "/admin/users/", label: "Users and Access", permissions: ["users.read"] }
 ];
 
-const visiblePortalNav = portalNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
+const childNav = portalNav.filter((item) => item.href === "/portal/teams/" || item.href === "/portal/vouchers/");
+const visiblePortalNav = (session.isChildAccount ? childNav : portalNav).filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const visibleAdminNav = adminNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
-const showAdmin = canAccessAdmin(session.permissions);
+const showAdmin = !session.isChildAccount && canAccessAdmin(session.permissions);
 const activePath = Astro.url.pathname;
 const inAdmin = activePath.startsWith("/admin/");
 const displayName = session.profile.preferred_name || session.profile.full_name || session.user.email || "Greenacre Eagles member";
@@ -72,7 +67,7 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
     <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
       <aside class="border-b border-eagles-line bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
         <div class="flex items-center justify-between gap-4 p-4 lg:block lg:p-6">
-          <a href="/portal/" class="inline-flex"><LogoLockup /></a>
+          <a href={session.isChildAccount ? "/portal/teams/" : "/portal/"} class="inline-flex"><LogoLockup /></a>
           <form method="post" action="/api/auth/signout" class="lg:hidden">
             <button class="text-sm font-black text-eagles-green" type="submit">Sign out</button>
           </form>

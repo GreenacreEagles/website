@@ -15,7 +15,7 @@ const schema = z.object({
   division: z.string().trim().max(80).optional(),
   colour: z.string().trim().max(80).optional(),
   external_fixture_url: z.string().trim().max(300).optional(),
-  status: z.enum(["draft", "active", "archived"])
+  status: z.enum(["active", "inactive"])
 });
 
 export const POST: APIRoute = async (context) => {

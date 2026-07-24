@@ -9,11 +9,12 @@ export const prerender = false;
 
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: events }, { data: registrations }] = await Promise.all([
-  session.supabase.from("club_events").select("id,title,description,starts_at,ends_at,status,visibility,capacity,price_cents,venues(name,suburb)").order("starts_at", { ascending: true }).limit(40),
+  session.supabase.from("club_events").select("id,title,description,starts_at,ends_at,status,visibility,capacity,price_cents,venues(name,suburb)").eq("status", "active").order("starts_at", { ascending: true }).limit(40),
   session.supabase.from("event_registrations").select("id,status,created_at,club_events(title,starts_at)").or(`registered_by.eq.${session.user.id},attendee_id.eq.${session.user.id}`).order("created_at", { ascending: false }).limit(20)
 ]);
 ---
@@ -30,7 +31,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
           <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{event.title}</h2>
           <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{event.description ?? "Event details will be shared by the club."}</p>
           <div class="mt-4 flex flex-wrap gap-2">
-            <StatusBadge label={statusLabel(event.status)} tone={event.status === "published" ? "green" : "amber"} />
+            <StatusBadge label={statusLabel(event.status)} tone={event.status === "active" ? "green" : "amber"} />
             <StatusBadge label={formatMoney(event.price_cents)} tone="ink" />
             <StatusBadge label={event.venues?.name ?? "Club venue"} tone="ink" />
           </div>

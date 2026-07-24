@@ -41,7 +41,7 @@ export const POST: APIRoute = async (context) => {
       body: parsed.data.body || null,
       post_type: parsed.data.post_type,
       is_pinned: parsed.data.is_pinned === "true",
-      status: "published"
+      status: "active"
     })
     .select("id")
     .single();
@@ -62,5 +62,5 @@ export const POST: APIRoute = async (context) => {
     if (optionError) return context.redirect(redirectWithMessage(redirectPath, "error", optionError.message));
   }
 
-  return context.redirect(redirectWithMessage(`${redirectPath}#post-${post.id}`, "success", "Team post published."));
+  return context.redirect(redirectWithMessage(`${redirectPath}#post-${post.id}`, "success", "Team post added."));
 };

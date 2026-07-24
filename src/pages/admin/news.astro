@@ -1,0 +1,74 @@
+---
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import EmptyState from "@components/EmptyState.astro";
+import FormActions from "@components/FormActions.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["content.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const q = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+const status = Astro.url.searchParams.get("status") ?? "";
+const { data: articles } = await session.supabase
+  .from("content_articles")
+  .select("id,title,summary,category,workflow_status,publish_at,updated_at")
+  .neq("category", "Highlight")
+  .order("updated_at", { ascending: false })
+  .limit(120);
+const rows = ((articles ?? []) as any[]).filter((article) => (!q || [article.title, article.summary, article.category].filter(Boolean).join(" ").toLowerCase().includes(q)) && (!status || article.workflow_status === status));
+---
+
+<PortalLayout title="News" section="Administration" session={session}>
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="News" intro="Manage active and inactive club news articles.">
+      <Fragment slot="actions">
+        <AdminDialog id="add-news" title="Add News Article" actionLabel="Add News Article" size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="article" />
+            <input type="hidden" name="return_to" value="/admin/news/" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+            <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
+            <label><span class="label">Main content</span><textarea class="field min-h-36" name="body" required></textarea></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Category</span><input class="field" name="category" value="News" /></label>
+              <label><span class="label">Status</span><select class="field" name="workflow_status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            </div>
+            <label><span class="label">Date</span><input class="field" name="publish_at" type="datetime-local" /></label>
+            <label><span class="label">Image</span><input class="field" name="featured_image_url" type="url" /></label>
+            <label><span class="label">Tags</span><input class="field" name="tags" /></label>
+            <FormActions submitLabel="Save news" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+    <form class="surface grid gap-3 p-4 md:grid-cols-[1fr_180px_auto]" method="get">
+      <label><span class="label">Search</span><input class="field" name="q" value={q} /></label>
+      <label><span class="label">Status</span><select class="field" name="status"><option value="">All</option><option value="active" selected={status === "active"}>Active</option><option value="inactive" selected={status === "inactive"}>Inactive</option></select></label>
+      <div class="flex items-end"><button class="w-full bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Filter</button></div>
+    </form>
+    <section class="surface p-5 md:p-7">
+      <div class="grid gap-3">
+        {rows.length === 0 && <EmptyState title="No news articles" text="News articles will appear here." />}
+        {rows.map((article) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div><p class="font-black">{article.title}</p><p class="text-sm text-eagles-ink/70">{article.category ?? "News"} - updated {formatDateTime(article.updated_at)}</p></div>
+              <StatusBadge label={statusLabel(article.workflow_status)} tone={article.workflow_status === "active" ? "green" : "amber"} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  </div>
+</PortalLayout>

@@ -13,6 +13,14 @@ if (!session) return Astro.redirect("/login/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 
+const hashToken = async (token: string) => {
+  const bytes = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
 const [{ data: vouchers }, { data: wallets }, { data: ledger }, { data: payments }] = await Promise.all([
   session.supabase.from("voucher_issuances").select("id,redemption_code,voucher_type,status,original_value_cents,remaining_value_cents,valid_from,expires_at,issue_reason,canteen_venues(name),teams(name)").eq("beneficiary_id", session.user.id).order("created_at", { ascending: false }).limit(30),
   session.supabase.from("wallet_accounts").select("id,account_type,status,wallet_balances(balance_cents)").eq("owner_id", session.user.id).limit(10),
@@ -29,6 +37,36 @@ const voucherCards = await Promise.all(
         : null
   }))
 );
+
+const walletCards = await Promise.all(
+  ((wallets ?? []) as any[]).map(async (wallet) => {
+    let { data: qrToken } = await (session.supabase as any)
+      .from("wallet_qr_tokens")
+      .select("display_code")
+      .eq("wallet_account_id", wallet.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!qrToken) {
+      const displayCode = `W${crypto.randomUUID().replaceAll("-", "").slice(0, 11).toUpperCase()}`;
+      const tokenHash = await hashToken(displayCode);
+      const { data: inserted } = await (session.supabase as any)
+        .from("wallet_qr_tokens")
+        .insert({ wallet_account_id: wallet.id, display_code: displayCode, token_hash: tokenHash })
+        .select("display_code")
+        .maybeSingle();
+      qrToken = inserted;
+    }
+
+    return {
+      ...wallet,
+      displayCode: qrToken?.display_code ?? null,
+      qrCode: qrToken?.display_code
+        ? await QRCode.toDataURL(`GEWALLET:${qrToken.display_code}`, { margin: 1, width: 220, color: { dark: "#111111", light: "#ffffff" } })
+        : null
+    };
+  })
+);
 ---
 
 <PortalLayout title="Wallet and vouchers" section="Payments" session={session}>
@@ -36,11 +74,18 @@ const voucherCards = await Promise.all(
     <aside class="grid gap-5 content-start">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-      {(wallets ?? []).map((wallet: any) => (
+      {walletCards.map((wallet: any) => (
         <article class="surface p-5">
           <p class="eyebrow">{statusLabel(wallet.account_type)}</p>
           <p class="mt-2 text-4xl font-black text-eagles-green">{formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</p>
           <p class="mt-2 text-sm text-eagles-ink/70">{statusLabel(wallet.status)}</p>
+          {wallet.qrCode && (
+            <div class="mt-4 border-t border-eagles-line pt-4">
+              <img class="h-[220px] w-[220px] border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" />
+              <p class="mt-3 text-sm font-bold text-eagles-ink/70">Show this QR code to authorised canteen staff for wallet purchases.</p>
+              <p class="mt-2 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{wallet.displayCode}</p>
+            </div>
+          )}
         </article>
       ))}
       {(wallets ?? []).length === 0 && (

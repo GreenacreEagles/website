@@ -4,8 +4,9 @@ export const ADMIN_PERMISSIONS = [
   "roles.read",
   "roles.assign",
   "roles.review",
+  "team_access.review",
+  "team_members.manage",
   "club_structure.manage",
-  "audit.read",
   "families.manage",
   "players.manage",
   "teams.manage",
@@ -21,14 +22,16 @@ export const ADMIN_PERMISSIONS = [
   "canteen.vouchers.reverse",
   "wallet.read",
   "wallet.adjust",
+  "wallet.vouchers.manage",
   "finance.read",
   "merchandise.manage",
+  "merchandise.store_access",
   "events.manage",
   "volunteers.manage",
   "communications.manage",
-  "settings.manage",
   "files.manage",
-  "coaching_resources.manage"
+  "coaching_resources.manage",
+  "children.manage"
 ] as const;
 
 export const PORTAL_PERMISSIONS = [

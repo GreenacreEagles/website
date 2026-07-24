@@ -133,7 +133,7 @@ const schemas = {
     category: nullableText(100),
     image_url: nullableText(300),
     featured: boolFromCheckbox,
-    status: z.enum(["draft", "active", "archived"]).default("active")
+    status: z.enum(["active", "inactive"]).default("active")
   }),
   merchandiseVariant: z.object({
     product_id: uuidSchema,
@@ -156,7 +156,7 @@ const schemas = {
     capacity: optionalNumber,
     price: centsFromDollars,
     visibility: z.enum(["public", "members", "private"]),
-    status: z.enum(["draft", "published", "cancelled", "completed", "archived"])
+    status: z.enum(["active", "inactive", "cancelled", "completed"])
   }),
   announcement: z.object({
     title: z.string().trim().min(2).max(160),
@@ -165,7 +165,7 @@ const schemas = {
     priority: z.coerce.number().int().min(0).max(100),
     starts_at: nullableDate,
     ends_at: nullableDate,
-    status: z.enum(["draft", "published", "archived"])
+    status: z.enum(["active", "inactive"])
   }),
   sponsor: z.object({
     name: z.string().trim().min(2).max(160),
@@ -180,7 +180,7 @@ const schemas = {
     contact_name: nullableText(120),
     contact_email: nullableText(160),
     internal_notes: nullableText(800),
-    status: z.enum(["active", "inactive", "archived"])
+    status: z.enum(["active", "inactive"])
   }),
   article: z.object({
     title: z.string().trim().min(2).max(180),
@@ -191,7 +191,7 @@ const schemas = {
     featured_image_url: nullableText(300),
     tags: nullableText(240),
     publish_at: nullableDate,
-    workflow_status: z.enum(["draft", "in_review", "scheduled", "published", "archived"])
+    workflow_status: z.enum(["active", "inactive"])
   }),
   coachingResource: z.object({
     title: z.string().trim().min(2).max(180),
@@ -204,7 +204,7 @@ const schemas = {
     equipment_required: nullableText(240),
     duration_minutes: optionalNumber,
     visibility: z.enum(["public", "coaches", "team_staff", "admins"]),
-    status: z.enum(["draft", "published", "archived"]),
+    status: z.enum(["active", "inactive"]),
     external_url: nullableText(400),
     review_due_on: nullableDate
   }),
@@ -213,7 +213,7 @@ const schemas = {
     title: z.string().trim().min(2).max(160),
     body: z.string().trim().min(2).max(1200),
     category: z.string().trim().min(2).max(80).default("admin_message"),
-    channel: z.enum(["in_app", "email", "sms"]).default("in_app")
+    channel: z.enum(["in_app", "email"]).default("in_app")
   })
 };
 
@@ -246,13 +246,14 @@ export const POST: APIRoute = async (context) => {
   const action = form.action as Action;
   const config = actionConfig[action];
   if (!config) return context.redirect(redirectWithMessage("/admin/", "error", "Unknown admin action."));
+  const returnTo = typeof form.return_to === "string" && form.return_to.startsWith("/admin/") ? form.return_to : config.redirect;
 
   const session = await requirePermission(context, [...config.permissions]);
   if (!session) return context.redirect("/admin/");
 
   const parsed = schemas[action].safeParse(form);
   if (!parsed.success) {
-    return context.redirect(redirectWithMessage(config.redirect, "error", parsed.error.issues[0]?.message ?? "Check the form details."));
+    return context.redirect(redirectWithMessage(returnTo, "error", parsed.error.issues[0]?.message ?? "Check the form details."));
   }
 
   const data = parsed.data as any;
@@ -404,5 +405,5 @@ export const POST: APIRoute = async (context) => {
     }));
   }
 
-  return context.redirect(redirectWithMessage(config.redirect, error ? "error" : "success", error?.message ?? success));
+  return context.redirect(redirectWithMessage(returnTo, error ? "error" : "success", error?.message ?? success));
 };

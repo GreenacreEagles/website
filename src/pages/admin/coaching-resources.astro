@@ -1,0 +1,76 @@
+---
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import EmptyState from "@components/EmptyState.astro";
+import FormActions from "@components/FormActions.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["coaching_resources.manage"]);
+if (!session) return Astro.redirect("/login/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const q = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+const { data: resources } = await session.supabase
+  .from("coaching_resources")
+  .select("id,title,summary,resource_type,status,visibility,updated_at")
+  .order("updated_at", { ascending: false })
+  .limit(150);
+const rows = ((resources ?? []) as any[]).filter((resource) => !q || [resource.title, resource.summary, resource.resource_type, resource.visibility].filter(Boolean).join(" ").toLowerCase().includes(q));
+---
+
+<PortalLayout title="Coaching Resources" section="Administration" session={session}>
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Coaching Resources" intro="Manage the club knowledge base for coaches, managers and authorised staff.">
+      <Fragment slot="actions">
+        <AdminDialog id="add-resource" title="Add Coaching Resource" actionLabel="Add Coaching Resource" size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="coachingResource" />
+            <input type="hidden" name="return_to" value="/admin/coaching-resources/" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Category</span><select class="field" name="resource_type">{["drill", "session_plan", "program", "policy", "video", "document", "external_link"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+              <label><span class="label">Visibility</span><select class="field" name="visibility">{["coaches", "team_staff", "admins", "public"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <label><span class="label">Description</span><textarea class="field min-h-20" name="summary"></textarea></label>
+            <label><span class="label">Content</span><textarea class="field min-h-32" name="body"></textarea></label>
+            <label><span class="label">Attachment or external link</span><input class="field" name="external_url" type="url" /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Duration minutes</span><input class="field" name="duration_minutes" type="number" min="0" /></label>
+              <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            </div>
+            <label><span class="label">Age groups</span><input class="field" name="age_group_tags" placeholder="U8, U12, Seniors" /></label>
+            <label><span class="label">Skill levels</span><input class="field" name="skill_level_tags" placeholder="beginner, intermediate, advanced" /></label>
+            <label><span class="label">Equipment</span><input class="field" name="equipment_required" placeholder="cones, bibs, mini goals" /></label>
+            <FormActions submitLabel="Save resource" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+    <form class="surface grid gap-3 p-4 md:grid-cols-[1fr_auto]" method="get">
+      <label><span class="label">Search</span><input class="field" name="q" value={q} /></label>
+      <div class="flex items-end"><button class="w-full bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Search</button></div>
+    </form>
+    <section class="surface p-5 md:p-7">
+      <div class="grid gap-3">
+        {rows.length === 0 && <EmptyState title="No coaching resources" text="Resources will appear here." />}
+        {rows.map((resource) => (
+          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div><p class="font-black">{resource.title}</p><p class="text-sm text-eagles-ink/70">{statusLabel(resource.resource_type)} - {statusLabel(resource.visibility)} - updated {formatDateTime(resource.updated_at)}</p></div>
+              <StatusBadge label={statusLabel(resource.status)} tone={resource.status === "active" ? "green" : "amber"} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  </div>
+</PortalLayout>

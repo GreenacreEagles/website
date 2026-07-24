@@ -24,7 +24,7 @@ const [{ data: team }, { data: posts }, { data: squad }, { data: staff }, { data
     .from("team_posts")
     .select("id,team_id,title,body,post_type,is_pinned,allow_poll_results,poll_closes_at,published_at,author_id,profiles:author_id(full_name,preferred_name),team_poll_options(id,label,sort_order,team_poll_responses(id,option_id,user_id,respondent_id)),team_post_reactions(id,user_id,reaction)")
     .eq("team_id", teamId)
-    .eq("status", "published")
+    .eq("status", "active")
     .order("is_pinned", { ascending: false })
     .order("published_at", { ascending: false }),
   session.supabase

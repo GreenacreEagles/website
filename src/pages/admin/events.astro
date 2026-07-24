@@ -45,7 +45,7 @@ const [{ data: events }, { data: registrations }, { data: venues }] = await Prom
             </div>
             <div class="grid gap-3 md:grid-cols-2">
               <label><span class="label">Visibility</span><select class="field" name="visibility">{["public", "members", "private"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-              <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "cancelled", "completed", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+              <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive", "cancelled", "completed"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             </div>
             <FormActions submitLabel="Add event" />
           </form>
@@ -62,7 +62,7 @@ const [{ data: events }, { data: registrations }, { data: venues }] = await Prom
           <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
             <p class="font-black">{event.title}</p>
             <p class="text-sm text-eagles-ink/70">{formatDateTime(event.starts_at)} - {event.venues?.name ?? "venue TBC"} - {formatMoney(event.price_cents)}</p>
-            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(event.status)} tone={event.status === "published" ? "green" : "amber"} /><StatusBadge label={statusLabel(event.visibility)} tone="ink" /></div>
+            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(event.status)} tone={event.status === "active" ? "green" : "amber"} /><StatusBadge label={statusLabel(event.visibility)} tone="ink" /></div>
           </article>
         ))}
       </div>
