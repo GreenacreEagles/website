@@ -1,5 +1,9 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -23,7 +27,71 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
 ---
 
 <PortalLayout title="Content" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Content workspace" intro="Create public updates, member announcements and coaching resources without losing sight of the publishing queue.">
+      <Fragment slot="actions">
+        {canManageContent && <AdminDialog id="draft-article" title="Draft article" actionLabel="Draft article" intro="Prepare a club article, match report or public update for review and publishing." size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="article" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+            <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
+            <label><span class="label">Body</span><textarea class="field min-h-36" name="body" required></textarea></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Category</span><input class="field" name="category" placeholder="Club news" /></label>
+              <label><span class="label">Status</span><select class="field" name="workflow_status">{["draft", "in_review", "scheduled", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <label><span class="label">Publish at</span><input class="field" name="publish_at" type="datetime-local" /></label>
+            <label><span class="label">Featured image URL</span><input class="field" name="featured_image_url" type="url" /></label>
+            <label><span class="label">Tags</span><input class="field" name="tags" placeholder="juniors, match day" /></label>
+            <FormActions submitLabel="Save article" />
+          </form>
+        </AdminDialog>}
+        {canManageCoaching && <AdminDialog id="coaching-resource" title="Coaching resource" actionLabel="Add resource" intro="Add a drill, session plan, policy, video or shared coaching document." size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="coachingResource" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Type</span><select class="field" name="resource_type">{["drill", "session_plan", "program", "policy", "video", "document", "external_link"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+              <label><span class="label">Visibility</span><select class="field" name="visibility">{["coaches", "team_staff", "admins", "public"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
+            <label><span class="label">Body</span><textarea class="field min-h-32" name="body" placeholder="Session notes, setup, coaching points or policy detail"></textarea></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Duration minutes</span><input class="field" name="duration_minutes" type="number" min="0" /></label>
+              <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <label><span class="label">External URL</span><input class="field" name="external_url" type="url" placeholder="Video, document or shared drive link" /></label>
+            <label><span class="label">Review due</span><input class="field" name="review_due_on" type="date" /></label>
+            <label><span class="label">Age groups</span><input class="field" name="age_group_tags" placeholder="U8, U12, Seniors" /></label>
+            <label><span class="label">Skill levels</span><input class="field" name="skill_level_tags" placeholder="beginner, intermediate, advanced" /></label>
+            <label><span class="label">Equipment</span><input class="field" name="equipment_required" placeholder="cones, bibs, mini goals" /></label>
+            <FormActions submitLabel="Save resource" />
+          </form>
+        </AdminDialog>}
+        {canManageContent && <AdminDialog id="add-announcement" title="Add announcement" actionLabel="Add announcement" intro="Publish a timed notice for members, families or the public website." size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="announcement" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Message</span><textarea class="field min-h-28" name="message" required></textarea></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Audience</span><input class="field" name="audience" value="public" /></label>
+              <label><span class="label">Priority</span><input class="field" name="priority" type="number" min="0" value="0" /></label>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+            </div>
+            <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            <FormActions submitLabel="Add announcement" />
+          </form>
+        </AdminDialog>}
+      </Fragment>
+    </AdminPageHeader>
+  </div>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="surface p-5 md:p-7">
       <h2 class="font-display text-3xl font-black uppercase leading-none">Articles</h2>
       <div class="mt-5 grid gap-3">
@@ -38,62 +106,6 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
       </div>
     </section>
     <aside class="grid gap-5 content-start">
-      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-      {canManageContent && <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="article" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Draft article</h2>
-        <label><span class="label">Title</span><input class="field" name="title" required /></label>
-        <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
-        <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
-        <label><span class="label">Body</span><textarea class="field min-h-36" name="body" required></textarea></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Category</span><input class="field" name="category" placeholder="Club news" /></label>
-          <label><span class="label">Status</span><select class="field" name="workflow_status">{["draft", "in_review", "scheduled", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        </div>
-        <label><span class="label">Publish at</span><input class="field" name="publish_at" type="datetime-local" /></label>
-        <label><span class="label">Featured image URL</span><input class="field" name="featured_image_url" type="url" /></label>
-        <label><span class="label">Tags</span><input class="field" name="tags" placeholder="juniors, match day" /></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save article</button>
-      </form>}
-      {canManageCoaching && <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="coachingResource" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Coaching resource</h2>
-        <label><span class="label">Title</span><input class="field" name="title" required /></label>
-        <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Type</span><select class="field" name="resource_type">{["drill", "session_plan", "program", "policy", "video", "document", "external_link"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-          <label><span class="label">Visibility</span><select class="field" name="visibility">{["coaches", "team_staff", "admins", "public"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        </div>
-        <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
-        <label><span class="label">Body</span><textarea class="field min-h-32" name="body" placeholder="Session notes, setup, coaching points or policy detail"></textarea></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Duration minutes</span><input class="field" name="duration_minutes" type="number" min="0" /></label>
-          <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        </div>
-        <label><span class="label">External URL</span><input class="field" name="external_url" type="url" placeholder="Video, document or shared drive link" /></label>
-        <label><span class="label">Review due</span><input class="field" name="review_due_on" type="date" /></label>
-        <label><span class="label">Age groups</span><input class="field" name="age_group_tags" placeholder="U8, U12, Seniors" /></label>
-        <label><span class="label">Skill levels</span><input class="field" name="skill_level_tags" placeholder="beginner, intermediate, advanced" /></label>
-        <label><span class="label">Equipment</span><input class="field" name="equipment_required" placeholder="cones, bibs, mini goals" /></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save resource</button>
-      </form>}
-      {canManageContent && <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="announcement" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Add announcement</h2>
-        <label><span class="label">Title</span><input class="field" name="title" required /></label>
-        <label><span class="label">Message</span><textarea class="field min-h-28" name="message" required></textarea></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Audience</span><input class="field" name="audience" value="public" /></label>
-          <label><span class="label">Priority</span><input class="field" name="priority" type="number" min="0" value="0" /></label>
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" /></label>
-          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
-        </div>
-        <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add announcement</button>
-      </form>}
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Coaching resources</h2>
         <div class="mt-4 grid gap-3">

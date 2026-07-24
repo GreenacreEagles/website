@@ -1,4 +1,8 @@
 ---
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -28,71 +32,75 @@ const canReviewReports = session.permissions.has("*") || session.permissions.has
 ---
 
 <PortalLayout title="Seasons & teams" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[420px_1fr]">
-    {canManage && (
-      <aside class="grid gap-5 content-start">
-        {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-        {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-          <input type="hidden" name="action" value="venue" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Create venue</h2>
-          <label><span class="label">Name</span><input class="field" name="name" placeholder="Roberts Park" required /></label>
-          <label><span class="label">Address</span><input class="field" name="address" /></label>
-          <div class="grid gap-3 md:grid-cols-2">
-            <label><span class="label">Suburb</span><input class="field" name="suburb" /></label>
-            <label><span class="label">Postcode</span><input class="field" name="postcode" /></label>
-          </div>
-          <label><span class="label">Notes</span><textarea class="field min-h-20" name="notes"></textarea></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create venue</button>
-        </form>
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-          <input type="hidden" name="action" value="competition" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Create competition</h2>
-          <label><span class="label">Name</span><input class="field" name="name" placeholder="Bankstown Premier League" required /></label>
-          <label><span class="label">Season</span><select class="field" name="season_id"><option value="">No season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
-          <label><span class="label">External link</span><input class="field" name="external_url" type="url" /></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create competition</button>
-        </form>
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-season/">
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Create season</h2>
-          <label><span class="label">Name</span><input class="field" name="name" placeholder="Season 2027" required /></label>
-          <label><span class="label">Year</span><input class="field" name="year" type="number" min="2000" max="2100" required /></label>
-          <div class="grid gap-3 md:grid-cols-2">
-            <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" required /></label>
-            <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" required /></label>
-          </div>
-          <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "completed", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create season</button>
-        </form>
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-team/">
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Create team</h2>
-          <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
-          <label><span class="label">Age group</span><select class="field" name="age_group_id"><option value="">Not set</option>{(ageGroups ?? []).map((group) => <option value={group.id}>{group.name}</option>)}</select></label>
-          <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
-          <label><span class="label">Name</span><input class="field" name="name" required /></label>
-          <label><span class="label">Division</span><input class="field" name="division" /></label>
-          <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
-          <label><span class="label">Home venue</span><select class="field" name="home_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-          <label><span class="label">Training venue</span><select class="field" name="training_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-          <label><span class="label">Fixture link</span><input class="field" name="external_fixture_url" type="url" /></label>
-          <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create team</button>
-        </form>
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-          <input type="hidden" name="action" value="teamStaff" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Assign team staff</h2>
-          <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select team</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
-          <label><span class="label">Person</span><select class="field" name="user_id" required><option value="">Select person</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.preferred_name || profile.full_name || profile.email}</option>)}</select></label>
-          <label><span class="label">Role</span><select class="field" name="staff_role"><option value="coach">Coach</option><option value="assistant_coach">Assistant coach</option><option value="team_manager">Team manager</option><option value="trainer">Trainer</option></select></label>
-          <div class="grid gap-3 md:grid-cols-2">
-            <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
-            <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
-          </div>
-          <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign staff</button>
-        </form>
-      </aside>
-    )}
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Seasons and teams" intro="Build the club structure from focused actions, then review seasons, teams, squads and staff in a full-width workspace.">
+      <Fragment slot="actions">
+        {canManage && <AdminDialog id="create-venue" title="Create venue" actionLabel="Venue" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="venue" />
+            <label><span class="label">Name</span><input class="field" name="name" placeholder="Roberts Park" required /></label>
+            <label><span class="label">Address</span><input class="field" name="address" /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Suburb</span><input class="field" name="suburb" /></label>
+              <label><span class="label">Postcode</span><input class="field" name="postcode" /></label>
+            </div>
+            <label><span class="label">Notes</span><textarea class="field min-h-20" name="notes"></textarea></label>
+            <FormActions submitLabel="Create venue" />
+          </form>
+        </AdminDialog>}
+        {canManage && <AdminDialog id="create-competition" title="Create competition" actionLabel="Competition" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="competition" />
+            <label><span class="label">Name</span><input class="field" name="name" placeholder="Bankstown Premier League" required /></label>
+            <label><span class="label">Season</span><select class="field" name="season_id"><option value="">No season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
+            <label><span class="label">External link</span><input class="field" name="external_url" type="url" /></label>
+            <FormActions submitLabel="Create competition" />
+          </form>
+        </AdminDialog>}
+        {canManage && <AdminDialog id="create-season" title="Create season" actionLabel="Season" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-season/">
+            <label><span class="label">Name</span><input class="field" name="name" placeholder="Season 2027" required /></label>
+            <label><span class="label">Year</span><input class="field" name="year" type="number" min="2000" max="2100" required /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" required /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" required /></label>
+            </div>
+            <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "completed", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
+            <FormActions submitLabel="Create season" />
+          </form>
+        </AdminDialog>}
+        {canManage && <AdminDialog id="create-team" title="Create team" actionLabel="Team" size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-team/">
+            <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{(seasons ?? []).map((season) => <option value={season.id}>{season.name}</option>)}</select></label>
+            <label><span class="label">Age group</span><select class="field" name="age_group_id"><option value="">Not set</option>{(ageGroups ?? []).map((group) => <option value={group.id}>{group.name}</option>)}</select></label>
+            <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
+            <label><span class="label">Name</span><input class="field" name="name" required /></label>
+            <label><span class="label">Division</span><input class="field" name="division" /></label>
+            <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
+            <label><span class="label">Home venue</span><select class="field" name="home_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <label><span class="label">Training venue</span><select class="field" name="training_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <label><span class="label">Fixture link</span><input class="field" name="external_fixture_url" type="url" /></label>
+            <label><span class="label">Status</span><select class="field" name="status">{["draft", "active", "archived"].map((item) => <option value={item}>{item}</option>)}</select></label>
+            <FormActions submitLabel="Create team" />
+          </form>
+        </AdminDialog>}
+        {canManage && <AdminDialog id="assign-team-staff" title="Assign team staff" actionLabel="Staff" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="teamStaff" />
+            <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select team</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
+            <label><span class="label">Person</span><select class="field" name="user_id" required><option value="">Select person</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.preferred_name || profile.full_name || profile.email}</option>)}</select></label>
+            <label><span class="label">Role</span><select class="field" name="staff_role"><option value="coach">Coach</option><option value="assistant_coach">Assistant coach</option><option value="team_manager">Team manager</option><option value="trainer">Trainer</option></select></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
+            </div>
+            <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
+            <FormActions submitLabel="Assign staff" />
+          </form>
+        </AdminDialog>}
+      </Fragment>
+    </AdminPageHeader>
 
     <section class="grid gap-5">
       <article class="surface p-5 md:p-7">

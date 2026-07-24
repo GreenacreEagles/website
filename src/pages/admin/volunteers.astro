@@ -1,5 +1,9 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -24,7 +28,41 @@ const activeAssignmentCount = (shift: any) =>
 ---
 
 <PortalLayout title="Volunteer management" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Volunteer management" intro="Coordinate opportunities, shifts and roster updates while keeping the active lists front and centre.">
+      <Fragment slot="actions">
+        <AdminDialog id="add-volunteer-opportunity" title="Add opportunity" actionLabel="Add opportunity" intro="Create a volunteer role that shifts can be scheduled against." size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="volunteerOpportunity" />
+            <label><span class="label">Title</span><input class="field" name="title" placeholder="Canteen helper" required /></label>
+            <label><span class="label">Type</span><input class="field" name="opportunity_type" placeholder="canteen" required /></label>
+            <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
+            <label><span class="label">Required permission</span><input class="field" name="required_permission" placeholder="Optional" /></label>
+            <label><span class="label">Status</span><select class="field" name="status">{["active", "paused", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            <FormActions submitLabel="Add opportunity" />
+          </form>
+        </AdminDialog>
+        <AdminDialog id="add-volunteer-shift" title="Add shift" actionLabel="Add shift" intro="Schedule a shift for an existing role and set the capacity needed." size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="volunteerShift" />
+            <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
+            <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" value="1" required /></label>
+              <label><span class="label">Status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <FormActions submitLabel="Add shift" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+  </div>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="surface p-5 md:p-7">
       <h2 class="font-display text-3xl font-black uppercase leading-none">Opportunities</h2>
       <div class="mt-5 grid gap-3">
@@ -39,33 +77,6 @@ const activeAssignmentCount = (shift: any) =>
       </div>
     </section>
     <aside class="grid gap-5 content-start">
-      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="volunteerOpportunity" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Add opportunity</h2>
-        <label><span class="label">Title</span><input class="field" name="title" placeholder="Canteen helper" required /></label>
-        <label><span class="label">Type</span><input class="field" name="opportunity_type" placeholder="canteen" required /></label>
-        <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
-        <label><span class="label">Required permission</span><input class="field" name="required_permission" placeholder="Optional" /></label>
-        <label><span class="label">Status</span><select class="field" name="status">{["active", "paused", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add opportunity</button>
-      </form>
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="volunteerShift" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Add shift</h2>
-        <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
-        <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
-          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" value="1" required /></label>
-          <label><span class="label">Status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        </div>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add shift</button>
-      </form>
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Shifts</h2>
         <div class="mt-4 grid gap-3">

@@ -122,8 +122,8 @@ Required production settings:
 
 Required bindings:
 
-- `SESSION`: Workers KV binding for Astro sessions.
-- `IMAGES`: Cloudflare Images binding when image upload/delivery features are enabled.
+- `SESSION`: Workers KV binding for Astro sessions. It is declared in `wrangler.jsonc`; confirm the Pages production and preview environments expose the same binding.
+- `IMAGES`: Cloudflare Images binding. It is declared in `wrangler.jsonc`; confirm the Pages production and preview environments expose the same binding before enabling image transformations or R2-backed image workflows.
 
 Required variables and secrets:
 

@@ -1,0 +1,27 @@
+---
+interface Props {
+  submitLabel?: string;
+  loadingLabel?: string;
+}
+
+const { submitLabel = "Save Changes", loadingLabel = "Saving..." } = Astro.props;
+---
+
+<div class="sticky bottom-0 -mx-5 -mb-5 mt-6 flex flex-col-reverse gap-3 border-t border-eagles-line bg-white p-5 sm:flex-row sm:justify-end">
+  <button
+    class="focus-ring inline-flex min-h-11 items-center justify-center border border-eagles-line bg-white px-5 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist"
+    style="border-radius:8px"
+    type="button"
+    data-admin-dialog-close
+  >
+    Cancel
+  </button>
+  <button
+    class="focus-ring inline-flex min-h-11 items-center justify-center bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink disabled:cursor-wait disabled:opacity-70"
+    style="border-radius:8px"
+    type="submit"
+    data-loading-label={loadingLabel}
+  >
+    {submitLabel}
+  </button>
+</div>

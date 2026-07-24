@@ -80,6 +80,6 @@
 - [ ] Add end-to-end tests for critical journeys.
 - [x] Add Turnstile to public abuse-prone forms.
 - [x] Configure Cloudflare Pages build/env vars for the current Pages domain.
-- [ ] Confirm Cloudflare Pages `SESSION` KV and `IMAGES` bindings for the server-rendered Astro adapter.
+- [x] Confirm Cloudflare Pages `SESSION` KV and `IMAGES` bindings for the server-rendered Astro adapter.
 - [ ] Configure custom domain.
 - [x] Document backup, recovery, and administrator runbooks.

@@ -1,5 +1,9 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -20,7 +24,36 @@ const [{ data: events }, { data: registrations }, { data: venues }] = await Prom
 ---
 
 <PortalLayout title="Event management" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Event management" intro="Plan club events, publish registration windows and keep attendance visible from the same workspace.">
+      <Fragment slot="actions">
+        <AdminDialog id="add-event" title="Add event" actionLabel="Add event" intro="Create the event shell now; registrations and payments can be managed once it is live." size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+            <input type="hidden" name="action" value="event" />
+            <label><span class="label">Title</span><input class="field" name="title" required /></label>
+            <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
+            <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
+            <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" /></label>
+              <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" value="0" /></label>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Visibility</span><select class="field" name="visibility">{["public", "members", "private"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+              <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "cancelled", "completed", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
+            </div>
+            <FormActions submitLabel="Add event" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+  </div>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="surface p-5 md:p-7">
       <h2 class="font-display text-3xl font-black uppercase leading-none">Events</h2>
       <div class="mt-5 grid gap-3">
@@ -35,29 +68,6 @@ const [{ data: events }, { data: registrations }, { data: venues }] = await Prom
       </div>
     </section>
     <aside class="grid gap-5 content-start">
-      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/create-record/">
-        <input type="hidden" name="action" value="event" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Add event</h2>
-        <label><span class="label">Title</span><input class="field" name="title" required /></label>
-        <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
-        <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
-        <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
-          <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" /></label>
-          <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" value="0" /></label>
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Visibility</span><select class="field" name="visibility">{["public", "members", "private"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-          <label><span class="label">Status</span><select class="field" name="status">{["draft", "published", "cancelled", "completed", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-        </div>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Add event</button>
-      </form>
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Registrations</h2>
         <div class="mt-4 grid gap-3">

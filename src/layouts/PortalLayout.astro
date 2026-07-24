@@ -44,8 +44,7 @@ const adminNav: NavItem[] = [
   { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage"] },
   { href: "/admin/wallets/", label: "Wallets", permissions: ["wallet.read", "wallet.adjust", "finance.read"] },
   { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
-  { href: "/admin/content/", label: "Resource guide", permissions: ["coaching_resources.manage", "content.manage"] },
-  { href: "/admin/content/", label: "Content", permissions: ["content.manage"] },
+  { href: "/admin/content/", label: "Content & resources", permissions: ["coaching_resources.manage", "content.manage"] },
   { href: "/admin/audit/", label: "Audit log", permissions: ["audit.read"] },
   { href: "/admin/settings/", label: "System settings", permissions: ["settings.manage"] }
 ];
@@ -56,6 +55,7 @@ const showAdmin = canAccessAdmin(session.permissions);
 const activePath = Astro.url.pathname;
 const inAdmin = activePath.startsWith("/admin/");
 const displayName = session.profile.preferred_name || session.profile.full_name || session.user.email || "Greenacre Eagles member";
+const isActiveNav = (href: string) => activePath === href || (href !== "/admin/" && href !== "/portal/" && activePath.startsWith(href));
 ---
 
 <!doctype html>
@@ -80,7 +80,7 @@ const displayName = session.profile.preferred_name || session.profile.full_name 
         {!inAdmin && (
           <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
             {visiblePortalNav.map((item) => (
-              <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+              <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", isActiveNav(item.href) && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
             ))}
           </nav>
         )}
@@ -92,7 +92,7 @@ const displayName = session.profile.preferred_name || session.profile.full_name 
                 <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Administration</p>
                 <nav class="mt-3 flex gap-2 overflow-x-auto text-sm font-black lg:grid" aria-label="Admin navigation">
                   {visibleAdminNav.map((item) => (
-                    <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", activePath === item.href && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+                    <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", isActiveNav(item.href) && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
                   ))}
                 </nav>
                 <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/">Back to portal</a>

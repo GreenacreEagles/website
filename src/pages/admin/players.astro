@@ -1,5 +1,9 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -24,11 +28,63 @@ const [{ data: players }, { data: families }, { data: teamPlayers }, { data: pro
 ---
 
 <PortalLayout title="Players and families" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_440px]">
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Players and families" intro="Manage player records, family groups and team links with focused actions instead of a permanent form stack.">
+      <Fragment slot="actions">
+        <AdminDialog id="create-family" title="Create family" actionLabel="Create family" size="md">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+            <input type="hidden" name="action" value="family" />
+            <label><span class="label">Family name</span><input class="field" name="name" required /></label>
+            <FormActions submitLabel="Create family" />
+          </form>
+        </AdminDialog>
+        <AdminDialog id="link-family-member" title="Link family member" actionLabel="Link member" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+            <input type="hidden" name="action" value="familyMember" />
+            <label><span class="label">Family</span><select class="field" name="family_id" required><option value="">Select</option>{(families ?? []).map((family: any) => <option value={family.id}>{family.name}</option>)}</select></label>
+            <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
+            <label><span class="label">Relationship</span><select class="field" name="relationship"><option value="parent">Parent</option><option value="guardian">Guardian</option><option value="carer">Carer</option><option value="child">Child</option><option value="player">Player</option><option value="dependent">Dependent</option><option value="sibling">Sibling</option><option value="adult_player">Adult player</option></select></label>
+            <div class="grid gap-2 text-sm font-bold">
+              <label class="flex items-center gap-2"><input type="checkbox" name="is_primary_guardian" />Primary guardian</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="can_manage" />Can manage family</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="can_spend" />Can spend or assign vouchers</label>
+            </div>
+            <label><span class="label">Spending limit</span><input class="field" name="spending_limit" type="number" min="0" step="0.01" /></label>
+            <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="pending">Pending</option><option value="revoked">Revoked</option></select></label>
+            <FormActions submitLabel="Link member" />
+          </form>
+        </AdminDialog>
+        <AdminDialog id="create-player-record" title="Create player record" actionLabel="Create player" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+            <input type="hidden" name="action" value="player" />
+            <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
+            <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select</option>{(seasons ?? []).map((season: any) => <option value={season.id}>{season.name}</option>)}</select></label>
+            <label><span class="label">Status</span><select class="field" name="registration_status"><option value="pending">Pending</option><option value="registered">Registered</option><option value="not_started">Not started</option><option value="transferred">Transferred</option><option value="withdrawn">Withdrawn</option></select></label>
+            <label><span class="label">External ref</span><input class="field" name="external_registration_ref" /></label>
+            <label class="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="photo_consent" />Photo consent</label>
+            <FormActions submitLabel="Create player" />
+          </form>
+        </AdminDialog>
+        <AdminDialog id="assign-player-team" title="Assign player to team" actionLabel="Assign to team" size="lg">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+            <input type="hidden" name="action" value="teamPlayer" />
+            <label><span class="label">Player</span><select class="field" name="player_id" required><option value="">Select</option>{(players ?? []).map((player: any) => <option value={player.id}>{player.profiles?.full_name || player.profiles?.email} - {player.seasons?.name}</option>)}</select></label>
+            <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
+            <label><span class="label">Squad number</span><input class="field" name="squad_number" type="number" min="0" /></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
+              <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
+            </div>
+            <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
+            <FormActions submitLabel="Assign to team" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+  </div>
+  <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-5">
-      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-
       <article class="surface p-5 md:p-7">
         <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
         <div class="mt-5 grid gap-3">
@@ -66,54 +122,6 @@ const [{ data: players }, { data: families }, { data: teamPlayers }, { data: pro
     </section>
 
     <aside class="grid gap-5 content-start">
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
-        <input type="hidden" name="action" value="family" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Create family</h2>
-        <label><span class="label">Family name</span><input class="field" name="name" required /></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create family</button>
-      </form>
-
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
-        <input type="hidden" name="action" value="familyMember" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Link family member</h2>
-        <label><span class="label">Family</span><select class="field" name="family_id" required><option value="">Select</option>{(families ?? []).map((family: any) => <option value={family.id}>{family.name}</option>)}</select></label>
-        <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
-        <label><span class="label">Relationship</span><select class="field" name="relationship"><option value="parent">Parent</option><option value="guardian">Guardian</option><option value="carer">Carer</option><option value="child">Child</option><option value="player">Player</option><option value="dependent">Dependent</option><option value="sibling">Sibling</option><option value="adult_player">Adult player</option></select></label>
-        <div class="grid gap-2 text-sm font-bold">
-          <label class="flex items-center gap-2"><input type="checkbox" name="is_primary_guardian" />Primary guardian</label>
-          <label class="flex items-center gap-2"><input type="checkbox" name="can_manage" />Can manage family</label>
-          <label class="flex items-center gap-2"><input type="checkbox" name="can_spend" />Can spend or assign vouchers</label>
-        </div>
-        <label><span class="label">Spending limit</span><input class="field" name="spending_limit" type="number" min="0" step="0.01" /></label>
-        <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="pending">Pending</option><option value="revoked">Revoked</option></select></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Link member</button>
-      </form>
-
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
-        <input type="hidden" name="action" value="player" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Create player record</h2>
-        <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
-        <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select</option>{(seasons ?? []).map((season: any) => <option value={season.id}>{season.name}</option>)}</select></label>
-        <label><span class="label">Status</span><select class="field" name="registration_status"><option value="pending">Pending</option><option value="registered">Registered</option><option value="not_started">Not started</option><option value="transferred">Transferred</option><option value="withdrawn">Withdrawn</option></select></label>
-        <label><span class="label">External ref</span><input class="field" name="external_registration_ref" /></label>
-        <label class="flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="photo_consent" />Photo consent</label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create player</button>
-      </form>
-
-      <form class="surface grid gap-4 p-5" method="post" action="/api/admin/family-player-action/">
-        <input type="hidden" name="action" value="teamPlayer" />
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Assign player to team</h2>
-        <label><span class="label">Player</span><select class="field" name="player_id" required><option value="">Select</option>{(players ?? []).map((player: any) => <option value={player.id}>{player.profiles?.full_name || player.profiles?.email} - {player.seasons?.name}</option>)}</select></label>
-        <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
-        <label><span class="label">Squad number</span><input class="field" name="squad_number" type="number" min="0" /></label>
-        <div class="grid gap-3 md:grid-cols-2">
-          <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
-          <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
-        </div>
-        <label><span class="label">Status</span><select class="field" name="status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="left">Left</option></select></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Assign to team</button>
-      </form>
-
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Team links</h2>
         <div class="mt-4 grid gap-3">

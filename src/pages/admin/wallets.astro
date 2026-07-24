@@ -1,5 +1,9 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
@@ -54,11 +58,41 @@ const ledgerWalletName = (entry: any) => {
 ---
 
 <PortalLayout title="Wallet operations" section="Administration" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+  <div class="grid gap-6">
+    <AdminFeedback success={success} error={error} />
+    <AdminPageHeader title="Wallet operations" intro="Review top-ups, ledger entries, wallets and provider health with adjustment tools available only when needed.">
+      <Fragment slot="actions">
+        {canAdjust && (
+          <AdminDialog id="manual-wallet-adjustment" title="Manual adjustment" actionLabel="Manual adjustment" intro="Record a treasurer-approved credit or debit against a wallet." size="lg">
+            <form class="grid gap-4" method="post" action="/api/admin/wallet-adjustment/">
+              <input type="hidden" name="return_to" value="/admin/wallets/" />
+              <label><span class="label">Wallet</span><select class="field" name="wallet_id" required>{walletList.map((wallet) => <option value={wallet.id}>{walletName(wallet)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
+              <div class="grid gap-3 md:grid-cols-2">
+                <label><span class="label">Direction</span><select class="field" name="direction"><option value="credit">Credit</option><option value="debit">Debit</option></select></label>
+                <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
+              </div>
+              <label><span class="label">Transaction type</span><input class="field" name="transaction_type" value="manual_adjustment" required /></label>
+              <label><span class="label">Beneficiary</span><select class="field" name="beneficiary_id"><option value="">No beneficiary</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+              <label><span class="label">Description</span><textarea class="field min-h-20" name="description" required></textarea></label>
+              <FormActions submitLabel="Record adjustment" />
+            </form>
+          </AdminDialog>
+        )}
+        {canAdjust && (
+          <AdminDialog id="create-member-wallet" title="Create member wallet" actionLabel="Create wallet" intro="Open a wallet account for a member profile." size="md">
+            <form class="grid gap-4" method="post" action="/api/portal/wallet-account/">
+              <input type="hidden" name="return_to" value="/admin/wallets/" />
+              <input type="hidden" name="account_type" value="user" />
+              <label><span class="label">Member</span><select class="field" name="owner_id" required>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
+              <FormActions submitLabel="Create wallet" />
+            </form>
+          </AdminDialog>
+        )}
+      </Fragment>
+    </AdminPageHeader>
+  </div>
+  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="grid gap-5">
-      {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
-      {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
-
       <article class="surface p-5 md:p-7">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -125,32 +159,6 @@ const ledgerWalletName = (entry: any) => {
     </section>
 
     <aside class="grid gap-5 content-start">
-      {canAdjust && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/wallet-adjustment/">
-          <input type="hidden" name="return_to" value="/admin/wallets/" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Manual adjustment</h2>
-          <label><span class="label">Wallet</span><select class="field" name="wallet_id" required>{walletList.map((wallet) => <option value={wallet.id}>{walletName(wallet)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
-          <div class="grid gap-3 md:grid-cols-2">
-            <label><span class="label">Direction</span><select class="field" name="direction"><option value="credit">Credit</option><option value="debit">Debit</option></select></label>
-            <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
-          </div>
-          <label><span class="label">Transaction type</span><input class="field" name="transaction_type" value="manual_adjustment" required /></label>
-          <label><span class="label">Beneficiary</span><select class="field" name="beneficiary_id"><option value="">No beneficiary</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
-          <label><span class="label">Description</span><textarea class="field min-h-20" name="description" required></textarea></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Record adjustment</button>
-        </form>
-      )}
-
-      {canAdjust && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-account/">
-          <input type="hidden" name="return_to" value="/admin/wallets/" />
-          <input type="hidden" name="account_type" value="user" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Create member wallet</h2>
-          <label><span class="label">Member</span><select class="field" name="owner_id" required>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create wallet</button>
-        </form>
-      )}
-
       <article class="surface p-5">
         <h2 class="font-display text-2xl font-black uppercase leading-none">Wallets</h2>
         <div class="mt-4 grid gap-3">

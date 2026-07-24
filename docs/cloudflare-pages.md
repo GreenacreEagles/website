@@ -20,6 +20,7 @@ Cloudflare Pages settings:
 - Node version: `22`
 - Compatibility flag: `nodejs_compat`
 - Production branch: `main`, unless the repo owner chooses another branch
+- Pages/Worker config: `wrangler.jsonc` declares `SESSION` KV and `IMAGES` bindings for local and direct Worker deploys.
 - Pages Functions: enabled automatically by the `dist/client/_worker.js` directory
 
 Do not remove `scripts/prepare-pages-worker.mjs` or the `postbuild` script. Without the `_worker.js` directory, Cloudflare Pages serves only the static public pages and `/portal/`, `/admin/`, and `/api/` will not work.
@@ -72,7 +73,8 @@ Most public marketing pages are prerendered into `dist/client`. Database-backed 
 
 Required runtime bindings:
 
-- `SESSION`: Workers KV binding used by Astro sessions. Configure this in Cloudflare Pages production and preview Functions bindings.
+- `SESSION`: Workers KV binding used by Astro sessions. Declared in `wrangler.jsonc`; also confirm it exists in Cloudflare Pages production and preview Functions bindings.
+- `IMAGES`: Cloudflare Images binding. Declared in `wrangler.jsonc`; keep the binding available for future R2/image-processing work even though the current Astro adapter uses `imageService: "passthrough"`.
 
 Cloudflare Pages reads these files from `public/` during the build:
 
