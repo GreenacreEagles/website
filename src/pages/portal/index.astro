@@ -74,6 +74,7 @@ const [
 ]);
 
 const actionUrl = (notification: any) => {
+  if (notification.action_url) return notification.action_url;
   if (notification.related_entity_type === "canteen_order") return "/portal/canteen/";
   if (notification.related_entity_type === "voucher") return "/portal/vouchers/";
   if (notification.related_entity_type === "event_registration") return "/portal/events/";

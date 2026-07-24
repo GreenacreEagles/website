@@ -12,6 +12,28 @@ if (!session) return Astro.redirect("/login/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const profile = session.profile;
+const preferenceCategories = [
+  ["general", "Club notices"],
+  ["team", "Team posts"],
+  ["commerce", "Orders and wallet"],
+  ["events", "Events"],
+  ["volunteers", "Volunteers"],
+  ["resources", "Resources"]
+] as const;
+const preferenceChannels = [
+  ["in_app", "Portal"],
+  ["email", "Email"],
+  ["sms", "SMS"]
+] as const;
+const { data: notificationPreferences } = await session.supabase
+  .from("notification_preferences" as any)
+  .select("channel,category,enabled")
+  .eq("user_id", session.user.id);
+const preferenceRows = (notificationPreferences ?? []) as unknown as Array<{ channel: string; category: string; enabled: boolean }>;
+const preferenceEnabled = (channel: string, category: string) => {
+  const preference = preferenceRows.find((item) => item.channel === channel && item.category === category);
+  return preference?.enabled ?? true;
+};
 ---
 
 <PortalLayout title="Profile details" section="My account" session={session}>
@@ -61,6 +83,39 @@ const profile = session.profile;
         <label class="flex items-center gap-3"><input name="communication_email" type="checkbox" checked={profile.communication_email} /> Email updates</label>
         <label class="flex items-center gap-3"><input name="communication_sms" type="checkbox" checked={profile.communication_sms} /> SMS updates where available</label>
       </div>
+      <section class="grid gap-4 border border-eagles-line bg-white p-4" style="border-radius:8px">
+        <div>
+          <h3 class="font-display text-2xl font-black uppercase leading-none">Notification preferences</h3>
+          <p class="mt-2 text-sm leading-6 text-eagles-ink/70">Choose where routine updates should appear. Critical account and safety messages may still be sent when required.</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[520px] text-left text-sm">
+            <thead class="text-xs uppercase text-eagles-ink/60">
+              <tr>
+                <th class="py-2">Category</th>
+                {preferenceChannels.map(([, label]) => <th class="py-2 text-center">{label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {preferenceCategories.map(([category, label]) => (
+                <tr class="border-t border-eagles-line">
+                  <th class="py-3 font-black text-eagles-ink">{label}</th>
+                  {preferenceChannels.map(([channel]) => (
+                    <td class="py-3 text-center">
+                      <input
+                        aria-label={`${label} ${channel} notifications`}
+                        name={`notify_${channel}_${category}`}
+                        type="checkbox"
+                        checked={preferenceEnabled(channel, category)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <button class="focus-ring inline-flex items-center justify-center bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">
         Save profile
       </button>

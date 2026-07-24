@@ -193,10 +193,26 @@ const schemas = {
     publish_at: nullableDate,
     workflow_status: z.enum(["draft", "in_review", "scheduled", "published", "archived"])
   }),
+  coachingResource: z.object({
+    title: z.string().trim().min(2).max(180),
+    slug: nullableText(140),
+    resource_type: z.enum(["drill", "session_plan", "program", "policy", "video", "document", "external_link"]),
+    summary: nullableText(800),
+    body: z.string().trim().max(6000).optional(),
+    age_group_tags: nullableText(240),
+    skill_level_tags: nullableText(240),
+    equipment_required: nullableText(240),
+    duration_minutes: optionalNumber,
+    visibility: z.enum(["public", "coaches", "team_staff", "admins"]),
+    status: z.enum(["draft", "published", "archived"]),
+    external_url: nullableText(400),
+    review_due_on: nullableDate
+  }),
   notification: z.object({
     recipient_id: uuidSchema,
     title: z.string().trim().min(2).max(160),
     body: z.string().trim().min(2).max(1200),
+    category: z.string().trim().min(2).max(80).default("admin_message"),
     channel: z.enum(["in_app", "email", "sms"]).default("in_app")
   })
 };
@@ -219,7 +235,8 @@ const actionConfig = {
   announcement: { permissions: ["content.manage"], redirect: "/admin/content/", success: "Announcement created." },
   sponsor: { permissions: ["sponsors.manage"], redirect: "/admin/sponsors/", success: "Sponsor saved." },
   article: { permissions: ["content.manage"], redirect: "/admin/content/", success: "Article saved." },
-  notification: { permissions: ["content.manage"], redirect: "/admin/content/", success: "Notification queued." }
+  coachingResource: { permissions: ["coaching_resources.manage"], redirect: "/admin/content/", success: "Coaching resource saved." },
+  notification: { permissions: ["communications.manage"], redirect: "/admin/content/", success: "Notification queued." }
 } as const;
 
 type Action = keyof typeof actionConfig;
@@ -353,17 +370,38 @@ export const POST: APIRoute = async (context) => {
       workflow_status: data.workflow_status,
       author_id: session.user.id
     }));
+  } else if (action === "coachingResource") {
+    ({ error } = await session.supabase.from("coaching_resources").insert({
+      title: data.title,
+      slug: data.slug || slugify(data.title),
+      resource_type: data.resource_type,
+      summary: data.summary ?? null,
+      body: { type: "plain_text", text: data.body || "" },
+      age_group_tags: splitList(data.age_group_tags),
+      skill_level_tags: splitList(data.skill_level_tags),
+      equipment_required: splitList(data.equipment_required),
+      duration_minutes: data.duration_minutes,
+      visibility: data.visibility,
+      status: data.status,
+      external_url: data.external_url ?? null,
+      review_due_on: data.review_due_on ?? null,
+      created_by: session.user.id
+    } as any));
   } else if (action === "notification") {
-    const payload = { title: data.title, body: data.body };
-    ({ error } = await session.supabase.from("notifications").insert({ recipient_id: data.recipient_id, title: data.title, body: data.body }));
-    if (!error && data.channel !== "in_app") {
-      await session.supabase.from("communication_outbox").insert({
-        recipient_id: data.recipient_id,
-        channel: data.channel,
-        template_key: "admin_message",
-        payload
-      });
-    }
+    const channels = data.channel === "in_app" ? ["in_app"] : ["in_app", data.channel];
+    ({ error } = await (session.supabase as any).rpc("enqueue_admin_notification", {
+      p_recipient_id: data.recipient_id,
+      p_title: data.title,
+      p_body: data.body,
+      p_category: data.category,
+      p_channels: channels,
+      p_template_key: "admin_message",
+      p_payload: { title: data.title, body: data.body },
+      p_related_entity_type: "admin_message",
+      p_related_entity_id: null,
+      p_action_url: "/portal/",
+      p_dedupe_key: null
+    }));
   }
 
   return context.redirect(redirectWithMessage(config.redirect, error ? "error" : "success", error?.message ?? success));

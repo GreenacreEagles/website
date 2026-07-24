@@ -1,0 +1,17 @@
+---
+type Props = {
+  action: string;
+};
+
+const { action } = Astro.props;
+const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+---
+
+{siteKey && (
+  <div
+    class="cf-turnstile"
+    data-sitekey={siteKey}
+    data-action={action}
+    data-theme="light"
+  />
+)}

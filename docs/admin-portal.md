@@ -48,6 +48,24 @@ Volunteer coordinators manage opportunities, dated shifts and assignment statuse
 
 Coordinators can update individual assignments or close a whole shift through `/api/admin/volunteer-action/`. The shift RPC cancels active assignments when a shift is cancelled, completes active assignments when a shift is completed, writes audit records and notifies affected members.
 
+## Coaching Resources
+
+Authorised coaching-resource managers create drills, session plans, programs, policies, videos and external links from `/admin/content/`. Resources support visibility levels, age group tags, skill level tags, equipment lists, duration, review dates and published metadata.
+
+Coaches and football staff read the library from `/portal/coaching/`, where resources can be filtered by search term, resource type and age group.
+
+## Public Publishing
+
+Content editors use `/admin/content/` to create database-backed articles and announcements. Published articles feed `/news/`, `/news/[slug]/` and the homepage news cards; published public announcements feed the homepage notice link.
+
+Sponsor managers use `/admin/sponsors/` to create active sponsor records. The public sponsors page and homepage sponsor strip read active sponsor rows first and fall back to Markdown sponsors only when no database records are published.
+
+## Communications
+
+Member notifications appear on the portal dashboard and can route with `action_url` or related entity metadata. Members control routine portal, email and SMS preferences from `/portal/account/`.
+
+The `public.enqueue_admin_notification` RPC queues admin messages through the same preference checks used by future automations. Email and SMS delivery jobs are stored in `communication_outbox` with dedupe keys, attempts, lock ownership and retry scheduling. A trusted worker calls `/api/workers/communication-outbox/` with `COMMUNICATION_WORKER_SECRET` to claim jobs and mark them sent or failed after using the selected external provider.
+
 ## Canteen Operations
 
 Administrators manage canteen venues, categories, products, stock levels and fulfilment modes from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.

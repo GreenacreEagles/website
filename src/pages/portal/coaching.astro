@@ -10,27 +10,58 @@ export const prerender = false;
 const session = await requirePermission(Astro, ["coaching_resources.read", "teams.manage", "club_structure.manage"]);
 if (!session) return Astro.redirect("/login/");
 
+const query = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+const typeFilter = Astro.url.searchParams.get("type") ?? "";
+const ageFilter = Astro.url.searchParams.get("age") ?? "";
 const { data: resources } = await session.supabase
   .from("coaching_resources")
-  .select("id,title,summary,resource_type,status,visibility,duration_minutes,age_group_tags,skill_level_tags,equipment_required,created_at")
+  .select("id,title,summary,body,resource_type,status,visibility,duration_minutes,age_group_tags,skill_level_tags,equipment_required,external_url,published_at,updated_at")
   .order("updated_at", { ascending: false })
-  .limit(80);
+  .limit(120);
+
+const resourceList = ((resources ?? []) as any[]).filter((resource) => {
+  const text = [resource.title, resource.summary, resource.body?.text, resource.resource_type, ...(resource.age_group_tags ?? []), ...(resource.skill_level_tags ?? [])]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return (!query || text.includes(query)) && (!typeFilter || resource.resource_type === typeFilter) && (!ageFilter || resource.age_group_tags?.includes(ageFilter));
+});
+
+const resourceTypes = Array.from(new Set(((resources ?? []) as any[]).map((resource) => resource.resource_type))).sort();
+const ageGroups = Array.from(new Set(((resources ?? []) as any[]).flatMap((resource) => resource.age_group_tags ?? []))).sort();
+const bodyText = (resource: any) => (typeof resource.body?.text === "string" ? resource.body.text : "");
 ---
 
 <PortalLayout title="Coaching resources" section="Football" session={session}>
-  <section class="grid gap-4 md:grid-cols-2">
-    {(resources ?? []).length === 0 && <EmptyState title="No coaching resources published" text="Session plans, drills and team resources will appear here for approved coaches and football staff." />}
-    {(resources ?? []).map((resource) => (
+  <div class="grid gap-5">
+    <form class="surface grid gap-3 p-4 lg:grid-cols-[1fr_220px_220px_auto]" method="get">
+      <label><span class="label">Search</span><input class="field" name="q" value={query} placeholder="Pressing, rondo, U12, warm-up" /></label>
+      <label><span class="label">Type</span><select class="field" name="type"><option value="">All types</option>{resourceTypes.map((item) => <option value={item} selected={typeFilter === item}>{statusLabel(item)}</option>)}</select></label>
+      <label><span class="label">Age group</span><select class="field" name="age"><option value="">All ages</option>{ageGroups.map((item) => <option value={item} selected={ageFilter === item}>{item}</option>)}</select></label>
+      <div class="flex items-end"><button class="w-full bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Filter</button></div>
+    </form>
+
+    <section class="grid gap-4 md:grid-cols-2">
+    {resourceList.length === 0 && <EmptyState title="No coaching resources found" text="Session plans, drills and team resources will appear here for approved coaches and football staff." />}
+    {resourceList.map((resource) => (
       <article class="surface p-5">
         <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
         <h2 class="mt-2 font-display text-2xl font-black uppercase leading-none text-eagles-ink">{resource.title}</h2>
         <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{resource.summary ?? "Football resource for Greenacre Eagles coaching staff."}</p>
+        {bodyText(resource) && <p class="mt-3 text-sm leading-6 text-eagles-ink/80">{bodyText(resource).slice(0, 260)}{bodyText(resource).length > 260 ? "..." : ""}</p>}
         <div class="mt-4 flex flex-wrap gap-2">
           <StatusBadge label={statusLabel(resource.status)} tone={resource.status === "published" ? "green" : "amber"} />
-          <StatusBadge label={`${resource.duration_minutes ?? 0} min`} tone="ink" />
-          <StatusBadge label={formatDate(resource.created_at)} tone="ink" />
+          <StatusBadge label={statusLabel(resource.visibility)} tone="ink" />
+          {resource.duration_minutes !== null && <StatusBadge label={`${resource.duration_minutes} min`} tone="ink" />}
+          <StatusBadge label={formatDate(resource.published_at ?? resource.updated_at)} tone="ink" />
         </div>
+        {(resource.age_group_tags?.length || resource.skill_level_tags?.length) && (
+          <p class="mt-4 text-xs font-bold uppercase text-eagles-ink/60">{[...(resource.age_group_tags ?? []), ...(resource.skill_level_tags ?? [])].join(" / ")}</p>
+        )}
+        {resource.equipment_required?.length > 0 && <p class="mt-2 text-sm text-eagles-ink/70">Equipment: {resource.equipment_required.join(", ")}</p>}
+        {resource.external_url && <a class="mt-4 inline-flex text-sm font-black text-eagles-green" href={resource.external_url} target="_blank" rel="noreferrer">Open resource</a>}
       </article>
     ))}
-  </section>
+    </section>
+  </div>
 </PortalLayout>

@@ -16,11 +16,15 @@ const schema = z.object({
   communication_sms: z.string().optional()
 });
 
+const preferenceCategories = ["general", "team", "commerce", "events", "volunteers", "resources"] as const;
+const preferenceChannels = ["in_app", "email", "sms"] as const;
+
 export const POST: APIRoute = async (context) => {
   const session = await requireUser(context);
   if (!session) return context.redirect("/login/");
 
-  const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
+  const formData = await context.request.formData();
+  const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return context.redirect(redirectWithMessage("/portal/account/", "error", parsed.error.issues[0]?.message ?? "Check your details."));
 
   const { error } = await session.supabase
@@ -38,5 +42,21 @@ export const POST: APIRoute = async (context) => {
     })
     .eq("id", session.user.id);
 
-  return context.redirect(redirectWithMessage("/portal/account/", error ? "error" : "success", error ? "Profile could not be saved." : "Profile saved."));
+  if (error) return context.redirect(redirectWithMessage("/portal/account/", "error", "Profile could not be saved."));
+
+  const preferences = preferenceCategories.flatMap((category) =>
+    preferenceChannels.map((channel) => ({
+      user_id: session.user.id,
+      channel,
+      category,
+      enabled: formData.get(`notify_${channel}_${category}`) === "on",
+      updated_at: new Date().toISOString()
+    }))
+  );
+
+  const { error: preferenceError } = await (session.supabase as any)
+    .from("notification_preferences")
+    .upsert(preferences, { onConflict: "user_id,channel,category" });
+
+  return context.redirect(redirectWithMessage("/portal/account/", preferenceError ? "error" : "success", preferenceError ? "Notification preferences could not be saved." : "Profile saved."));
 };

@@ -52,7 +52,7 @@
 - [x] Build full squads, staff and match reports management.
 - [x] Build family and guardian management foundation.
 - [x] Build volunteer shifts and assignments.
-- [ ] Build coaching resource library.
+- [x] Build coaching resource library.
 
 ## Phase 5: Commerce
 
@@ -67,10 +67,10 @@
 
 ## Phase 6: Content And Communications
 
-- [ ] Move public editable content into database-backed workflow where needed.
-- [ ] Build announcements, news, sponsor and event publishing.
+- [x] Move public editable content into database-backed workflow where needed.
+- [x] Build announcements, news, sponsor and event publishing.
 - [x] Absorb member notifications into the portal dashboard.
-- [ ] Build notification preferences and communication outbox worker.
+- [x] Build notification preferences and communication outbox worker.
 
 ## Phase 7: Production Hardening
 
@@ -78,7 +78,7 @@
 - [ ] Convert smoke coverage to automated pgTAP/local Supabase test flow.
 - [ ] Add business-rule unit tests.
 - [ ] Add end-to-end tests for critical journeys.
-- [ ] Add Turnstile to public abuse-prone forms.
+- [x] Add Turnstile to public abuse-prone forms.
 - [x] Configure Cloudflare Pages build/env vars for the current Pages domain.
 - [ ] Confirm Cloudflare Pages `SESSION` KV and `IMAGES` bindings for the server-rendered Astro adapter.
 - [ ] Configure custom domain.

@@ -30,12 +30,24 @@ Team pages also show active squad and staff lists where team RLS permits access.
 
 ## Notifications
 
-Notifications use the existing `notifications` table. The dashboard supports unread display and mark-all-read through `/api/portal/notification/`. New notification categories should set `related_entity_type` and `related_entity_id` so dashboard action links can route members to the right workflow.
+Notifications use the existing `notifications` table. The dashboard supports unread display and mark-all-read through `/api/portal/notification/`. Notifications may now carry `action_url`; otherwise the dashboard falls back to `related_entity_type` and `related_entity_id` routing.
+
+Members manage category preferences from `/portal/account/`. Preferences are stored in `notification_preferences` for portal, email and SMS channels across club notices, team posts, commerce, events, volunteers and resources. The broad profile-level email/SMS switches still act as channel defaults.
+
+Outbound email and SMS jobs are queued in `communication_outbox`. The worker endpoint `/api/workers/communication-outbox/` lets a trusted scheduled worker claim, complete or fail jobs using `COMMUNICATION_WORKER_SECRET`. The source does not send production email/SMS directly; a real delivery provider must call the worker contract and then mark each job complete or failed.
 
 ## Volunteers
 
 `/portal/volunteers/` shows open or filled volunteer shifts, remaining capacity and the signed-in member's assignments. Members can sign up, check in, cancel or request a replacement through RPC-backed actions so shift capacity and status remain consistent under concurrent submissions.
 
+## Coaching Resources
+
+`/portal/coaching/` is permission-controlled for coaches, team staff and club administrators. It lists published coaching resources with search, resource-type filtering, age-group filtering, tags, duration, equipment and external links.
+
+## Public Content
+
+The homepage, `/news/`, `/news/[slug]/` and `/sponsors/` now read published Supabase content first for articles, announcements and sponsor records. Existing Markdown collections remain as fallback content when no matching database rows are published.
+
 ## Current Limits
 
-The commerce and club-operations source phases add canteen catalogue management, stock-aware canteen ordering, staff order transitions, payment marking, pickup codes, automatic wallet voucher issuance for paid voucher products, voucher QR scanning and reversal, wallet account creation, manual top-up settlement, provider webhook settlement, controlled wallet adjustments, ledger reversal, merchandise catalogue management, stock-backed merchandise checkout, merchandise order operations and volunteer shift rostering. Full production completion still requires applying the latest migration, regenerating database types, configuring live payment provider credentials, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.
+The commerce, club-operations and publishing phases add canteen catalogue management, stock-aware canteen ordering, staff order transitions, payment marking, pickup codes, automatic wallet voucher issuance for paid voucher products, voucher QR scanning and reversal, wallet account creation, manual top-up settlement, provider webhook settlement, controlled wallet adjustments, ledger reversal, merchandise catalogue management, stock-backed merchandise checkout, merchandise order operations, volunteer shift rostering, the coaching resource library, database-backed public articles, announcements and sponsors, notification preferences and a provider-neutral communication outbox. Full production completion still requires applying the latest migration, regenerating database types, configuring live payment provider credentials, connecting a real email/SMS delivery worker, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.

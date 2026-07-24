@@ -1,8 +1,8 @@
 ---
-import type { CollectionEntry } from "astro:content";
+import type { PublicSponsor } from "@lib/public-content";
 
 interface Props {
-  sponsors: CollectionEntry<"sponsors">[];
+  sponsors: PublicSponsor[];
 }
 
 const { sponsors } = Astro.props;
@@ -21,23 +21,23 @@ const initials = (name: string) =>
     sponsors.map((sponsor) => (
       <a
         class="surface flex min-h-40 flex-col justify-between p-5 hover:border-eagles-green"
-        href={sponsor.data.website ?? "/sponsors/"}
-        target={isExternal(sponsor.data.website) ? "_blank" : undefined}
-        rel={isExternal(sponsor.data.website) ? "noreferrer" : undefined}
+        href={sponsor.website ?? "/sponsors/"}
+        target={isExternal(sponsor.website ?? undefined) ? "_blank" : undefined}
+        rel={isExternal(sponsor.website ?? undefined) ? "noreferrer" : undefined}
       >
         {
-          sponsor.data.logo ? (
-            <img src={sponsor.data.logo} alt="" class="h-16 w-full object-contain object-left" loading="lazy" />
+          sponsor.logo ? (
+            <img src={sponsor.logo} alt="" class="h-16 w-full object-contain object-left" loading="lazy" />
           ) : (
             <div class="flex h-16 w-16 items-center justify-center bg-eagles-green font-display text-2xl font-black text-white" style="border-radius:8px">
-              {initials(sponsor.data.name)}
+              {initials(sponsor.name)}
             </div>
           )
         }
         <div class="mt-5">
-          <p class="text-xs font-black uppercase text-eagles-green">{sponsor.data.tier}</p>
-          <h3 class="mt-1 font-display text-xl font-black uppercase leading-none">{sponsor.data.name}</h3>
-          <p class="mt-2 text-sm leading-6 text-eagles-ink/65">{sponsor.data.description}</p>
+          <p class="text-xs font-black uppercase text-eagles-green">{sponsor.tier}</p>
+          <h3 class="mt-1 font-display text-xl font-black uppercase leading-none">{sponsor.name}</h3>
+          <p class="mt-2 text-sm leading-6 text-eagles-ink/65">{sponsor.description}</p>
         </div>
       </a>
     ))

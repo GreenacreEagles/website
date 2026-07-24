@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
+import TurnstileWidget from "@components/TurnstileWidget.astro";
 import { getPortalSession } from "@lib/auth/session";
 
 export const prerender = false;
@@ -10,6 +11,7 @@ if (session) return Astro.redirect("/portal/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
 <BaseLayout title="Login" description="Sign in to the Greenacre Eagles FC portal.">
@@ -45,6 +47,7 @@ const error = Astro.url.searchParams.get("error");
               <span class="label">Password</span>
               <input class="field" name="password" type="password" autocomplete="current-password" required />
             </label>
+            <TurnstileWidget action="signin" />
             <button class="focus-ring inline-flex items-center justify-center bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">
               Sign in
             </button>
@@ -79,6 +82,7 @@ const error = Astro.url.searchParams.get("error");
               <input class="mt-1" name="terms" type="checkbox" required />
               <span>I agree to the club terms and privacy requirements for using the Greenacre Eagles portal.</span>
             </label>
+            <TurnstileWidget action="signup" />
             <button class="focus-ring inline-flex items-center justify-center border border-eagles-line bg-white px-5 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist" style="border-radius:8px" type="submit">
               Create account
             </button>
@@ -93,6 +97,7 @@ const error = Astro.url.searchParams.get("error");
               <span class="label">Email</span>
               <input class="field" name="email" type="email" autocomplete="email" required />
             </label>
+            <TurnstileWidget action="reset_password" />
             <button class="focus-ring inline-flex items-center justify-center px-5 py-3 text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">
               Send reset link
             </button>
@@ -101,4 +106,5 @@ const error = Astro.url.searchParams.get("error");
       </div>
     </div>
   </section>
+  {turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 </BaseLayout>

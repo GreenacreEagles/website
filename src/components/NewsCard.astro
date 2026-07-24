@@ -1,31 +1,31 @@
 ---
-import type { CollectionEntry } from "astro:content";
 import Icon from "@components/Icon.astro";
 import { formatDate } from "@lib/content";
+import type { PublicArticle } from "@lib/public-content";
 
 interface Props {
-  article: CollectionEntry<"news">;
+  article: PublicArticle;
 }
 
 const { article } = Astro.props;
-const href = `/news/${article.data.slug ?? article.id}/`;
+const href = `/news/${article.slug}/`;
 ---
 
 <article class="surface overflow-hidden">
   <a href={href} class="block">
-    <img src={article.data.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-56 w-full object-cover" loading="lazy" />
+    <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-56 w-full object-cover" loading="lazy" />
   </a>
   <div class="p-5">
     <div class="flex flex-wrap items-center gap-3 text-sm font-bold text-eagles-green">
-      <span>{article.data.category}</span>
+      <span>{article.category}</span>
       <span class="inline-flex items-center gap-1 text-eagles-ink/60">
         <Icon name="calendar" class="h-4 w-4" />
-        {formatDate(article.data.date)}
+        {formatDate(new Date(article.date))}
       </span>
     </div>
     <h3 class="mt-3 font-display text-2xl font-black uppercase leading-none text-eagles-ink">
-      <a class="hover:text-eagles-green" href={href}>{article.data.title}</a>
+      <a class="hover:text-eagles-green" href={href}>{article.title}</a>
     </h3>
-    <p class="mt-3 line-clamp-3 text-base leading-7 text-eagles-ink/70">{article.data.summary}</p>
+    <p class="mt-3 line-clamp-3 text-base leading-7 text-eagles-ink/70">{article.summary}</p>
   </div>
 </article>

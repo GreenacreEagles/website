@@ -4,10 +4,13 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import NewsCard from "@components/NewsCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import { newestFirst } from "@lib/content";
+import { fetchPublicArticles, markdownArticle } from "@lib/public-content";
 
-const articles = newestFirst(await getCollection("news"));
+const markdownArticles = newestFirst(await getCollection("news")).map(markdownArticle);
+const dbArticles = await fetchPublicArticles(60);
+const articles = dbArticles.length > 0 ? dbArticles : markdownArticles;
 
-export const prerender = true;
+export const prerender = false;
 ---
 
 <BaseLayout title="News" description="Latest Greenacre Eagles FC news, announcements, updates, and community stories.">

@@ -46,6 +46,9 @@ Required runtime variables:
 - `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
 - `SUPABASE_SERVICE_ROLE_KEY`: server-only Supabase key used by trusted webhook routes.
 - `PAYMENT_WEBHOOK_SECRET`: shared secret expected by `/api/webhooks/payments/`.
+- `COMMUNICATION_WORKER_SECRET`: shared secret expected by `/api/workers/communication-outbox/`.
+- `PUBLIC_TURNSTILE_SITE_KEY`: public Cloudflare Turnstile site key rendered on login, signup and password reset forms.
+- `TURNSTILE_SECRET_KEY`: server-only Cloudflare Turnstile secret used to validate public auth form submissions.
 
 ## Environment Variables
 
@@ -54,6 +57,9 @@ Required runtime variables:
 - `PUBLIC_SUPABASE_ANON_KEY`: Supabase publishable/anon key for browser auth and portal calls.
 - `SUPABASE_SERVICE_ROLE_KEY`: server-only Supabase key used by trusted webhook routes.
 - `PAYMENT_WEBHOOK_SECRET`: long random shared secret sent by payment provider webhook configuration.
+- `COMMUNICATION_WORKER_SECRET`: long random shared secret sent by the scheduled email/SMS delivery worker.
+- `PUBLIC_TURNSTILE_SITE_KEY`: Cloudflare Turnstile widget site key for the production hostname.
+- `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile secret key. When unset, Turnstile validation is disabled so local development still works.
 - `NODE_VERSION`: `22`
 
 Production and preview variables have been configured in Cloudflare Pages for the current Pages domain. Update `SITE_URL` after a custom domain is attached.
@@ -62,7 +68,7 @@ Production and preview variables have been configured in Cloudflare Pages for th
 
 Astro is configured with `@astrojs/cloudflare` and `output: "server"`.
 
-Public marketing/content pages are prerendered into `dist/client`. Protected portal, admin, and API routes run through the Cloudflare Worker entry copied to `dist/client/_worker.js/index.js`.
+Most public marketing pages are prerendered into `dist/client`. Database-backed public content routes such as `/`, `/news/`, `/news/[slug]/` and `/sponsors/` run through the Cloudflare Worker so they can read published Supabase articles, announcements and sponsor records at request time. Protected portal, admin, and API routes also run through the Worker entry copied to `dist/client/_worker.js/index.js`.
 
 Required runtime bindings:
 
@@ -77,7 +83,7 @@ The root `.nojekyll` file is intentionally empty. It is present only as a defens
 
 ## Current Content Model
 
-The public website is static-first. Editable content lives in Markdown collections under `src/content`:
+The public website uses a hybrid content model. Published Supabase rows are used first for public articles, homepage announcements and sponsors. Markdown collections under `src/content` remain as fallback content and still power static-only sections:
 
 - `news`
 - `weekly-highlights`
@@ -89,16 +95,18 @@ The public website is static-first. Editable content lives in Markdown collectio
 - `teams`
 - `announcements`
 
-This keeps the public site fast, portable, and easy to build.
+This keeps the public site portable while allowing content editors to publish news, announcements and sponsor records through the admin portal.
 
-## Future Admin Direction
+## Admin Direction
 
-The public foundation is now ready for a simple database-backed admin system later:
+The public foundation now supports database-backed publishing for selected editable sections:
 
 - Supabase Auth handles secure login.
 - Portal/admin routes already run server-side.
 - Role and permission checks are centralized in Supabase RLS/RPCs and server route guards.
-- Public content still lives in `src/content` while operational workflows are built out.
-- Future content tables can support article publishing, social post links, featured updates, media records, and simple editor workflows without changing the public routing model.
+- Public article, announcement and sponsor publishing is available through `/admin/content/` and `/admin/sponsors/`.
+- Notification preferences and the communication outbox are database-backed; an external provider worker should use `/api/workers/communication-outbox/` to claim and complete email/SMS jobs.
+- Login, signup and password reset forms render Cloudflare Turnstile when `PUBLIC_TURNSTILE_SITE_KEY` is set and enforce server-side Siteverify validation when `TURNSTILE_SECRET_KEY` is set.
+- Markdown remains available for seeded or static sections such as teams, galleries, events, weekly highlights and fundraisers.
 
 Do not add GitHub Pages, Jekyll, or GitHub Pages-specific build steps.

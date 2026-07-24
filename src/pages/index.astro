@@ -11,18 +11,25 @@ import SocialPostCard from "@components/SocialPostCard.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
 import { bySortOrder, newestFirst, upcomingFirst } from "@lib/content";
+import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, markdownSponsor } from "@lib/public-content";
 
-const news = newestFirst(await getCollection("news")).slice(0, 3);
+const markdownNews = newestFirst(await getCollection("news")).map(markdownArticle);
+const dbNews = await fetchPublicArticles(3);
+const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
 const highlights = newestFirst(await getCollection("weekly-highlights"))[0];
 const socialPosts = bySortOrder((await getCollection("social-posts")).filter((post) => post.data.featured)).slice(0, 3);
 const events = upcomingFirst(await getCollection("events")).slice(0, 3);
 const teams = bySortOrder(await getCollection("teams"));
 const spotlightTeam = teams.find((team) => team.data.spotlight) ?? teams[0];
-const sponsors = bySortOrder(await getCollection("sponsors")).slice(0, 3);
+const markdownSponsors = bySortOrder(await getCollection("sponsors")).map(markdownSponsor);
+const dbSponsors = await fetchPublicSponsors(3);
+const sponsors = (dbSponsors.length > 0 ? dbSponsors : markdownSponsors).slice(0, 3);
 const fundraiser = (await getCollection("fundraisers")).find((item) => item.data.status === "active");
-const announcement = (await getCollection("announcements"))
+const markdownAnnouncementItem = (await getCollection("announcements"))
   .filter((item) => item.data.active)
-  .sort((a, b) => a.data.priority - b.data.priority)[0];
+  .sort((a, b) => a.data.priority - b.data.priority)
+  .map(markdownAnnouncement)[0];
+const announcement = (await fetchPublicAnnouncement()) ?? markdownAnnouncementItem;
 
 const photos = {
   celebration: "/media/photos/470187271_18322350109095212_5760343773768933538_n.jpg",
@@ -32,7 +39,7 @@ const photos = {
   champions: "/media/photos/542799832_18354096757095212_3870055734016167636_n.jpg"
 };
 
-export const prerender = true;
+export const prerender = false;
 ---
 
 <BaseLayout title={site.name} description={site.description}>
@@ -42,9 +49,9 @@ export const prerender = true;
     <div class="section-shell grid min-h-[calc(100svh-5rem)] gap-10 py-10 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:py-16">
       <div class="max-w-3xl">
         {announcement && (
-          <a href={announcement.data.linkUrl ?? "/join/"} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
+          <a href={announcement.linkUrl ?? "/join/"} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
             <Icon name="megaphone" class="h-4 w-4 text-eagles-green" />
-            {announcement.data.title}
+            {announcement.title}
           </a>
         )}
         <p class="text-base font-black uppercase text-eagles-green">{site.association}</p>

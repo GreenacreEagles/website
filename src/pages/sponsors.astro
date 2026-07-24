@@ -5,10 +5,13 @@ import ButtonLink from "@components/ButtonLink.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import { bySortOrder } from "@lib/content";
+import { fetchPublicSponsors, markdownSponsor } from "@lib/public-content";
 
-const sponsors = bySortOrder(await getCollection("sponsors"));
+const markdownSponsors = bySortOrder(await getCollection("sponsors")).map(markdownSponsor);
+const dbSponsors = await fetchPublicSponsors(80);
+const sponsors = dbSponsors.length > 0 ? dbSponsors : markdownSponsors;
 
-export const prerender = true;
+export const prerender = false;
 ---
 
 <BaseLayout title="Sponsors" description="Greenacre Eagles FC sponsors and local partners supporting community football.">

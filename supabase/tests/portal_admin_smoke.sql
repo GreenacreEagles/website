@@ -199,6 +199,100 @@ select 'volunteer coordinator can complete shift',
   'shift completion completes active assignment'
 from completed_shift;
 
+insert into public.coaching_resources (
+  title,
+  resource_type,
+  summary,
+  body,
+  age_group_tags,
+  skill_level_tags,
+  duration_minutes,
+  equipment_required,
+  visibility,
+  status,
+  created_by
+)
+values (
+  'Smoke Pressing Drill',
+  'drill',
+  'Smoke coaching resource',
+  '{"type":"plain_text","text":"Set up a compact pressing grid and rotate defenders."}'::jsonb,
+  array['U12','Seniors'],
+  array['intermediate'],
+  20,
+  array['cones','bibs'],
+  'coaches',
+  'published',
+  '00000000-0000-4000-8000-000000000211'
+);
+
+insert into smoke_results
+select 'coaching resource publish metadata is prepared',
+  exists (
+    select 1
+    from public.coaching_resources cr
+    where cr.title = 'Smoke Pressing Drill'
+      and cr.slug = 'smoke-pressing-drill'
+      and cr.published_at is not null
+      and cr.age_group_tags @> array['U12']
+      and cr.equipment_required @> array['cones']
+  ),
+  'published coaching resources receive slug and searchable tags';
+
+insert into public.content_articles (
+  title,
+  slug,
+  summary,
+  body,
+  category,
+  workflow_status,
+  tags,
+  author_id
+)
+values (
+  'Smoke Public Article',
+  '',
+  'Smoke public publishing summary',
+  '{"type":"plain_text","text":"Public article body for database-backed publishing."}'::jsonb,
+  'Club news',
+  'published',
+  array['smoke','public'],
+  '00000000-0000-4000-8000-000000000211'
+);
+
+insert into public.club_announcements (title, message, audience, priority, status, created_by)
+values ('Smoke Public Announcement', 'Smoke public announcement body', 'public', 1, 'published', '00000000-0000-4000-8000-000000000211');
+
+insert into public.sponsors (name, tier, description, website_url, display_locations, display_priority, status)
+values ('Smoke Sponsor', 'Community', 'Smoke sponsor record', 'https://example.invalid', array['homepage','sponsors'], 1, 'active');
+
+insert into smoke_results
+select 'public content publishing metadata is prepared',
+  exists (
+    select 1
+    from public.content_articles ca
+    where ca.title = 'Smoke Public Article'
+      and ca.slug = 'smoke-public-article'
+      and ca.workflow_status = 'published'
+      and ca.publish_at is not null
+      and ca.tags @> array['public']
+  )
+  and exists (
+    select 1
+    from public.club_announcements ca
+    where ca.title = 'Smoke Public Announcement'
+      and ca.status = 'published'
+      and ca.audience = 'public'
+  )
+  and exists (
+    select 1
+    from public.sponsors s
+    where s.name = 'Smoke Sponsor'
+      and s.status = 'active'
+      and s.display_locations @> array['homepage']
+  ),
+  'public article, announcement and sponsor rows are ready for runtime rendering';
+
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
 
 with ensured as (
@@ -673,6 +767,77 @@ select 'merchandise manager can mark order paid',
   ),
   'status RPC records merchandise history'
 from moved;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
+
+insert into public.notification_preferences (user_id, channel, category, enabled)
+values
+  ('00000000-0000-4000-8000-000000000212', 'email', 'commerce', true),
+  ('00000000-0000-4000-8000-000000000212', 'sms', 'commerce', false),
+  ('00000000-0000-4000-8000-000000000212', 'in_app', 'commerce', true)
+on conflict (user_id, channel, category)
+do update set enabled = excluded.enabled;
+
+do $$
+begin
+  perform *
+  from public.enqueue_admin_notification(
+    '00000000-0000-4000-8000-000000000212',
+    'Smoke order update',
+    'Your smoke order is ready.',
+    'commerce',
+    array['in_app','email','sms'],
+    'admin_message',
+    '{"smoke":true}'::jsonb,
+    'canteen_order',
+    '00000000-0000-4000-8000-000000000214',
+    '/portal/canteen/',
+    'smoke-commerce-ready',
+    now()
+  );
+
+  perform *
+  from public.enqueue_admin_notification(
+    '00000000-0000-4000-8000-000000000212',
+    'Smoke order update',
+    'Your smoke order is still ready.',
+    'commerce',
+    array['in_app','email','sms'],
+    'admin_message',
+    '{"smoke":true,"updated":true}'::jsonb,
+    'canteen_order',
+    '00000000-0000-4000-8000-000000000214',
+    '/portal/canteen/',
+    'smoke-commerce-ready',
+    now()
+  );
+end $$;
+
+insert into smoke_results
+select 'notification preferences queue only enabled channels',
+  exists (
+    select 1
+    from public.notifications
+    where recipient_id = '00000000-0000-4000-8000-000000000212'
+      and dedupe_key = 'smoke-commerce-ready'
+      and body = 'Your smoke order is still ready.'
+      and action_url = '/portal/canteen/'
+  )
+  and exists (
+    select 1
+    from public.communication_outbox
+    where recipient_id = '00000000-0000-4000-8000-000000000212'
+      and dedupe_key = 'smoke-commerce-ready:email'
+      and channel = 'email'
+      and status = 'pending'
+  )
+  and not exists (
+    select 1
+    from public.communication_outbox
+    where recipient_id = '00000000-0000-4000-8000-000000000212'
+      and dedupe_key = 'smoke-commerce-ready:sms'
+  ),
+  'in-app notice deduped, email queued, sms suppressed by preference';
 
 select check_name, passed, detail from smoke_results order by check_name;
 

@@ -27,3 +27,5 @@ Supabase SSR cookies are read from incoming request headers and written by API/S
 ## Signup Safety
 
 New signups are provisioned as general users. Public signup metadata cannot grant admin permissions or super-administrator access.
+
+Public sign in, signup and password reset submissions support Cloudflare Turnstile. The widget renders when `PUBLIC_TURNSTILE_SITE_KEY` is configured, and the server validates `cf-turnstile-response` with Cloudflare Siteverify before calling Supabase Auth when `TURNSTILE_SECRET_KEY` is configured.
