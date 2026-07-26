@@ -4,6 +4,7 @@ dist
 .vercel
 .netlify
 .wrangler
+.deploy-tmp
 .env
 .env.*
 !.env.example

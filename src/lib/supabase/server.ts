@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
+import { env } from "cloudflare:workers";
 import type { Database } from "../../types/database.types";
 
 type RuntimeContext = {
@@ -8,8 +9,8 @@ type RuntimeContext = {
   locals?: any;
 };
 
-const readEnv = (context: RuntimeContext, key: string) =>
-  context.locals?.runtime?.env?.[key] ?? import.meta.env[key];
+const readEnv = (_context: RuntimeContext, key: string) =>
+  (env as Record<string, unknown>)[key] ?? import.meta.env[key];
 
 export const createSupabaseServerClient = (context: RuntimeContext) => {
   const supabaseUrl = readEnv(context, "PUBLIC_SUPABASE_URL");
