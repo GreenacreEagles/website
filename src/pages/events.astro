@@ -1,11 +1,11 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import SectionHeading from "@components/SectionHeading.astro";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicEvents,type PublicEventSummary } from "@lib/public-events";
 import { formatDateTime,formatMoney } from "@lib/format";
 export const prerender=false;
-let events:PublicEventSummary[]=[]; try{events=await getPublicEvents(createSupabaseServiceClient(Astro),Astro)}catch(error){console.error("Unable to load events",error)}
+let events:PublicEventSummary[]=[]; try{events=await getPublicEvents(createSupabaseServerClient(Astro),Astro)}catch(error){console.error("Unable to load events",error)}
 ---
 <BaseLayout title="Events" description="Discover upcoming Greenacre Eagles FC events, club activities and ticketed community experiences.">
  <section class="section-pad bg-eagles-mist"><div class="section-shell">

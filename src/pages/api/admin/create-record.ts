@@ -405,5 +405,10 @@ export const POST: APIRoute = async (context) => {
     }));
   }
 
-  return context.redirect(redirectWithMessage(returnTo, error ? "error" : "success", error?.message ?? success));
+  const errorMessage =
+    action === "merchandiseProduct" && error
+      ? "The merchandise product could not be saved. Check the details and try again."
+      : error?.message;
+
+  return context.redirect(redirectWithMessage(returnTo, error ? "error" : "success", errorMessage ?? success));
 };

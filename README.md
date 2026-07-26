@@ -41,6 +41,7 @@ Cloudflare Pages settings:
 - Build command: `npm run build`
 - Build output directory: `dist/client`
 - Node version: `22`
+- Compatibility date: `2026-06-26`
 - Compatibility flag: `nodejs_compat`
 - Required binding: `SESSION` Workers KV binding for Astro sessions
 
@@ -70,6 +71,7 @@ Cloudflare-specific static hosting files:
 
 - `public/_redirects` for Pages redirects.
 - `public/_headers` for baseline security headers and static asset caching.
+- `public/_routes.json` keeps immutable Astro and repository media assets out of the Worker.
 
 See `docs/cloudflare-pages.md` for the full deployment direction and `docs/administrator-runbook.md` for backup, recovery and incident procedures.
 

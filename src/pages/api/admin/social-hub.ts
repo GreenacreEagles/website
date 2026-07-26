@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { getPublicMediaBucket, PLAYER_PHOTO_TYPES, playerPhotoMaxBytes, socialPostImageObjectKey } from "@lib/media";
+import { getPublicMediaBucket, socialPostImageObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender = false;
 const platform = z.enum(["instagram", "facebook", "tiktok"]);
@@ -51,9 +51,10 @@ export const POST: APIRoute = async (context) => {
       values.image_object_key = oldKey;
       if (file instanceof File && file.size > 0) {
         if (!bucket) return context.redirect(redirectWithMessage("/admin/highlights/","error","Public media storage is not configured; save without an image or connect the R2 binding."));
-        if (!PLAYER_PHOTO_TYPES.has(file.type) || file.size > playerPhotoMaxBytes(context)) return context.redirect(redirectWithMessage("/admin/highlights/","error","Use a JPEG, PNG, WebP or AVIF image within the configured upload limit."));
+        const validation = await validatePublicImage(file, context);
+        if (!validation.ok) return context.redirect(redirectWithMessage("/admin/highlights/","error",validation.error));
         uploadedKey = socialPostImageObjectKey(id,file.type);
-        await bucket.put(uploadedKey,await file.arrayBuffer(),{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=86400"}});
+        await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=31536000, immutable"}});
         values.image_object_key = uploadedKey;
       } else if (removeImage) values.image_object_key = null;
     }

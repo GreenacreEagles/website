@@ -5,11 +5,11 @@ import SectionHeading from "@components/SectionHeading.astro";
 import TeamCard from "@components/TeamCard.astro";
 import AnimatedTeamCount from "@components/AnimatedTeamCount.astro";
 import EmptyState from "@components/EmptyState.astro";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
 
 export const prerender = false;
-const supabase = createSupabaseServiceClient(Astro);
+const supabase = createSupabaseServerClient(Astro);
 const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
 ---
 <BaseLayout title="Teams" description="Meet the active junior, youth and senior teams representing Greenacre Eagles FC.">

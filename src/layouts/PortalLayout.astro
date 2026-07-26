@@ -2,6 +2,7 @@
 import LogoLockup from "@components/LogoLockup.astro";
 import { canAccessAdmin, hasAnyPermission } from "@lib/auth/permissions";
 import type { PortalSession } from "@lib/auth/session";
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
 interface NavItem {
@@ -64,6 +65,7 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
     <title>{pageTitle}</title>
     <meta name="description" content="Secure Greenacre Eagles FC portal." />
     <meta name="theme-color" content="#07875f" />
+    <ClientRouter />
   </head>
   <body class="bg-eagles-mist">
     <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">

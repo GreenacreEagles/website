@@ -4,12 +4,11 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
 export const prerender=false;
 const session=await requireUser(Astro);if(!session)return Astro.redirect("/login/");if(session.isChildAccount)return Astro.redirect("/portal/vouchers/");
 const [{data:venues},{data:products},{data:orders},{data:familyMembers}]=await Promise.all([
  session.supabase.from("canteen_venues").select("id,name,is_active").eq("is_active",true).order("name"),
- (createSupabaseServiceClient(Astro) as any).from("canteen_products").select("id,name,description,price_cents,fulfilment_type,stock_quantity,low_stock_threshold,max_quantity_per_order,dietary_info,allergen_info,canteen_categories(name)").eq("is_active",true).eq("is_sold_out",false).order("sort_order").order("name").limit(80),
+ (session.supabase as any).from("canteen_products").select("id,name,description,price_cents,fulfilment_type,stock_quantity,low_stock_threshold,max_quantity_per_order,dietary_info,allergen_info,canteen_categories(name)").eq("is_active",true).eq("is_sold_out",false).order("sort_order").order("name").limit(80),
  session.supabase.from("canteen_orders" as any).select("id,order_number,order_status,payment_status,total_cents,pickup_code,pickup_window_start,created_at").or(`customer_id.eq.${session.user.id},recipient_id.eq.${session.user.id}`).order("created_at",{ascending:false}).limit(20),
  session.supabase.from("family_members").select("user_id,profiles:user_id(full_name,preferred_name,email)").in("relationship",["child","player","dependent"]).eq("status","active").limit(50)
 ]);

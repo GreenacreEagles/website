@@ -18,6 +18,7 @@ Cloudflare Pages settings:
 - Build command: `npm run build`
 - Build output directory: `dist/client`
 - Node version: `22`
+- Compatibility date: `2026-06-26`
 - Compatibility flag: `nodejs_compat`
 - Production branch: `main`, unless the repo owner chooses another branch
 - Pages/Worker config: `wrangler.jsonc` declares `SESSION` KV and `IMAGES` bindings for local and direct Worker deploys.
@@ -28,7 +29,7 @@ Do not remove `scripts/prepare-pages-worker.mjs` or the `postbuild` script. With
 The app can also be deployed as a standalone Cloudflare Worker:
 
 - Worker name: `greenacre-eagles-website`
-- Compatibility date: `2026-04-15`
+- Compatibility date: `2026-06-26`
 - Build command: `npm run build`
 - Deploy command: `npm run deploy:worker`
 - Worker entry: `dist/server/entry.mjs`
@@ -80,6 +81,37 @@ Cloudflare Pages reads these files from `public/` during the build:
 
 - `public/_redirects`
 - `public/_headers`
+- `public/_routes.json`
+
+`_routes.json` excludes `/_astro/*`, `/media/*`, `/favicon.ico`, and
+`/robots.txt` from the advanced-mode Worker. Portal, admin, API,
+authentication, and database-backed public routes remain included. Private
+responses and every response carrying cookies are marked `private, no-store`;
+safe anonymous public routes receive short shared-cache TTLs.
+
+The Pages project build command must remain exactly `npm run build`. Do not
+restore the former inline source rewrite or duplicate Worker-copy shell chain:
+the checked-in `postbuild` script is the single assembly path.
+
+## Enabling R2 media later
+
+R2 is deliberately optional. The app presents a friendly unavailable state
+when the bindings are absent.
+
+1. Enable R2 Standard in the Cloudflare account.
+2. Create separate buckets for editable public and private media.
+3. Add Pages production and preview R2 bindings named
+   `PUBLIC_MEDIA_BUCKET` and `PRIVATE_MEDIA_BUCKET`. If different names are
+   required, set `R2_PUBLIC_BUCKET_BINDING` and `R2_PRIVATE_BUCKET_BINDING`.
+4. Attach a production custom domain to the public bucket and set
+   `PUBLIC_MEDIA_BASE_URL` to its HTTPS origin. Do not use an `r2.dev` URL as
+   the permanent origin.
+5. Set optional `PUBLIC_MEDIA_MAX_FILE_SIZE`, `MEDIA_MAX_IMAGE_WIDTH`, and
+   `MEDIA_MAX_IMAGE_HEIGHT` limits if the defaults are not suitable.
+6. Redeploy, upload a test image, verify its magic bytes/dimensions/cache
+   metadata, replace it, and confirm the old object is removed.
+7. Keep private objects behind an authenticated delivery route or short-lived
+   signed access; never expose a private bucket publicly.
 
 The root `.nojekyll` file is intentionally empty. It is present only as a defensive marker and is not part of the Cloudflare Pages deployment model.
 

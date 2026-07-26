@@ -8,7 +8,6 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
 
 export const prerender = false;
 
@@ -18,7 +17,7 @@ if (!session) return Astro.redirect("/login/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: products }, { data: orders }] = await Promise.all([
-  createSupabaseServiceClient(Astro).from("merchandise_products").select("id,name,description,category,image_url,status,featured,merchandise_variants(id,sku,size,colour,price_cents,sale_price_cents,stock_quantity,low_stock_threshold,is_active)").order("updated_at", { ascending: false }).limit(100),
+  session.supabase.from("merchandise_products").select("id,name,description,category,image_url,status,featured,merchandise_variants(id,sku,size,colour,price_cents,sale_price_cents,stock_quantity,low_stock_threshold,is_active)").order("updated_at", { ascending: false }).limit(100),
   session.supabase.from("merchandise_orders" as any).select("id,order_number,status,total_cents,pickup_or_delivery,notes,created_at,profiles:customer_id(full_name,email),merchandise_order_items(product_name_snapshot,variant_label_snapshot,sku_snapshot,quantity,line_total_cents)").order("created_at", { ascending: false }).limit(80)
 ]);
 const productSummaries = (products ?? []).map((product: any) => ({

@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
 
 export const prerender = false;
@@ -13,7 +13,7 @@ const escapeXml = (value: string) => value.replace(/[<>&'"]/g, (character) =>
 
 export const GET: APIRoute = async (context) => {
   const origin = context.site ?? new URL(context.request.url).origin;
-  const { teams } = await getPublicTeams(createSupabaseServiceClient(context), context,);
+  const { teams } = await getPublicTeams(createSupabaseServerClient(context), context,);
   const paths = [...staticPaths, ...teams.map((team) => `/teams/${team.slug}/`)];
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths
     .map((path) => `  <url><loc>${escapeXml(new URL(path, origin).toString())}</loc></url>`).join("\n")}\n</urlset>`;

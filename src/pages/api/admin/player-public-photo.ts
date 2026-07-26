@@ -1,9 +1,8 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
 import { redirectWithMessage, uuidSchema } from "@lib/forms";
-import { getPublicMediaBucket, PLAYER_PHOTO_TYPES, playerPhotoMaxBytes, playerPhotoObjectKey } from "@lib/media";
+import { getPublicMediaBucket, playerPhotoObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender = false;
 const schema = z.object({
@@ -22,7 +21,7 @@ export const POST: APIRoute = async (context) => {
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return redirect(context, "error", "Check the public photo settings.");
 
-  const service = createSupabaseServiceClient(context);
+  const service = session.supabase;
   const { data: current, error: readError } = await (service as any).from("player_records")
     .select("id,photo_object_key,photo_consent,photo_updated_at").eq("id", parsed.data.player_id).maybeSingle();
   if (readError || !current) return redirect(context, "error", "Player record not found.");
@@ -35,11 +34,11 @@ export const POST: APIRoute = async (context) => {
 
   if (hasUpload) {
     if (!bucket) return redirect(context, "error", "Public media storage is not configured. Connect the PUBLIC_MEDIA_BUCKET R2 binding before uploading.");
-    if (!PLAYER_PHOTO_TYPES.has(file.type)) return redirect(context, "error", "Use a JPEG, PNG, WebP or AVIF image.");
-    if (file.size > playerPhotoMaxBytes(context)) return redirect(context, "error", "The image is larger than the configured upload limit.");
+    const validation = await validatePublicImage(file, context);
+    if (!validation.ok) return redirect(context, "error", validation.error);
     uploadedKey = playerPhotoObjectKey(current.id, file.type);
     try {
-      await bucket.put(uploadedKey, await file.arrayBuffer(), { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=86400" } });
+      await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=31536000, immutable" } });
       nextKey = uploadedKey;
     } catch {
       return redirect(context, "error", "The photo could not be uploaded to public media storage.");

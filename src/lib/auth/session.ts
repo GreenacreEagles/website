@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@lib/supabase/server";
-import { PORTAL_PERMISSIONS } from "./permissions";
+import { recordServerTiming } from "@lib/server-timing";
 import type { Database } from "../../types/database.types";
 
 type AstroContext = Parameters<typeof createSupabaseServerClient>[0];
@@ -49,55 +49,53 @@ const isActiveAssignment = (assignment: RoleAssignmentSummary) => {
   return assignment.status === "active" && starts <= now && ends > now;
 };
 
+type PortalContextResult = {
+  user_id: string;
+  profile: Profile | null;
+  permission_keys: string[];
+  role_assignments: RoleAssignmentSummary[];
+  unread_notifications: number;
+  is_child_account: boolean;
+  child_login_disabled: boolean;
+};
+
+const requestSessions = new WeakMap<object, Promise<PortalSession | null>>();
+
 export const getPortalSession = async (context: AstroContext): Promise<PortalSession | null> => {
+  const requestKey = context as object;
+  const existing = requestSessions.get(requestKey);
+  if (existing) return existing;
+
+  const pending = loadPortalSession(context);
+  requestSessions.set(requestKey, pending);
+  return pending;
+};
+
+const loadPortalSession = async (context: AstroContext): Promise<PortalSession | null> => {
   const supabase = createSupabaseServerClient(context);
+  const authStartedAt = performance.now();
   const { data: userData, error: userError } = await supabase.auth.getUser();
+  recordServerTiming(context, "auth", authStartedAt);
   const user = userData.user;
 
   if (userError || !user) return null;
 
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const contextStartedAt = performance.now();
+  const { data, error } = await supabase.rpc("get_portal_context");
+  recordServerTiming(context, "portal-context", contextStartedAt);
+  const portalContext = data as unknown as PortalContextResult | null;
+  const profile = portalContext?.profile;
 
-  if (profileError || !profile || profile.account_status !== "active") return null;
-
-  const { data: assignments } = await supabase
-    .from("user_role_assignments")
-    .select("id,status,starts_at,ends_at,reason,roles(id,key,name,description,is_sensitive),teams(id,name),seasons(id,name)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  const permissionEntries = await Promise.all(
-    PORTAL_PERMISSIONS.map(async (permission) => {
-      const { data } = await supabase.rpc("has_permission", { permission_key: permission });
-      return [permission, data === true] as const;
-    })
-  );
-
-  const permissions = new Set<string>();
-  permissionEntries.forEach(([permission, allowed]) => {
-    if (allowed) permissions.add(permission);
-  });
-
-  const { data: superAdmin } = await supabase.rpc("has_permission", { permission_key: "*" });
-  if (superAdmin) permissions.add("*");
-
-  const { count: unreadNotifications } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("recipient_id", user.id)
-    .is("read_at", null);
-
-  const { data: childAccount } = await (supabase as any)
-    .from("managed_child_accounts")
-    .select("id,login_disabled")
-    .eq("child_user_id", user.id)
-    .maybeSingle();
-
-  if (childAccount?.login_disabled) return null;
+  if (
+    error ||
+    !portalContext ||
+    portalContext.user_id !== user.id ||
+    !profile ||
+    profile.account_status !== "active" ||
+    portalContext.child_login_disabled
+  ) {
+    return null;
+  }
 
   return {
     supabase,
@@ -107,10 +105,10 @@ export const getPortalSession = async (context: AstroContext): Promise<PortalSes
       created_at: user.created_at
     },
     profile,
-    permissions,
-    roleAssignments: ((assignments ?? []) as unknown as RoleAssignmentSummary[]).filter(isActiveAssignment),
-    unreadNotifications: unreadNotifications ?? 0,
-    isChildAccount: Boolean(childAccount)
+    permissions: new Set(portalContext.permission_keys ?? []),
+    roleAssignments: (portalContext.role_assignments ?? []).filter(isActiveAssignment),
+    unreadNotifications: portalContext.unread_notifications ?? 0,
+    isChildAccount: portalContext.is_child_account
   };
 };
 

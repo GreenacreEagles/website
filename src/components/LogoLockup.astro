@@ -11,7 +11,15 @@ const associationClass = tone === "dark" ? "text-eagles-green" : "text-eagles-li
 ---
 
 <a href="/" class="focus-ring inline-flex min-w-0 items-center gap-3" aria-label={`${site.name} home`}>
-  <img src="/media/brand/greenacre-eagles-logo.png" alt="" class="h-14 w-14 shrink-0 rounded-full bg-white p-1 ring-1 ring-white/35" />
+  <img
+    src="/media/brand/greenacre-eagles-logo-112.webp"
+    srcset="/media/brand/greenacre-eagles-logo-112.webp 112w, /media/brand/greenacre-eagles-logo-224.webp 224w"
+    sizes="56px"
+    width="112"
+    height="112"
+    alt=""
+    class="h-14 w-14 shrink-0 rounded-full bg-white p-1 ring-1 ring-white/35"
+  />
   <span class="min-w-0 leading-none">
     <span class={`block truncate font-display text-base font-black uppercase sm:hidden ${nameClass}`}>Greenacre Eagles</span>
     <span class={`hidden truncate font-display text-xl font-black uppercase sm:block md:text-2xl ${nameClass}`}>{site.name}</span>

@@ -2840,6 +2840,15 @@ export type Database = {
     }
     Functions: {
       admin_dashboard_summary: { Args: never; Returns: Json }
+      get_portal_context: { Args: never; Returns: Json }
+      has_any_permission: {
+        Args: {
+          required_keys: string[]
+          target_season_id?: string
+          target_team_id?: string
+        }
+        Returns: boolean
+      }
       assign_user_role: {
         Args: {
           assignment_reason?: string

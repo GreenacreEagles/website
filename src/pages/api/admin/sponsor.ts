@@ -2,8 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
-import { getPublicMediaBucket, PLAYER_PHOTO_TYPES, playerPhotoMaxBytes, sponsorLogoObjectKey } from "@lib/media";
+import { getPublicMediaBucket, sponsorLogoObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender = false;
 const back = "/admin/sponsors/";
@@ -27,7 +26,7 @@ export const POST: APIRoute = async (context) => {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return context.redirect(redirectWithMessage(back, "error", parsed.error.issues[0]?.message ?? "Check the sponsor details."));
 
-  const service = createSupabaseServiceClient(context) as any;
+  const service = session.supabase as any;
   const values = parsed.data;
   const id = values.id ?? crypto.randomUUID();
   const { data: before } = await service.from("sponsors").select("*").eq("id", id).maybeSingle();
@@ -46,10 +45,11 @@ export const POST: APIRoute = async (context) => {
   let uploadedKey: string | null = null;
   const bucket = getPublicMediaBucket(context);
   if (file instanceof File && file.size > 0) {
-    if (!PLAYER_PHOTO_TYPES.has(file.type) || file.size > playerPhotoMaxBytes(context)) return context.redirect(redirectWithMessage(back, "error", "Choose a JPEG, PNG, WebP or AVIF image within the configured upload limit."));
     if (!bucket) return context.redirect(redirectWithMessage(back, "error", "Public R2 media storage is not configured. You can save the sponsor without a logo."));
+    const validation = await validatePublicImage(file, context);
+    if (!validation.ok) return context.redirect(redirectWithMessage(back, "error", validation.error));
     uploadedKey = sponsorLogoObjectKey(id, file.type);
-    await bucket.put(uploadedKey, await file.arrayBuffer(), { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=86400" } });
+    await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=31536000, immutable" } });
     logoObjectKey = uploadedKey;
   } else if (removeLogo) logoObjectKey = null;
 
@@ -76,6 +76,15 @@ export const POST: APIRoute = async (context) => {
   if (before && before.display_priority !== values.display_priority) actions.push("sponsor.order_changed");
   if (uploadedKey) actions.push(before?.logo_object_key ? "sponsor.logo_replaced" : "sponsor.logo_uploaded");
   if (removeLogo && before?.logo_object_key) actions.push("sponsor.logo_removed");
-  for (const action of actions) await service.from("audit_logs").insert({ actor_id: session.user.id, action, entity_type: "sponsor", entity_id: id, before_state: before, after_state: record });
+  if (actions.length > 0) {
+    await service.from("audit_logs").insert(actions.map((action) => ({
+      actor_id: session.user.id,
+      action,
+      entity_type: "sponsor",
+      entity_id: id,
+      before_state: before,
+      after_state: record
+    })));
+  }
   return context.redirect(redirectWithMessage(back, "success", before ? "Sponsor updated." : "Sponsor created."));
 };

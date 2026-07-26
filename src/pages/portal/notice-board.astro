@@ -4,7 +4,6 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDateTime, statusLabel } from "@lib/format";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
 
 export const prerender = false;
 
@@ -13,7 +12,7 @@ if (!session) return Astro.redirect("/login/");
 if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
 const [{ data: announcements }, { data: news }, { data: events }, { data: sponsors }] = await Promise.all([
-  createSupabaseServiceClient(Astro)
+  session.supabase
     .from("club_announcements")
     .select("id,title,message,priority,starts_at,ends_at,status,updated_at")
     .eq("status", "active")

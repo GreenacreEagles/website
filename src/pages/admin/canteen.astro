@@ -9,13 +9,12 @@ import StatusBadge from "@components/StatusBadge.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
 
 export const prerender = false;
 const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.redeem"]);
 if (!session) return Astro.redirect("/login/");
 
-const service = createSupabaseServiceClient(Astro) as any;
+const service = session.supabase as any;
 const now = new Date().toISOString();
 const [{ data: categories }, { data: products }, { data: orders }, { count: voucherCount }] = await Promise.all([
   service.from("canteen_categories").select("id,name,is_active,display_order").order("display_order").order("name"),

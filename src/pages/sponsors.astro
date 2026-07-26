@@ -5,10 +5,10 @@ import SectionHeading from "@components/SectionHeading.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import EmptyState from "@components/EmptyState.astro";
 import { fetchPublicSponsors, type PublicSponsor } from "@lib/public-content";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 
 let sponsors: PublicSponsor[] = [];
-try { sponsors = await fetchPublicSponsors(createSupabaseServiceClient(Astro), Astro, 80); } catch {}
+try { sponsors = await fetchPublicSponsors(createSupabaseServerClient(Astro), Astro, 80); } catch {}
 
 export const prerender = false;
 ---

@@ -3,12 +3,12 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import EmptyState from "@components/EmptyState.astro";
 import PersonAvatar from "@components/PersonAvatar.astro";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeam } from "@lib/public-teams";
 
 export const prerender = false;
 const slug = Astro.params.slug ?? "";
-const team = await getPublicTeam(createSupabaseServiceClient(Astro), Astro, slug);
+const team = await getPublicTeam(createSupabaseServerClient(Astro), Astro, slug);
 if (!team) return new Response(null, { status: 404 });
 const description = team.summary ?? `Meet ${team.name}, one of the active Greenacre Eagles FC teams.`;
 const meta = [team.seasonName, team.ageGroup, team.division || team.competition].filter(Boolean);

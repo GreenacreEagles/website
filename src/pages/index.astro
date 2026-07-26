@@ -11,7 +11,7 @@ import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
 import { newestFirst, upcomingFirst } from "@lib/content";
 import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, type PublicSponsor } from "@lib/public-content";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
 import { getPublicSocial, type PublicSocialPost } from "@lib/public-social";
 
@@ -19,11 +19,11 @@ const markdownNews = newestFirst(await getCollection("news")).map(markdownArticl
 const dbNews = await fetchPublicArticles(3);
 const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
 let socialPosts: PublicSocialPost[] = [];
-try { socialPosts = (await getPublicSocial(createSupabaseServiceClient(Astro), Astro)).posts.slice(0, 3); } catch {}
+try { socialPosts = (await getPublicSocial(createSupabaseServerClient(Astro), Astro)).posts.slice(0, 3); } catch {}
 const events = upcomingFirst(await getCollection("events")).slice(0, 3);
-const spotlightTeam = (await getPublicTeams(createSupabaseServiceClient(Astro), Astro)).teams[0];
+const spotlightTeam = (await getPublicTeams(createSupabaseServerClient(Astro), Astro)).teams[0];
 let sponsors: PublicSponsor[] = [];
-try { sponsors = await fetchPublicSponsors(createSupabaseServiceClient(Astro), Astro, 3); } catch {}
+try { sponsors = await fetchPublicSponsors(createSupabaseServerClient(Astro), Astro, 3); } catch {}
 const fundraiser = (await getCollection("fundraisers")).find((item) => item.data.status === "active");
 const markdownAnnouncementItem = (await getCollection("announcements"))
   .filter((item) => item.data.active)

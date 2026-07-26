@@ -1,13 +1,13 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicSocial, type PublicSocialPost, type PublicSocialProfile } from "@lib/public-social";
 export const prerender = false;
 const platformName = (value: string) => value[0].toUpperCase() + value.slice(1);
 let profiles: PublicSocialProfile[] = [];
 let posts: PublicSocialPost[] = [];
 try {
-  ({ profiles, posts } = await getPublicSocial(createSupabaseServiceClient(Astro), Astro));
+  ({ profiles, posts } = await getPublicSocial(createSupabaseServerClient(Astro), Astro));
 } catch (error) {
   console.error("Unable to load public social content", error);
 }
