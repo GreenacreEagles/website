@@ -21,16 +21,14 @@ const hashToken = async (token: string) => {
     .join("");
 };
 
-const [{ data: vouchers }, { data: wallets }, { data: ledger }, { data: payments }, {data:eventTickets}, {data:shopCollections}] = await Promise.all([
+const [{ data: vouchers }, { data: wallets }, { data: ledger }, { data: payments }, {data:eventTickets}] = await Promise.all([
   session.supabase.from("voucher_issuances").select("id,redemption_code,voucher_type,status,original_value_cents,remaining_value_cents,valid_from,expires_at,issue_reason,canteen_venues(name),teams(name)").eq("beneficiary_id", session.user.id).order("created_at", { ascending: false }).limit(30),
   session.supabase.from("wallet_accounts").select("id,account_type,status,wallet_balances(balance_cents)").eq("owner_id", session.user.id).limit(10),
   session.supabase.from("wallet_ledger_entries").select("id,amount_cents,direction,transaction_type,description,created_at,wallet_accounts!inner(owner_id)").eq("wallet_accounts.owner_id", session.user.id).order("created_at", { ascending: false }).limit(20),
   session.supabase.from("payments" as any).select("id,provider,amount_cents,status,created_at,updated_at,metadata").eq("payer_id", session.user.id).eq("metadata->>purpose", "wallet_top_up").order("created_at", { ascending: false }).limit(10),
-  (session.supabase as any).from("club_event_tickets").select("id,ticket_code,status,issued_at,redeemed_at,club_events(title,starts_at,venues(name)),club_event_ticket_types(name)").eq("owner_user_id",session.user.id).order("issued_at",{ascending:false}),
-  (session.supabase as any).from("shop_fulfilments").select("id,display_code,status,fulfilment_type,created_at,collected_at,shop_orders(order_number,shop_order_items(product_name_snapshot,quantity,product_type))").eq("user_id",session.user.id).order("created_at",{ascending:false})
+  (session.supabase as any).from("club_event_tickets").select("id,ticket_code,status,issued_at,redeemed_at,club_events(title,starts_at,venues(name)),club_event_ticket_types(name)").eq("owner_user_id",session.user.id).order("issued_at",{ascending:false})
 ]);
 const eventTicketCards=await Promise.all((eventTickets??[]).map(async(ticket:any)=>({...ticket,qrCode:ticket.status==="valid"?await QRCode.toDataURL(`GETICKET:${ticket.ticket_code}`,{margin:1,width:220,color:{dark:"#111111",light:"#ffffff"}}):null})));
-const shopCollectionCards=await Promise.all((shopCollections??[]).map(async(item:any)=>({...item,qrCode:["active","ready"].includes(item.status)?await QRCode.toDataURL(`GESHOP:${item.display_code}`,{margin:1,width:220,color:{dark:"#111111",light:"#ffffff"}}):null})));
 
 const voucherCards = await Promise.all(
   (vouchers ?? []).map(async (voucher: any) => ({
@@ -125,7 +123,6 @@ const walletCards = await Promise.all(
       </article>
     </aside>
     <section class="grid gap-5">
-      <article class="surface p-5 md:p-7"><h2 class="font-display text-3xl font-black uppercase">Shop collections</h2><div class="mt-5 grid gap-4">{shopCollectionCards.length===0?<p>No shop collection vouchers are currently available.</p>:shopCollectionCards.map((item:any)=><article class="border border-eagles-line p-4"><div class="flex justify-between gap-3"><div><p class="font-black">{item.fulfilment_type==="canteen_collection"?"Canteen order":"Merchandise collection"} · {item.shop_orders?.order_number}</p><p class="text-sm">{item.shop_orders?.shop_order_items?.filter((x:any)=>x.product_type===item.fulfilment_type.split("_")[0]).map((x:any)=>`${x.quantity}× ${x.product_name_snapshot}`).join(", ")}</p></div><StatusBadge label={statusLabel(item.status)} tone={item.status==="collected"?"amber":"green"}/></div>{item.qrCode&&<div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center"><img class="h-[220px] w-[220px]" src={item.qrCode} alt={`Collection QR code for order ${item.shop_orders?.order_number}`}/><div><p class="font-bold">Show this QR code to authorised club staff when collecting your order.</p><p class="mt-3 font-mono text-lg font-black">{item.display_code}</p></div></div>}{item.collected_at&&<p class="mt-3 text-sm">Collected {formatDateTime(item.collected_at)}</p>}</article>)}</div></article>
       <article class="surface p-5 md:p-7">
         <h2 class="font-display text-3xl font-black uppercase leading-none">Event tickets</h2>
         <div class="mt-5 grid gap-4">

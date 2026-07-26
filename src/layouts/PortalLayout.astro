@@ -23,16 +23,17 @@ const portalNav: NavItem[] = [
   { href: "/portal/account/", label: "My account" },
   { href: "/portal/teams/", label: "Teams" },
   { href: "/portal/family/", label: "Family" },
-  { href: "/portal/shop/", label: "Shop" },
-  { href: "/portal/orders/", label: "My orders" },
   { href: "/portal/vouchers/", label: "Wallet" },
+  { href: "/portal/canteen/", label: "Canteen" },
+  { href: "/portal/merchandise/", label: "Merchandise" },
   { href: "/portal/coaching/", label: "Coaching Resources", permissions: ["coaching_resources.read", "teams.manage"] },
   { href: "/portal/notice-board/", label: "Club Notice Board" }
 ];
 
 const adminNav: NavItem[] = [
   { href: "/admin/", label: "Admin Overview" },
-  { href: "/admin/shop/", label: "Shop operations", permissions: ["shop.products.view", "shop.products.manage", "shop.orders.view", "shop.orders.manage", "canteen.manage", "merchandise.manage"] },
+  { href: "/admin/canteen/", label: "Canteen", permissions: ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage"] },
+  { href: "/admin/merchandise/", label: "Merchandise", permissions: ["merchandise.manage", "merchandise.store_access"] },
   { href: "/admin/events/", label: "Events", permissions: ["events.manage"] },
   { href: "/admin/event-tickets/", label: "Event tickets", permissions: ["events.manage", "events.orders.read", "events.tickets.scan", "events.tickets.redeem"] },
   { href: "/admin/news/", label: "News", permissions: ["content.manage"] },
