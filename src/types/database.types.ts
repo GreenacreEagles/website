@@ -1833,6 +1833,7 @@ export type Database = {
           contact_email: string | null
           contact_name: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           display_locations: string[]
           display_priority: number
@@ -1840,17 +1841,20 @@ export type Database = {
           id: string
           internal_notes: string | null
           logo_url: string | null
+          logo_object_key: string | null
           name: string
           starts_on: string | null
           status: string
           tier: string | null
           updated_at: string
+          updated_by: string | null
           website_url: string | null
         }
         Insert: {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           display_locations?: string[]
           display_priority?: number
@@ -1858,17 +1862,20 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           logo_url?: string | null
+          logo_object_key?: string | null
           name: string
           starts_on?: string | null
           status?: string
           tier?: string | null
           updated_at?: string
+          updated_by?: string | null
           website_url?: string | null
         }
         Update: {
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           display_locations?: string[]
           display_priority?: number
@@ -1876,11 +1883,13 @@ export type Database = {
           id?: string
           internal_notes?: string | null
           logo_url?: string | null
+          logo_object_key?: string | null
           name?: string
           starts_on?: string | null
           status?: string
           tier?: string | null
           updated_at?: string
+          updated_by?: string | null
           website_url?: string | null
         }
         Relationships: []

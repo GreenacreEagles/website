@@ -20,6 +20,7 @@ export const ADMIN_PERMISSIONS = [
   "social_posts.view",
   "social_posts.manage",
   "sponsors.manage",
+  "sponsors.view",
   "canteen.manage",
   "canteen.orders.manage",
   "canteen.vouchers.manage",
@@ -30,6 +31,13 @@ export const ADMIN_PERMISSIONS = [
   "finance.read",
   "merchandise.manage",
   "merchandise.store_access",
+  "shop.products.view",
+  "shop.products.manage",
+  "shop.orders.view",
+  "shop.orders.manage",
+  "shop.canteen.scan",
+  "shop.canteen.redeem",
+  "shop.merchandise.fulfil",
   "events.manage",
   "events.orders.read",
   "events.tickets.scan",
@@ -48,7 +56,9 @@ export const PORTAL_PERMISSIONS = [
   "coaching_resources.read",
   "match_reports.submit",
   "canteen.vouchers.redeem",
-  "canteen.vouchers.reverse"
+  "canteen.vouchers.reverse",
+  "shop.canteen.scan",
+  "shop.canteen.redeem"
 ] as const;
 
 export type PermissionKey = (typeof PORTAL_PERMISSIONS)[number] | "*";

@@ -6,7 +6,6 @@ interface Props {
 }
 
 const { sponsors } = Astro.props;
-const isExternal = (href?: string) => href?.startsWith("http://") || href?.startsWith("https://");
 const initials = (name: string) =>
   name
     .split(/\s+/)
@@ -21,13 +20,14 @@ const initials = (name: string) =>
     sponsors.map((sponsor) => (
       <a
         class="surface flex min-h-40 flex-col justify-between p-5 hover:border-eagles-green"
-        href={sponsor.website ?? "/sponsors/"}
-        target={isExternal(sponsor.website ?? undefined) ? "_blank" : undefined}
-        rel={isExternal(sponsor.website ?? undefined) ? "noreferrer" : undefined}
+        href={sponsor.website}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Visit ${sponsor.name} website`}
       >
         {
           sponsor.logo ? (
-            <img src={sponsor.logo} alt="" class="h-16 w-full object-contain object-left" loading="lazy" />
+            <img src={sponsor.logo} alt={`${sponsor.name} logo`} class="h-16 w-full object-contain object-left" loading="lazy" />
           ) : (
             <div class="flex h-16 w-16 items-center justify-center bg-eagles-green font-display text-2xl font-black text-white" style="border-radius:8px">
               {initials(sponsor.name)}
@@ -35,9 +35,9 @@ const initials = (name: string) =>
           )
         }
         <div class="mt-5">
-          <p class="text-xs font-black uppercase text-eagles-green">{sponsor.tier}</p>
+          {sponsor.tier && <p class="text-xs font-black uppercase text-eagles-green">{sponsor.tier}</p>}
           <h3 class="mt-1 font-display text-xl font-black uppercase leading-none">{sponsor.name}</h3>
-          <p class="mt-2 text-sm leading-6 text-eagles-ink/65">{sponsor.description}</p>
+          {sponsor.description && <p class="mt-2 text-sm leading-6 text-eagles-ink/65">{sponsor.description}</p>}
         </div>
       </a>
     ))

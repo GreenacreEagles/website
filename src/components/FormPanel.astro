@@ -5,9 +5,16 @@ interface Props {
   title: string;
   intro: string;
   intent?: string;
+  enquiryType?: string;
 }
 
-const { title, intro, intent = "Club enquiry" } = Astro.props;
+const { title, intro, intent = "Club enquiry", enquiryType = "" } = Astro.props;
+const categories = [
+  ["registrations", "Registrations"], ["teams", "Teams"], ["volunteering", "Volunteering"],
+  ["sponsorship", "Sponsorship"], ["canteen-volunteer", "Canteen"], ["merchandise", "Club merchandise"],
+  ["general", "General enquiry"]
+];
+const selectedType = categories.some(([value]) => value === enquiryType) ? enquiryType : "general";
 ---
 
 <form class="surface grid gap-5 p-5 md:p-7" method="post" action={`mailto:${site.contactEmail}?subject=${encodeURIComponent(intent)}`} enctype="text/plain">
@@ -25,10 +32,8 @@ const { title, intro, intent = "Club enquiry" } = Astro.props;
       <input class="field" name="email" type="email" autocomplete="email" required />
     </label>
   </div>
-  <label>
-    <span class="label">Subject</span>
-    <input class="field" name="subject" value={intent} />
-  </label>
+  <label><span class="label">What can we help with?</span><select class="field" name="enquiry_type">{categories.map(([value,label]) => <option value={value} selected={value === selectedType}>{label}</option>)}</select></label>
+  <label><span class="label">Subject</span><input class="field" name="subject" value={intent} /></label>
   <label>
     <span class="label">Message</span>
     <textarea class="field min-h-40" name="message" required></textarea>

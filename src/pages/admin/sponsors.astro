@@ -3,76 +3,40 @@ import EmptyState from "@components/EmptyState.astro";
 import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
-import FormActions from "@components/FormActions.astro";
+import SponsorAdminFields from "@components/SponsorAdminFields.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
-import { formatDate, statusLabel } from "@lib/format";
+import { formatDateTime, statusLabel } from "@lib/format";
+import { getPublicMediaUrl } from "@lib/media";
 
 export const prerender = false;
-
-const session = await requirePermission(Astro, ["sponsors.manage"]);
+const session = await requirePermission(Astro, ["sponsors.view", "sponsors.manage"]);
 if (!session) return Astro.redirect("/login/");
-
-const success = Astro.url.searchParams.get("success");
-const error = Astro.url.searchParams.get("error");
-const { data: sponsors } = await session.supabase
-  .from("sponsors")
-  .select("id,name,tier,status,starts_on,ends_on,contact_name,contact_email,display_priority,website_url")
-  .order("display_priority")
-  .limit(100);
+const canManage = session.permissions.has("*") || session.permissions.has("sponsors.manage");
+const { data: sponsors } = await (session.supabase as any).from("sponsors").select("id,name,tier,description,website_url,logo_object_key,status,display_priority,created_at,updated_at").order("display_priority").order("name");
 ---
-
 <PortalLayout title="Sponsors" section="Administration" session={session}>
   <div class="grid gap-6">
-    <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Sponsor management" intro="Maintain club partners, contact details and display settings without a permanent edit panel crowding the list.">
-      <Fragment slot="actions">
-        <AdminDialog id="add-sponsor" title="Add sponsor" actionLabel="Add sponsor" intro="Record a new partner and control where they appear across the club website." size="xl">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-            <input type="hidden" name="action" value="sponsor" />
-            <label><span class="label">Name</span><input class="field" name="name" required /></label>
-            <label><span class="label">Tier</span><input class="field" name="tier" placeholder="Major Partner" /></label>
-            <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
-            <label><span class="label">Website</span><input class="field" name="website_url" type="url" /></label>
-            <label><span class="label">Logo URL</span><input class="field" name="logo_url" /></label>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label><span class="label">Starts</span><input class="field" name="starts_on" type="date" /></label>
-              <label><span class="label">Ends</span><input class="field" name="ends_on" type="date" /></label>
-            </div>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label><span class="label">Display priority</span><input class="field" name="display_priority" type="number" min="0" value="0" /></label>
-              <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-            </div>
-            <label><span class="label">Display locations</span><input class="field" name="display_locations" placeholder="homepage, sponsors" /></label>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label><span class="label">Contact name</span><input class="field" name="contact_name" /></label>
-              <label><span class="label">Contact email</span><input class="field" name="contact_email" type="email" /></label>
-            </div>
-            <label><span class="label">Internal notes</span><textarea class="field min-h-20" name="internal_notes"></textarea></label>
-            <FormActions submitLabel="Save sponsor" />
-          </form>
-        </AdminDialog>
-      </Fragment>
+    <AdminFeedback success={Astro.url.searchParams.get("success")} error={Astro.url.searchParams.get("error")} />
+    <AdminPageHeader title="Sponsor management" intro="Manage the club partners shown on the public website, including their logos, links, visibility and display order.">
+      {canManage && <Fragment slot="actions"><AdminDialog id="new-sponsor" title="New sponsor" actionLabel="New sponsor" intro="Add a current Greenacre Eagles club partner." size="xl"><form method="post" action="/api/admin/sponsor/" enctype="multipart/form-data"><SponsorAdminFields /></form></AdminDialog></Fragment>}
     </AdminPageHeader>
-  </div>
-  <div class="grid gap-6">
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Club partners</h2>
-      <div class="mt-5 grid gap-3">
-        {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors in the portal" text="Current club partners will appear here when sponsorship records are connected." />}
-        {(sponsors ?? []).map((sponsor) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p class="font-black">{sponsor.name}</p>
-                <p class="text-sm text-eagles-ink/70">{sponsor.tier ?? "Club partner"} - {formatDate(sponsor.starts_on)} to {formatDate(sponsor.ends_on)}</p>
-                <p class="text-xs text-eagles-ink/60">{sponsor.contact_name ?? "Contact TBC"} {sponsor.contact_email ? `- ${sponsor.contact_email}` : ""}</p>
+      <div class="grid gap-3">
+        {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors yet" text="Create a sponsor when the club is ready to publish a partner." />}
+        {(sponsors ?? []).map((sponsor: any) => {
+          const logo = getPublicMediaUrl(sponsor.logo_object_key, Astro);
+          return <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div class="flex items-center gap-4">
+                {logo ? <img src={logo} alt={`${sponsor.name} logo`} class="h-16 w-24 object-contain" /> : <div class="flex h-16 w-24 items-center justify-center bg-eagles-mist text-xs font-black text-eagles-ink/60" aria-hidden="true">NO LOGO</div>}
+                <div><p class="font-black">{sponsor.name}</p><a class="text-sm text-eagles-green underline" href={sponsor.website_url} target="_blank" rel="noopener noreferrer">Visit website</a><p class="text-xs text-eagles-ink/60">Sort {sponsor.display_priority} · Updated {formatDateTime(sponsor.updated_at)}</p></div>
               </div>
-              <StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />
+              <div class="flex items-center gap-3"><StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />{canManage && <AdminDialog id={`edit-${sponsor.id}`} title={`Edit ${sponsor.name}`} actionLabel="Edit" intro="Update sponsor details, logo and public visibility." size="xl"><form method="post" action="/api/admin/sponsor/" enctype="multipart/form-data"><SponsorAdminFields sponsor={sponsor} /></form><form class="mt-6 border-t border-red-200 pt-5" method="post" action="/api/admin/sponsor/"><input type="hidden" name="id" value={sponsor.id}/><input type="hidden" name="mode" value="delete"/><input type="hidden" name="name" value={sponsor.name}/><input type="hidden" name="description" value={sponsor.description ?? ""}/><input type="hidden" name="website_url" value={sponsor.website_url}/><input type="hidden" name="tier" value={sponsor.tier ?? ""}/><input type="hidden" name="display_priority" value={sponsor.display_priority}/><input type="hidden" name="status" value={sponsor.status}/><button class="font-black text-red-700" type="submit">Delete sponsor</button></form></AdminDialog>}</div>
             </div>
-          </article>
-        ))}
+          </article>;
+        })}
       </div>
     </section>
   </div>

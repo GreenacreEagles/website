@@ -9,8 +9,8 @@ import NewsCard from "@components/NewsCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
-import { bySortOrder, newestFirst, upcomingFirst } from "@lib/content";
-import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, markdownSponsor } from "@lib/public-content";
+import { newestFirst, upcomingFirst } from "@lib/content";
+import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, type PublicSponsor } from "@lib/public-content";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
 import { getPublicSocial, type PublicSocialPost } from "@lib/public-social";
@@ -22,9 +22,8 @@ let socialPosts: PublicSocialPost[] = [];
 try { socialPosts = (await getPublicSocial(createSupabaseServiceClient(Astro), Astro)).posts.slice(0, 3); } catch {}
 const events = upcomingFirst(await getCollection("events")).slice(0, 3);
 const spotlightTeam = (await getPublicTeams(createSupabaseServiceClient(Astro), Astro)).teams[0];
-const markdownSponsors = bySortOrder(await getCollection("sponsors")).map(markdownSponsor);
-const dbSponsors = await fetchPublicSponsors(3);
-const sponsors = (dbSponsors.length > 0 ? dbSponsors : markdownSponsors).slice(0, 3);
+let sponsors: PublicSponsor[] = [];
+try { sponsors = await fetchPublicSponsors(createSupabaseServiceClient(Astro), Astro, 3); } catch {}
 const fundraiser = (await getCollection("fundraisers")).find((item) => item.data.status === "active");
 const markdownAnnouncementItem = (await getCollection("announcements"))
   .filter((item) => item.data.active)

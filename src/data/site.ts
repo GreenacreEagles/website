@@ -10,7 +10,7 @@ export const site = {
   volunteerUrl: "/volunteer/",
   contactEmail: "contact@greenacreeaglesfc.com.au",
   phone: "Contact by email",
-  homeGround: "Roberts Park, Greenacre",
+  homeGround: "Allum Park",
   socials: [
     { label: "Instagram", href: "https://www.instagram.com/greenacreeagles", platform: "Instagram" },
     { label: "Facebook", href: "https://www.facebook.com/eaglesgreenacreFC", platform: "Facebook" },
@@ -20,6 +20,6 @@ export const site = {
     { label: "Senior football", value: "BPL" },
     { label: "Club colours", value: "Green, black, white" },
     { label: "Junior pathways", value: "MiniRoos to youth" },
-    { label: "Home ground", value: "Roberts Park" }
+    { label: "Home ground", value: "Allum Park" }
   ]
 };

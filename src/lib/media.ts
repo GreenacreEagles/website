@@ -34,6 +34,10 @@ export const socialPostImageObjectKey = (postId: string, mimeType: string) => {
   const extension = mimeType === "image/jpeg" ? "jpg" : mimeType.split("/")[1];
   return `social-posts/${postId}/${crypto.randomUUID()}.${extension}`;
 };
+export const sponsorLogoObjectKey = (sponsorId: string, mimeType: string) => {
+  const extension = mimeType === "image/jpeg" ? "jpg" : mimeType.split("/")[1];
+  return `sponsors/${sponsorId}/${crypto.randomUUID()}.${extension}`;
+};
 export const eventImageObjectKey=(eventId:string,mimeType:string)=>{
   const extension=mimeType==="image/jpeg"?"jpg":mimeType.split("/")[1];
   return `events/${eventId}/hero/${crypto.randomUUID()}.${extension}`;

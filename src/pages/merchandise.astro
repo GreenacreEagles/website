@@ -1,33 +1,4 @@
-﻿---
-import BaseLayout from "@layouts/BaseLayout.astro";
-import ButtonLink from "@components/ButtonLink.astro";
-
-export const prerender = true;
 ---
-
-<BaseLayout title="Merchandise" description="Greenacre Eagles FC merchandise, apparel, accessories, and club gear.">
-  <section class="section-pad bg-white">
-    <div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-      <div>
-        <p class="eyebrow">Merchandise</p>
-        <h1 class="mt-3 font-display text-5xl font-black uppercase leading-none text-eagles-ink md:text-7xl">Wear the Eagles colours</h1>
-        <p class="mt-5 text-lg leading-8 text-eagles-ink/70">
-          Club apparel and supporter gear will be managed through the Eagles portal, with stock control, order updates, pickup options, and manager tools built for the season.
-        </p>
-        <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/portal/" variant="primary">Open portal</ButtonLink>
-          <ButtonLink href="/contact/" variant="secondary">Ask about gear</ButtonLink>
-        </div>
-      </div>
-      <div class="grid gap-5 sm:grid-cols-2">
-        {["Jerseys", "Training shirts", "Hoodies", "Caps", "Bags", "Drink bottles"].map((item) => (
-          <article class="surface p-5">
-            <h2 class="font-display text-2xl font-black uppercase leading-none">{item}</h2>
-            <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Stock, sizes, pricing, and order status will be managed by authorised merchandise staff.</p>
-          </article>
-        ))}
-      </div>
-    </div>
-  </section>
-</BaseLayout>
-
+import BaseLayout from "@layouts/BaseLayout.astro";import ButtonLink from "@components/ButtonLink.astro";export const prerender=true;
+---
+<BaseLayout title="Club Merchandise" description="Shop Greenacre Eagles FC jackets, shirts and supporter gear through the club member portal."><section class="section-pad bg-white"><div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center"><div><p class="eyebrow">Club merchandise</p><h1 class="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Wear the Eagles colours</h1><p class="mt-5 text-lg leading-8 text-eagles-ink/70">Wear the Eagles colours on match day and around the community.</p><p class="mt-3 text-lg leading-8 text-eagles-ink/70">Club jackets, shirts, training gear and selected supporter items can be ordered through the Greenacre Eagles portal and collected through the club.</p><div class="mt-7 flex flex-col gap-3 sm:flex-row"><ButtonLink href="/portal/shop/?category=merchandise" variant="primary">Shop club merchandise</ButtonLink><ButtonLink href="/contact/?type=merchandise" variant="secondary">Ask about merchandise</ButtonLink></div></div><article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase">Club gear</h2><p class="mt-4 leading-7 text-eagles-ink/70">Club merchandise can be viewed and ordered through the Greenacre Eagles portal. Available sizes, colours and stock are shown in the shop.</p></article></div></section></BaseLayout>

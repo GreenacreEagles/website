@@ -1,43 +1,35 @@
 ﻿---
-import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
-import { bySortOrder } from "@lib/content";
-import { fetchPublicSponsors, markdownSponsor } from "@lib/public-content";
+import EmptyState from "@components/EmptyState.astro";
+import { fetchPublicSponsors, type PublicSponsor } from "@lib/public-content";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
 
-const markdownSponsors = bySortOrder(await getCollection("sponsors")).map(markdownSponsor);
-const dbSponsors = await fetchPublicSponsors(80);
-const sponsors = dbSponsors.length > 0 ? dbSponsors : markdownSponsors;
+let sponsors: PublicSponsor[] = [];
+try { sponsors = await fetchPublicSponsors(createSupabaseServiceClient(Astro), Astro, 80); } catch {}
 
 export const prerender = false;
 ---
 
-<BaseLayout title="Sponsors" description="Greenacre Eagles FC sponsors and local partners supporting community football.">
+<BaseLayout title="Club Sponsors" description="Meet the businesses and community partners supporting Greenacre Eagles Football Club.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
     <div class="section-shell grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
       <div>
         <p class="text-sm font-black uppercase text-eagles-green">Sponsors</p>
-        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Back the Eagles</h1>
-        <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">A polished sponsor area for local businesses, major partners, community supporters, and in-kind contributors.</p>
+        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Our club sponsors</h1>
+        <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">Greenacre Eagles Football Club is proud to be supported by local businesses and community partners who help us provide football opportunities for players and families across the club.</p>
       </div>
-      <ButtonLink href="/contact/" variant="primary">Become a sponsor</ButtonLink>
+      <ButtonLink href="/contact/?type=sponsorship" variant="primary">Ask about sponsorship</ButtonLink>
     </div>
   </section>
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell">
-      <SectionHeading eyebrow="Partners" title="Our club sponsors" intro="Greenacre Eagles is proudly supported by local businesses who help keep football strong in our community." />
+      <SectionHeading eyebrow="Partners" title="Supporting the Eagles" intro="We appreciate every sponsor who contributes to the club and helps us continue building a strong football community at Allum Park." />
       <div class="mt-10">
-        <SponsorStrip sponsors={sponsors} />
+        {sponsors.length > 0 ? <SponsorStrip sponsors={sponsors} /> : <EmptyState title="Club partners coming soon" text="Our current club partners will be displayed here soon." href="/contact/?type=sponsorship" action="Ask about sponsoring Greenacre Eagles" />}
       </div>
-    </div>
-  </section>
-  <section class="section-pad bg-white">
-    <div class="section-shell grid gap-5 md:grid-cols-3">
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Match day support</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Sponsors help cover the resources that keep teams prepared and home games running well.</p></article>
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Community</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Every partnership supports players, families, volunteers, and junior football in Greenacre.</p></article>
-      <article class="surface p-6"><h2 class="font-display text-3xl font-black uppercase leading-none">Partnership</h2><p class="mt-4 text-base leading-7 text-eagles-ink/70">Local businesses are part of the club story, from training nights to presentation day.</p></article>
     </div>
   </section>
 </BaseLayout>

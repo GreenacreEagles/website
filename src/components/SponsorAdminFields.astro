@@ -1,0 +1,21 @@
+---
+import FormActions from "@components/FormActions.astro";
+import { statusLabel } from "@lib/format";
+interface Props { sponsor?: any; }
+const { sponsor } = Astro.props;
+---
+<div class="grid gap-4">
+  {sponsor && <input type="hidden" name="id" value={sponsor.id} />}
+  <input type="hidden" name="mode" value={sponsor ? "update" : "create"} />
+  <label><span class="label">Sponsor name</span><input class="field" name="name" value={sponsor?.name} required /></label>
+  <label><span class="label">Description</span><textarea class="field min-h-24" name="description">{sponsor?.description}</textarea></label>
+  <label><span class="label">Website (HTTPS)</span><input class="field" name="website_url" type="url" pattern="https://.*" value={sponsor?.website_url} required /></label>
+  <div class="grid gap-4 md:grid-cols-3">
+    <label><span class="label">Tier (optional)</span><input class="field" name="tier" value={sponsor?.tier} /></label>
+    <label><span class="label">Sort order</span><input class="field" name="display_priority" type="number" min="0" value={sponsor?.display_priority ?? 0} required /></label>
+    <label><span class="label">Public status</span><select class="field" name="status">{["active","inactive"].map(value => <option value={value} selected={sponsor?.status === value}>{statusLabel(value)}</option>)}</select></label>
+  </div>
+  <label><span class="label">Sponsor logo</span><input class="field" name="logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></label>
+  {sponsor?.logo_object_key && <label class="flex items-center gap-2"><input type="checkbox" name="remove_logo" /><span class="font-bold">Remove current logo</span></label>}
+  <FormActions submitLabel={sponsor ? "Save changes" : "Create sponsor"} />
+</div>

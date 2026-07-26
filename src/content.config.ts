@@ -17,19 +17,6 @@ const news = defineCollection({
   })
 });
 
-const sponsors = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/sponsors" }),
-  schema: z.object({
-    slug: z.string().optional(),
-    name: z.string(),
-    logo: imageField,
-    website: z.string().optional(),
-    tier: z.enum(["Major Partner", "Gold", "Silver", "Community", "In-kind"]),
-    description: z.string(),
-    sortOrder: z.number().default(100)
-  })
-});
-
 const fundraisers = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/fundraisers" }),
   schema: z.object({
@@ -85,7 +72,6 @@ const announcements = defineCollection({
 
 export const collections = {
   news,
-  sponsors,
   fundraisers,
   events,
   gallery,

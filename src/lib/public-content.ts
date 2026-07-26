@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CollectionEntry } from "astro:content";
 import type { Database, Json } from "../types/database.types";
+import { getPublicMediaUrl } from "./media";
 
 export type PublicArticle = {
   id: string;
@@ -59,16 +60,6 @@ export const markdownArticle = (article: CollectionEntry<"news">): PublicArticle
   image: article.data.image,
   date: article.data.date.toISOString(),
   tags: article.data.tags ?? []
-});
-
-export const markdownSponsor = (sponsor: CollectionEntry<"sponsors">): PublicSponsor => ({
-  id: sponsor.id,
-  name: sponsor.data.name,
-  tier: sponsor.data.tier,
-  description: sponsor.data.description,
-  website: sponsor.data.website,
-  logo: sponsor.data.logo,
-  sortOrder: sponsor.data.sortOrder
 });
 
 export const markdownAnnouncement = (announcement: CollectionEntry<"announcements">): PublicAnnouncement => ({
@@ -138,14 +129,11 @@ export const fetchPublicArticleBySlug = async (
   };
 };
 
-export const fetchPublicSponsors = async (limit = 12): Promise<PublicSponsor[]> => {
-  const supabase = client();
-  if (!supabase) return [];
-
+export const fetchPublicSponsors = async (supabase: any, context: any, limit = 12): Promise<PublicSponsor[]> => {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("sponsors")
-    .select("id,name,tier,description,website_url,logo_url,display_priority,starts_on,ends_on")
+    .select("id,name,tier,description,website_url,logo_object_key,display_priority,starts_on,ends_on")
     .eq("status", "active")
     .or(`starts_on.is.null,starts_on.lte.${today}`)
     .or(`ends_on.is.null,ends_on.gte.${today}`)
@@ -155,13 +143,13 @@ export const fetchPublicSponsors = async (limit = 12): Promise<PublicSponsor[]> 
 
   if (error) return [];
 
-  return (data ?? []).map((sponsor) => ({
+  return (data ?? []).map((sponsor: any) => ({
     id: sponsor.id,
     name: sponsor.name,
     tier: sponsor.tier,
     description: sponsor.description,
     website: sponsor.website_url,
-    logo: sponsor.logo_url,
+    logo: getPublicMediaUrl(sponsor.logo_object_key, context),
     sortOrder: sponsor.display_priority
   }));
 };
