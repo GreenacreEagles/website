@@ -10,8 +10,8 @@ values
 insert into public.seasons (id, name, year, starts_on, ends_on, status)
 values ('00000000-0000-4000-8000-000000000213', 'Smoke Test Season', 2027, '2027-01-01', '2027-12-31', 'active');
 
-insert into public.teams (id, season_id, name, division, status)
-values ('00000000-0000-4000-8000-000000000214', '00000000-0000-4000-8000-000000000213', 'Smoke Test Team', 'Blue', 'active');
+insert into public.teams (id, season_id, name, slug, division, status)
+values ('00000000-0000-4000-8000-000000000214', '00000000-0000-4000-8000-000000000213', 'Smoke Test Team', 'smoke-test-team', 'Blue', 'active');
 
 select app_private.bootstrap_super_admin('00000000-0000-4000-8000-000000000211', 'Rollback smoke test bootstrap for portal admin RPCs');
 

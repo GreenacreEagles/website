@@ -1432,6 +1432,8 @@ export type Database = {
           id: string
           medical_notes: string | null
           photo_consent: boolean | null
+          photo_object_key: string | null
+          photo_updated_at: string | null
           registration_status: string
           season_id: string
           support_notes: string | null
@@ -1445,6 +1447,8 @@ export type Database = {
           id?: string
           medical_notes?: string | null
           photo_consent?: boolean | null
+          photo_object_key?: string | null
+          photo_updated_at?: string | null
           registration_status?: string
           season_id: string
           support_notes?: string | null
@@ -1458,6 +1462,8 @@ export type Database = {
           id?: string
           medical_notes?: string | null
           photo_consent?: boolean | null
+          photo_object_key?: string | null
+          photo_updated_at?: string | null
           registration_status?: string
           season_id?: string
           support_notes?: string | null
@@ -1497,6 +1503,9 @@ export type Database = {
           onboarding_completed_at: string | null
           preferred_name: string | null
           privacy_accepted_at: string | null
+          public_photo_consent: boolean
+          public_photo_object_key: string | null
+          public_photo_updated_at: string | null
           relationship_to_club: string | null
           terms_accepted_at: string | null
           updated_at: string
@@ -1516,6 +1525,9 @@ export type Database = {
           onboarding_completed_at?: string | null
           preferred_name?: string | null
           privacy_accepted_at?: string | null
+          public_photo_consent?: boolean
+          public_photo_object_key?: string | null
+          public_photo_updated_at?: string | null
           relationship_to_club?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -1535,6 +1547,9 @@ export type Database = {
           onboarding_completed_at?: string | null
           preferred_name?: string | null
           privacy_accepted_at?: string | null
+          public_photo_consent?: boolean
+          public_photo_object_key?: string | null
+          public_photo_updated_at?: string | null
           relationship_to_club?: string | null
           terms_accepted_at?: string | null
           updated_at?: string
@@ -2015,8 +2030,13 @@ export type Database = {
           home_venue_id: string | null
           id: string
           name: string
+          public: boolean
           season_id: string
+          slug: string
+          sort_order: number
           status: string
+          summary: string | null
+          image_object_key: string | null
           training_venue_id: string | null
           updated_at: string
         }
@@ -2030,8 +2050,13 @@ export type Database = {
           home_venue_id?: string | null
           id?: string
           name: string
+          public?: boolean
           season_id: string
+          slug: string
+          sort_order?: number
           status?: string
+          summary?: string | null
+          image_object_key?: string | null
           training_venue_id?: string | null
           updated_at?: string
         }
@@ -2045,8 +2070,13 @@ export type Database = {
           home_venue_id?: string | null
           id?: string
           name?: string
+          public?: boolean
           season_id?: string
+          slug?: string
+          sort_order?: number
           status?: string
+          summary?: string | null
+          image_object_key?: string | null
           training_venue_id?: string | null
           updated_at?: string
         }

@@ -8,6 +8,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDate, statusLabel } from "@lib/format";
+import { getPublicMediaBucket, getPublicMediaUrl } from "@lib/media";
 
 export const prerender = false;
 
@@ -18,13 +19,14 @@ const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 
 const [{ data: players }, { data: families }, { data: teamPlayers }, { data: profiles }, { data: seasons }, { data: teams }] = await Promise.all([
-  session.supabase.from("player_records").select("id,user_id,registration_status,photo_consent,code_of_conduct_accepted_at,profiles:user_id(full_name,preferred_name,email),seasons(name,year)").order("created_at", { ascending: false }).limit(100),
+  (session.supabase as any).from("player_records").select("id,user_id,registration_status,photo_object_key,photo_consent,photo_updated_at,code_of_conduct_accepted_at,profiles:user_id(full_name,preferred_name,email),seasons(name,year)").order("created_at", { ascending: false }).limit(100),
   session.supabase.from("families").select("id,name,created_at,family_members(id,status,relationship,is_primary_guardian,can_manage,can_spend,profiles:user_id(full_name,email))").order("name").limit(100),
   session.supabase.from("team_players").select("id,status,squad_number,teams(name),player_records(id,profiles:user_id(full_name,email),seasons(name))").order("created_at", { ascending: false }).limit(80),
   session.supabase.from("profiles").select("id,full_name,preferred_name,email").order("full_name").limit(300),
   session.supabase.from("seasons").select("id,name,status").order("starts_on", { ascending: false }),
   session.supabase.from("teams").select("id,name,season_id,status").order("name")
 ]);
+const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
 ---
 
 <PortalLayout title="Players and families" section="Administration" session={session}>
@@ -94,6 +96,27 @@ const [{ data: players }, { data: families }, { data: teamPlayers }, { data: pro
               <p class="font-black">{player.profiles?.preferred_name || player.profiles?.full_name || player.profiles?.email}</p>
               <p class="text-sm text-eagles-ink/70">{player.seasons?.name ?? "Season"} - code of conduct {formatDate(player.code_of_conduct_accepted_at)}</p>
               <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(player.registration_status)} tone={player.registration_status === "registered" ? "green" : "amber"} /><StatusBadge label={player.photo_consent ? "Photo consent" : "No photo consent"} tone={player.photo_consent ? "green" : "amber"} /></div>
+              <div class="mt-3">
+                <AdminDialog id={`player-photo-${player.id}`} title="Manage public photo" actionLabel="Manage public photo" size="md" tone="secondary">
+                  <form class="grid gap-4" method="post" action="/api/admin/player-public-photo/" enctype="multipart/form-data">
+                    <input type="hidden" name="player_id" value={player.id} />
+                    <input type="hidden" name="action" value="save" />
+                    {!mediaConfigured && <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Public media storage is not connected. Consent can be reviewed, but uploads and removal require the PUBLIC_MEDIA_BUCKET R2 binding.</p>}
+                    <div class="grid grid-cols-[96px_1fr] items-center gap-4">
+                      {player.photo_consent && getPublicMediaUrl(player.photo_object_key, Astro) ?
+                        <img class="h-24 w-24 object-cover" src={getPublicMediaUrl(player.photo_object_key, Astro)!} alt={`Current approved photo for ${player.profiles?.preferred_name || player.profiles?.full_name || "player"}`} /> :
+                        <div class="flex h-24 w-24 items-center justify-center bg-gray-200 text-xs font-bold text-gray-600">Fallback avatar</div>}
+                      <p class="text-sm leading-6 text-eagles-ink/70">{player.photo_object_key && player.photo_consent ? "The public website will show the approved image when its delivery URL is configured." : "The public website will show the neutral fallback avatar."}</p>
+                    </div>
+                    <label><span class="label">Upload replacement</span><input class="field" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={!mediaConfigured} /></label>
+                    <label class="flex items-start gap-3 text-sm font-bold"><input class="mt-1" type="checkbox" name="photo_consent" checked={player.photo_consent} /><span>Approved for display on the public team page</span></label>
+                    <div class="flex flex-wrap gap-3">
+                      <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save photo settings</button>
+                      {player.photo_object_key && <button class="border border-red-300 bg-red-50 px-4 py-3 text-sm font-black text-red-700 disabled:opacity-50" style="border-radius:8px" type="submit" name="action" value="remove" disabled={!mediaConfigured}>Remove photo</button>}
+                    </div>
+                  </form>
+                </AdminDialog>
+              </div>
             </article>
           ))}
         </div>

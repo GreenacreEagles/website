@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.1.4",
-    "@astrojs/sitemap": "^3.5.1",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "@tailwindcss/typography": "^0.5.15",

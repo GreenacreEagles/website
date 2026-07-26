@@ -8,7 +8,8 @@ export const prerender = false;
 
 const schema = z.object({
   email: z.string().trim().min(3),
-  password: z.string().min(1)
+  password: z.string().min(1),
+  returnTo: z.string().optional()
 });
 
 const usernameToEmail = (value: string) =>
@@ -30,5 +31,7 @@ export const POST: APIRoute = async (context) => {
   });
   if (error) return context.redirect(redirectWithMessage("/login/", "error", "Sign in failed. Check your details and try again."));
 
-  return context.redirect("/portal/");
+  const requested = parsed.data.returnTo ?? "/portal/";
+  const returnTo = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/portal/";
+  return context.redirect(returnTo);
 };

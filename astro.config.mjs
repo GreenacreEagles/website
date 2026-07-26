@@ -1,5 +1,4 @@
 import { defineConfig } from "astro/config";
-import sitemap from "@astrojs/sitemap";
 import cloudflare from "@astrojs/cloudflare";
 
 const site = process.env.SITE_URL || "https://greenacreeaglesfc.com.au";
@@ -23,7 +22,7 @@ export default defineConfig({
   devToolbar: {
     enabled: false
   },
-  integrations: [sitemap()],
+  integrations: [],
   vite: {
     plugins: [removeToolbarOptimizerDeps()],
     optimizeDeps: {

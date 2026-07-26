@@ -13,14 +13,21 @@ const articles = dbArticles.length > 0 ? dbArticles : markdownArticles;
 export const prerender = false;
 ---
 
-<BaseLayout title="News" description="Latest Greenacre Eagles FC news, announcements, updates, and community stories.">
+<BaseLayout
+  title="News"
+  description="Latest Greenacre Eagles FC news, announcements, updates, and community stories."
+>
   <section class="section-pad bg-white">
     <div class="section-shell">
-      <SectionHeading eyebrow="Newsroom" title="Latest club news" intro="Updates from match day, registrations, training nights, sponsors, volunteers, and the Eagles community." />
+      <SectionHeading
+        eyebrow="Newsroom"
+        title="Latest club news"
+        intro="Stay connected with the latest news, announcements and stories from across Greenacre Eagles Football Club."
+      />
+
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {articles.map((article) => <NewsCard article={article} />)}
       </div>
     </div>
   </section>
 </BaseLayout>
-

@@ -1,0 +1,27 @@
+---
+interface Props { total: number; label?: string; }
+const { total, label = "Active teams across the club" } = Astro.props;
+---
+<div class="surface border-l-8 border-eagles-green p-6 md:p-8">
+  <p class="font-display text-6xl font-black leading-none text-eagles-green md:text-7xl">
+    <span data-team-count data-total={total} aria-hidden="true">{total}</span>
+    <span class="sr-only">{total}</span>
+  </p>
+  <p class="mt-3 text-sm font-black uppercase tracking-wide text-eagles-ink">{label}</p>
+</div>
+<script>
+  const elements = document.querySelectorAll<HTMLElement>("[data-team-count]");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  elements.forEach((element) => {
+    const total = Number(element.dataset.total ?? 0);
+    if (reduceMotion || total <= 0) { element.textContent = String(total); return; }
+    const started = performance.now();
+    const duration = Math.min(1200, 450 + total * 35);
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - started) / duration);
+      element.textContent = String(Math.round(total * (1 - Math.pow(1 - progress, 3))));
+      if (progress < 1) requestAnimationFrame(tick); else element.textContent = String(total);
+    };
+    requestAnimationFrame(tick);
+  });
+</script>

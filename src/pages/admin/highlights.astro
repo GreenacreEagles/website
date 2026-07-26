@@ -7,56 +7,63 @@ import FormActions from "@components/FormActions.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
-import { formatDateTime, statusLabel } from "@lib/format";
-
 export const prerender = false;
-
-const session = await requirePermission(Astro, ["content.manage"]);
+const session = await requirePermission(Astro, ["social_profiles.view","social_profiles.manage","social_posts.view","social_posts.manage"]);
 if (!session) return Astro.redirect("/login/");
-
-const success = Astro.url.searchParams.get("success");
-const error = Astro.url.searchParams.get("error");
-const { data: highlights } = await session.supabase
-  .from("content_articles")
-  .select("id,title,summary,workflow_status,publish_at,updated_at,featured_image_url")
-  .eq("category", "Highlight")
-  .order("updated_at", { ascending: false })
-  .limit(120);
+const canProfiles = session.permissions.has("*") || session.permissions.has("social_profiles.manage");
+const canPosts = session.permissions.has("*") || session.permissions.has("social_posts.manage");
+const [{data:profiles},{data:posts}] = await Promise.all([
+  (session.supabase as any).from("social_profiles").select("*").order("sort_order"),
+  (session.supabase as any).from("social_posts").select("*").order("featured",{ascending:false}).order("sort_order")
+]);
+const platforms = ["instagram","facebook","tiktok"];
 ---
-
-<PortalLayout title="Highlights" section="Administration" session={session}>
-  <div class="grid gap-6">
-    <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Highlights" intro="Manage club highlights with active and inactive status.">
-      <Fragment slot="actions">
-        <AdminDialog id="add-highlight" title="Add Highlight" actionLabel="Add Highlight" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-            <input type="hidden" name="action" value="article" />
-            <input type="hidden" name="return_to" value="/admin/highlights/" />
-            <input type="hidden" name="category" value="Highlight" />
-            <label><span class="label">Title</span><input class="field" name="title" required /></label>
-            <label><span class="label">Description</span><textarea class="field min-h-24" name="summary"></textarea></label>
-            <label><span class="label">Content</span><textarea class="field min-h-32" name="body" required></textarea></label>
-            <label><span class="label">Image or media URL</span><input class="field" name="featured_image_url" type="url" /></label>
-            <label><span class="label">Date</span><input class="field" name="publish_at" type="datetime-local" /></label>
-            <label><span class="label">Optional link/tag</span><input class="field" name="tags" placeholder="homepage, juniors" /></label>
-            <label><span class="label">Status</span><select class="field" name="workflow_status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
-            <FormActions submitLabel="Save highlight" />
-          </form>
-        </AdminDialog>
-      </Fragment>
-    </AdminPageHeader>
+<PortalLayout title="Social Hub" section="Administration" session={session}>
+  <div class="grid gap-7">
+    <AdminFeedback success={Astro.url.searchParams.get("success")} error={Astro.url.searchParams.get("error")} />
+    <AdminPageHeader title="Social Hub" intro="Manage the club’s official profiles and selected public social posts." />
     <section class="surface p-5 md:p-7">
-      <div class="grid gap-3">
-        {(highlights ?? []).length === 0 && <EmptyState title="No highlights" text="Club highlights will appear here." />}
-        {(highlights ?? []).map((item: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div><p class="font-black">{item.title}</p><p class="text-sm text-eagles-ink/70">{item.summary ?? "Highlight"} - updated {formatDateTime(item.updated_at)}</p></div>
-              <StatusBadge label={statusLabel(item.workflow_status)} tone={item.workflow_status === "active" ? "green" : "amber"} />
-            </div>
-          </article>
-        ))}
+      <div class="flex items-center justify-between gap-4"><h2 class="font-display text-3xl font-black uppercase">Social profiles</h2>
+        {canProfiles && <AdminDialog id="new-profile" title="New social profile" actionLabel="New social profile"><form class="grid gap-4" method="post" action="/api/admin/social-hub/">
+          <input type="hidden" name="entity" value="profile" />
+          <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p}>{p}</option>)}</select></label>
+          <label><span class="label">Display name</span><input class="field" name="display_name" required maxlength="120" /></label>
+          <label><span class="label">Username</span><input class="field" name="username" maxlength="120" /></label>
+          <label><span class="label">Official HTTPS profile URL</span><input class="field" name="profile_url" type="url" required /></label>
+          <label><span class="label">Sort order</span><input class="field" name="sort_order" type="number" min="0" value="100" required /></label>
+          <label class="flex gap-3"><input name="active" type="checkbox" checked /> <span>Active</span></label><FormActions submitLabel="Save profile" />
+        </form></AdminDialog>}
+      </div>
+      <div class="mt-6 grid gap-3">
+        {(profiles??[]).length===0 && <EmptyState title="No social profiles" text="Add the club’s first official social profile." />}
+        {(profiles??[]).map((item:any)=><article class="border border-eagles-line p-4" style="border-radius:8px"><div class="flex flex-wrap items-center justify-between gap-3"><div><p class="font-black capitalize">{item.platform}: {item.display_name}</p><p class="text-sm text-eagles-ink/65">{item.username??"No username"} · order {item.sort_order}</p></div><div class="flex items-center gap-3"><StatusBadge label={item.active?"Active":"Inactive"} tone={item.active?"green":"amber"} />
+          {canProfiles && <AdminDialog id={`profile-${item.id}`} title="Edit social profile" actionLabel="Edit" tone="secondary"><form class="grid gap-4" method="post" action="/api/admin/social-hub/"><input type="hidden" name="entity" value="profile"/><input type="hidden" name="id" value={item.id}/>
+            <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p} selected={p===item.platform}>{p}</option>)}</select></label>
+            <label><span class="label">Display name</span><input class="field" name="display_name" value={item.display_name} required maxlength="120"/></label><label><span class="label">Username</span><input class="field" name="username" value={item.username??""}/></label>
+            <label><span class="label">Official HTTPS profile URL</span><input class="field" name="profile_url" type="url" value={item.profile_url} required/></label><label><span class="label">Sort order</span><input class="field" name="sort_order" type="number" min="0" value={item.sort_order}/></label>
+            <label class="flex gap-3"><input name="active" type="checkbox" checked={item.active}/> <span>Active</span></label><FormActions submitLabel="Save changes"/>
+            <button class="text-sm font-black text-red-700" name="intent" value="delete" type="submit" onclick="return confirm('Delete this social profile?')">Delete profile</button>
+          </form></AdminDialog>}</div></div></article>)}
+      </div>
+    </section>
+    <section class="surface p-5 md:p-7">
+      <div class="flex items-center justify-between gap-4"><h2 class="font-display text-3xl font-black uppercase">Social posts</h2>
+        {canPosts && <AdminDialog id="new-post" title="New social post" actionLabel="New social post" size="lg"><form class="grid gap-4" method="post" action="/api/admin/social-hub/" enctype="multipart/form-data"><input type="hidden" name="entity" value="post"/>
+          <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p}>{p}</option>)}</select></label><label><span class="label">Post URL</span><input class="field" name="post_url" type="url" required/></label>
+          <label><span class="label">Title</span><input class="field" name="title" maxlength="180"/></label><label><span class="label">Caption</span><textarea class="field min-h-28" name="caption" maxlength="2000"></textarea></label>
+          <label><span class="label">Card image (optional)</span><input class="field" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/avif"/></label><label><span class="label">Image alt text</span><input class="field" name="image_alt_text" maxlength="240"/></label><label><span class="label">Published date</span><input class="field" name="published_at" type="datetime-local"/></label><label><span class="label">Sort order</span><input class="field" name="sort_order" type="number" value="100" min="0"/></label>
+          <div class="flex gap-5"><label class="flex gap-2"><input name="active" type="checkbox" checked/> Active</label><label class="flex gap-2"><input name="featured" type="checkbox"/> Featured</label></div><p class="text-sm text-eagles-ink/65">Images are optional and can be added once the public R2 bucket is configured.</p><FormActions submitLabel="Save post"/>
+        </form></AdminDialog>}
+      </div>
+      <div class="mt-6 grid gap-3">
+        {(posts??[]).length===0 && <EmptyState title="No social posts" text="Add the first selected post for the public Social Hub." />}
+        {(posts??[]).map((item:any)=><article class="border border-eagles-line p-4" style="border-radius:8px"><div class="flex flex-wrap items-center justify-between gap-3"><div><p class="font-black">{item.title??item.caption?.slice(0,70)??"Untitled social post"}</p><p class="text-sm capitalize text-eagles-ink/65">{item.platform} · order {item.sort_order}</p></div><div class="flex items-center gap-2"><StatusBadge label={item.active?"Active":"Inactive"} tone={item.active?"green":"amber"}/>{item.featured&&<StatusBadge label="Featured" tone="green"/>}
+          {canPosts&&<AdminDialog id={`post-${item.id}`} title="Edit social post" actionLabel="Edit" tone="secondary" size="lg"><form class="grid gap-4" method="post" action="/api/admin/social-hub/" enctype="multipart/form-data"><input type="hidden" name="entity" value="post"/><input type="hidden" name="id" value={item.id}/>
+            <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p} selected={p===item.platform}>{p}</option>)}</select></label><label><span class="label">Post URL</span><input class="field" name="post_url" type="url" value={item.post_url} required/></label>
+            <label><span class="label">Replace card image</span><input class="field" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/avif"/></label>{item.image_object_key&&<label class="flex gap-2"><input name="remove_image" type="checkbox"/> Remove current image</label>}<label><span class="label">Title</span><input class="field" name="title" value={item.title??""}/></label><label><span class="label">Caption</span><textarea class="field min-h-28" name="caption">{item.caption??""}</textarea></label><label><span class="label">Image alt text</span><input class="field" name="image_alt_text" value={item.image_alt_text??""}/></label>
+            <label><span class="label">Published date</span><input class="field" name="published_at" type="datetime-local" value={item.published_at?.slice(0,16)??""}/></label><label><span class="label">Sort order</span><input class="field" name="sort_order" type="number" min="0" value={item.sort_order}/></label>
+            <div class="flex gap-5"><label class="flex gap-2"><input name="active" type="checkbox" checked={item.active}/> Active</label><label class="flex gap-2"><input name="featured" type="checkbox" checked={item.featured}/> Featured</label></div><FormActions submitLabel="Save changes"/><button class="text-sm font-black text-red-700" name="intent" value="delete" type="submit" onclick="return confirm('Delete this social post?')">Delete post</button>
+          </form></AdminDialog>}</div></div></article>)}
       </div>
     </section>
   </div>

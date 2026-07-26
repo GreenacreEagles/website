@@ -17,7 +17,7 @@ const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: seasons }, { data: teams }, { data: ageGroups }, { data: competitions }, { data: venues }, { data: profiles }, { data: teamStaff }, { data: teamPlayers }, { data: trainingSessions }, { data: matchReports }, { data: teamAccessRequests }] = await Promise.all([
   session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
-  session.supabase.from("teams").select("id,name,division,colour,status,external_fixture_url,seasons(id,name),age_groups(id,name),competitions(id,name),home:home_venue_id(name),training:training_venue_id(name)").order("name"),
+  (session.supabase as any).from("teams").select("id,name,slug,public,summary,sort_order,division,colour,status,external_fixture_url,seasons(id,name),age_groups(id,name),competitions(id,name),home:home_venue_id(name),training:training_venue_id(name)").order("name"),
   session.supabase.from("age_groups").select("id,name").order("sort_order"),
   session.supabase.from("competitions").select("id,name").order("name"),
   session.supabase.from("venues").select("id,name,suburb").order("name"),
@@ -77,6 +77,12 @@ const canReviewReports = session.permissions.has("*") || session.permissions.has
             <label><span class="label">Age group</span><select class="field" name="age_group_id"><option value="">Not set</option>{(ageGroups ?? []).map((group) => <option value={group.id}>{group.name}</option>)}</select></label>
             <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
             <label><span class="label">Name</span><input class="field" name="name" required /></label>
+            <label><span class="label">Public URL slug</span><input class="field" name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="u6-green-koalas" required /></label>
+            <label><span class="label">Public summary</span><textarea class="field min-h-24" name="summary" maxlength="500"></textarea></label>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label><span class="label">Display order</span><input class="field" name="sort_order" type="number" min="0" value="100" /></label>
+              <label class="flex items-center gap-3 pt-7 text-sm font-bold"><input type="checkbox" name="public" />Show on public website</label>
+            </div>
             <label><span class="label">Division</span><input class="field" name="division" /></label>
             <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
             <label><span class="label">Home venue</span><select class="field" name="home_venue_id"><option value="">Not set</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
@@ -159,6 +165,7 @@ const canReviewReports = session.permissions.has("*") || session.permissions.has
                 <p class="font-black">{team.name}</p>
                 <p class="text-sm text-eagles-ink/60">{team.age_groups?.name ?? "Age group not set"} - {team.division ?? "No division"} - {team.seasons?.name}</p>
                 <p class="text-xs text-eagles-ink/55">{team.competitions?.name ?? "No competition"} - home {team.home?.name ?? "TBC"} - training {team.training?.name ?? "TBC"}</p>
+                <p class="mt-1 text-xs font-bold text-eagles-green">{team.public ? `/teams/${team.slug}/` : "Private team"}</p>
               </div>
               <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
             </div>

@@ -1,34 +1,48 @@
-﻿---
-import { getCollection } from "astro:content";
+---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import TeamCard from "@components/TeamCard.astro";
-import { bySortOrder } from "@lib/content";
+import AnimatedTeamCount from "@components/AnimatedTeamCount.astro";
+import EmptyState from "@components/EmptyState.astro";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { getPublicTeams } from "@lib/public-teams";
 
-const teams = bySortOrder(await getCollection("teams"));
-
-export const prerender = true;
+export const prerender = false;
+const supabase = createSupabaseServiceClient(Astro);
+const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
 ---
-
-<BaseLayout title="Teams" description="Greenacre Eagles FC senior teams, junior teams, MiniRoos, training nights, and player pathways.">
+<BaseLayout title="Teams" description="Meet the active junior, youth and senior teams representing Greenacre Eagles FC.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
-    <div class="section-shell">
-      <p class="text-sm font-black uppercase text-eagles-green">Teams</p>
-      <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Every squad has a place</h1>
-      <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">From MiniRoos and juniors through to senior football, every Eagles team plays a part in the club.</p>
+    <div class="section-shell grid gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
+      <div>
+        <p class="eyebrow">Teams</p>
+        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Football for every stage</h1>
+        <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">
+          Greenacre Eagles supports players through junior, youth and senior football. Every squad has its own character and ambitions, while sharing the same commitment to teammates, families and the wider club.
+        </p>
+      </div>
+      <AnimatedTeamCount total={activeTeamCount} />
     </div>
   </section>
-  <section class="section-pad bg-eagles-mist">
+
+  <section class="section-pad bg-white">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <SectionHeading eyebrow="Squads" title="Greenacre Eagles teams" intro="Find the current senior, reserve, junior, and youth squads wearing green, black, and white." />
+        <SectionHeading eyebrow="Our squads" title="Public teams" intro="Explore the Greenacre Eagles teams currently sharing their squad information with the community." />
         <ButtonLink href="/join/" variant="secondary">Register interest</ButtonLink>
       </div>
-      <div class="mt-10 grid gap-5 lg:grid-cols-3">
-        {teams.map((team) => <TeamCard team={team} />)}
-      </div>
+      {teams.length ? <div class="mt-10 grid gap-5 lg:grid-cols-3">{teams.map((team) => <TeamCard team={team} />)}</div> :
+        <div class="mt-10"><EmptyState title="Team profiles coming soon" text="Our active teams are being prepared for public display. Contact the club if you would like help finding the right team." /></div>}
+
+      <article class="mt-10 grid gap-6 border border-eagles-green bg-eagles-ink p-6 text-white md:grid-cols-[1fr_auto] md:items-center md:p-8" style="border-radius:12px">
+        <div>
+          <p class="eyebrow text-eagles-lime">Club portal</p>
+          <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none">Looking for your team?</h2>
+          <p class="mt-3 max-w-2xl leading-7 text-white/75">Log in to the Greenacre Eagles portal to view the teams you are connected to, team posts and club updates.</p>
+        </div>
+        <ButtonLink href="/login/?returnTo=%2Fportal%2Fteams%2F">View my teams</ButtonLink>
+      </article>
     </div>
   </section>
 </BaseLayout>
-

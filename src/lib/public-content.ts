@@ -107,13 +107,17 @@ export const fetchPublicArticles = async (limit = 20): Promise<PublicArticle[]> 
   }));
 };
 
-export const fetchPublicArticleBySlug = async (slug: string): Promise<PublicArticle | null> => {
+export const fetchPublicArticleBySlug = async (
+  slug: string,
+): Promise<PublicArticle | null> => {
   const supabase = client();
   if (!supabase) return null;
 
   const { data, error } = await supabase
     .from("content_articles")
-    .select("id,title,slug,summary,body,category,featured_image_url,publish_at,updated_at,tags")
+    .select(
+      "id,title,slug,summary,body,category,featured_image_url,publish_at,updated_at,tags",
+    )
     .eq("slug", slug)
     .eq("workflow_status", "active")
     .or(`publish_at.is.null,publish_at.lte.${new Date().toISOString()}`)
@@ -130,7 +134,7 @@ export const fetchPublicArticleBySlug = async (slug: string): Promise<PublicArti
     category: data.category ?? "Club news",
     image: data.featured_image_url,
     date: data.publish_at ?? data.updated_at,
-    tags: data.tags ?? []
+    tags: data.tags ?? [],
   };
 };
 

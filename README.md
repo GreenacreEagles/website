@@ -99,13 +99,11 @@ Future admin work should support secure login, article publishing/unpublishing, 
 
 ```text
 src/content/news
-src/content/weekly-highlights
-src/content/social-posts
+Social profiles and selected posts are managed in Supabase through the admin Social Hub.
 src/content/sponsors
 src/content/fundraisers
 src/content/events
 src/content/gallery
-src/content/teams
 src/content/announcements
 ```
 

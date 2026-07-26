@@ -2,13 +2,6 @@ import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 
 const imageField = z.string().optional();
-const ctaField = z
-  .object({
-    text: z.string(),
-    href: z.string()
-  })
-  .optional();
-
 const news = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/news" }),
   schema: z.object({
@@ -21,46 +14,6 @@ const news = defineCollection({
     tags: z.array(z.string()).default([]),
     category: z.string().default("Club news"),
     featured: z.boolean().default(false)
-  })
-});
-
-const weeklyHighlights = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/weekly-highlights" }),
-  schema: z.object({
-    title: z.string(),
-    slug: z.string().optional(),
-    weekOf: z.coerce.date(),
-    summary: z.string(),
-    image: imageField,
-    cta: ctaField,
-    highlightCards: z
-      .array(
-        z.object({
-          title: z.string(),
-          text: z.string(),
-          metric: z.string().optional(),
-          image: imageField,
-          linkText: z.string().optional(),
-          linkUrl: z.string().optional()
-        })
-      )
-      .default([])
-  })
-});
-
-const socialPosts = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/social-posts" }),
-  schema: z.object({
-    slug: z.string().optional(),
-    platform: z.enum(["Instagram", "TikTok", "Facebook", "YouTube", "Other"]),
-    title: z.string(),
-    caption: z.string(),
-    postUrl: z.string(),
-    date: z.coerce.date(),
-    thumbnail: imageField,
-    featured: z.boolean().default(true),
-    sortOrder: z.number().default(100),
-    embed: z.boolean().default(false)
   })
 });
 
@@ -117,21 +70,6 @@ const gallery = defineCollection({
   })
 });
 
-const teams = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/teams" }),
-  schema: z.object({
-    slug: z.string().optional(),
-    name: z.string(),
-    ageGroup: z.string(),
-    coach: z.string().default("Club coaching group"),
-    training: z.string(),
-    image: imageField,
-    description: z.string(),
-    spotlight: z.boolean().default(false),
-    sortOrder: z.number().default(100)
-  })
-});
-
 const announcements = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/announcements" }),
   schema: z.object({
@@ -147,12 +85,9 @@ const announcements = defineCollection({
 
 export const collections = {
   news,
-  "weekly-highlights": weeklyHighlights,
-  "social-posts": socialPosts,
   sponsors,
   fundraisers,
   events,
   gallery,
-  teams,
   announcements
 };

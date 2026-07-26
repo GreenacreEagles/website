@@ -14,7 +14,7 @@ if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: events }, { data: registrations }] = await Promise.all([
-  session.supabase.from("club_events").select("id,title,description,starts_at,ends_at,status,visibility,capacity,price_cents,venues(name,suburb)").eq("status", "active").order("starts_at", { ascending: true }).limit(40),
+  (session.supabase as any).from("club_events").select("id,slug,title,description,starts_at,ends_at,status,visibility,capacity,price_cents,venues(name,suburb),club_event_ticket_types(price_cents,active)").eq("status", "active").order("starts_at", { ascending: true }).limit(40),
   session.supabase.from("event_registrations").select("id,status,created_at,club_events(title,starts_at)").or(`registered_by.eq.${session.user.id},attendee_id.eq.${session.user.id}`).order("created_at", { ascending: false }).limit(20)
 ]);
 ---
@@ -35,10 +35,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
             <StatusBadge label={formatMoney(event.price_cents)} tone="ink" />
             <StatusBadge label={event.venues?.name ?? "Club venue"} tone="ink" />
           </div>
-          <form class="mt-5" method="post" action="/api/portal/event-registration/">
-            <input type="hidden" name="event_id" value={event.id} />
-            <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Register interest</button>
-          </form>
+          <a class="focus-ring mt-5 inline-flex bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" href={`/portal/events/${event.slug}/`}>View event and tickets</a>
         </article>
       ))}
     </section>

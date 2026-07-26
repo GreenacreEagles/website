@@ -1,0 +1,50 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import ButtonLink from "@components/ButtonLink.astro";
+import EmptyState from "@components/EmptyState.astro";
+import PersonAvatar from "@components/PersonAvatar.astro";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { getPublicTeam } from "@lib/public-teams";
+
+export const prerender = false;
+const slug = Astro.params.slug ?? "";
+const team = await getPublicTeam(createSupabaseServiceClient(Astro), Astro, slug);
+if (!team) return new Response(null, { status: 404 });
+const description = team.summary ?? `Meet ${team.name}, one of the active Greenacre Eagles FC teams.`;
+const meta = [team.seasonName, team.ageGroup, team.division || team.competition].filter(Boolean);
+---
+<BaseLayout title={team.name} description={description} image={team.imageUrl ?? undefined}>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <nav aria-label="Breadcrumb" class="text-sm font-black"><a class="focus-ring text-eagles-green hover:text-eagles-ink" href="/teams/">Teams</a><span aria-hidden="true"> / </span><span>{team.name}</span></nav>
+      <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
+        <div>
+          {meta.length > 0 && <p class="eyebrow">{meta.join(" · ")}</p>}
+          <h1 class="mt-3 font-display text-6xl font-black uppercase leading-none md:text-7xl">{team.name}</h1>
+          <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/75">{description}</p>
+        </div>
+        {team.imageUrl ? <img src={team.imageUrl} alt={`${team.name} team`} class="aspect-[4/3] w-full object-cover" /> :
+          <div class="flex aspect-[4/3] items-center justify-center bg-eagles-green text-white"><span class="font-display text-6xl font-black">GEFC</span></div>}
+      </div>
+    </div>
+  </section>
+  <section class="section-pad bg-white">
+    <div class="section-shell">
+      <h2 class="font-display text-4xl font-black uppercase leading-none">Players</h2>
+      {team.players.length ? <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{team.players.map((player) =>
+        <article class="surface overflow-hidden"><PersonAvatar src={player.photoUrl} alt={player.photoUrl ? `${player.displayName}, ${team.name} player` : `Default player avatar for ${player.displayName}`} />
+          <div class="p-4"><h3 class="text-lg font-black">{player.displayName}</h3>{player.squadNumber !== null && <p class="mt-1 text-sm text-eagles-ink/65">Squad number {player.squadNumber}</p>}</div></article>)}</div> :
+        <div class="mt-8"><EmptyState title="Squad details coming soon" text="This team’s public squad has not been added yet." /></div>}
+    </div>
+  </section>
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell">
+      <h2 class="font-display text-4xl font-black uppercase leading-none">Coaching staff</h2>
+      {team.staff.length ? <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{team.staff.map((person) =>
+        <article class="surface overflow-hidden"><PersonAvatar src={person.photoUrl} alt={person.photoUrl ? `${person.displayName}, ${person.roleLabel}` : `Default staff avatar for ${person.displayName}`} />
+          <div class="p-4"><h3 class="text-lg font-black">{person.displayName}</h3><p class="mt-1 text-sm text-eagles-ink/65">{person.roleLabel}</p></div></article>)}</div> :
+        <div class="mt-8"><EmptyState title="Staff details coming soon" text="Public coaching staff details have not been added for this team." /></div>}
+      <div class="mt-10 flex flex-wrap gap-3"><ButtonLink href="/login/?returnTo=%2Fportal%2Fteams%2F">View my teams</ButtonLink><ButtonLink href="/join/" variant="secondary">Register interest</ButtonLink></div>
+    </div>
+  </section>
+</BaseLayout>

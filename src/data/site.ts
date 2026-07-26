@@ -12,10 +12,9 @@ export const site = {
   phone: "Contact by email",
   homeGround: "Roberts Park, Greenacre",
   socials: [
-    { label: "Instagram", href: "https://www.instagram.com/", platform: "Instagram" },
-    { label: "TikTok", href: "https://www.tiktok.com/", platform: "TikTok" },
-    { label: "Facebook", href: "https://www.facebook.com/", platform: "Facebook" },
-    { label: "YouTube", href: "https://www.youtube.com/", platform: "YouTube" }
+    { label: "Instagram", href: "https://www.instagram.com/greenacreeagles", platform: "Instagram" },
+    { label: "Facebook", href: "https://www.facebook.com/eaglesgreenacreFC", platform: "Facebook" },
+    { label: "TikTok", href: "https://www.tiktok.com/discover/greenacre-eagles-fc", platform: "TikTok" }
   ],
   stats: [
     { label: "Senior football", value: "BPL" },

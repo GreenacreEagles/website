@@ -1,0 +1,13 @@
+---
+interface Props { src?: string | null; alt: string; }
+const { src, alt } = Astro.props;
+---
+{src ? (
+  <img src={src} alt={alt} class="aspect-square w-full object-cover" loading="lazy" />
+) : (
+  <div class="flex aspect-square w-full items-center justify-center bg-gray-200 text-gray-500" role="img" aria-label={alt}>
+    <svg aria-hidden="true" viewBox="0 0 64 64" class="h-2/3 w-2/3" fill="currentColor">
+      <circle cx="32" cy="22" r="12" /><path d="M10 58c1-14 9-21 22-21s21 7 22 21H10Z" />
+    </svg>
+  </div>
+)}

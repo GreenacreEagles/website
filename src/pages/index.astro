@@ -7,20 +7,21 @@ import FundraiserCard from "@components/FundraiserCard.astro";
 import Icon from "@components/Icon.astro";
 import NewsCard from "@components/NewsCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
-import SocialPostCard from "@components/SocialPostCard.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
 import { bySortOrder, newestFirst, upcomingFirst } from "@lib/content";
 import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, markdownSponsor } from "@lib/public-content";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { getPublicTeams } from "@lib/public-teams";
+import { getPublicSocial, type PublicSocialPost } from "@lib/public-social";
 
 const markdownNews = newestFirst(await getCollection("news")).map(markdownArticle);
 const dbNews = await fetchPublicArticles(3);
 const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
-const highlights = newestFirst(await getCollection("weekly-highlights"))[0];
-const socialPosts = bySortOrder((await getCollection("social-posts")).filter((post) => post.data.featured)).slice(0, 3);
+let socialPosts: PublicSocialPost[] = [];
+try { socialPosts = (await getPublicSocial(createSupabaseServiceClient(Astro), Astro)).posts.slice(0, 3); } catch {}
 const events = upcomingFirst(await getCollection("events")).slice(0, 3);
-const teams = bySortOrder(await getCollection("teams"));
-const spotlightTeam = teams.find((team) => team.data.spotlight) ?? teams[0];
+const spotlightTeam = (await getPublicTeams(createSupabaseServiceClient(Astro), Astro)).teams[0];
 const markdownSponsors = bySortOrder(await getCollection("sponsors")).map(markdownSponsor);
 const dbSponsors = await fetchPublicSponsors(3);
 const sponsors = (dbSponsors.length > 0 ? dbSponsors : markdownSponsors).slice(0, 3);
@@ -138,32 +139,6 @@ export const prerender = false;
     </div>
   </section>
 
-  {highlights && (
-    <section class="section-pad bg-eagles-mist">
-      <div class="section-shell">
-        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <SectionHeading eyebrow="This week" title={highlights.data.title} intro={highlights.data.summary} />
-          {highlights.data.cta && <ButtonLink href={highlights.data.cta.href} variant="secondary">{highlights.data.cta.text}</ButtonLink>}
-        </div>
-        <div class="mt-10 grid gap-5 md:grid-cols-3">
-          {
-            highlights.data.highlightCards.map((card) => (
-              <article class="surface overflow-hidden">
-                <img src={card.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-52 w-full object-cover" loading="lazy" />
-                <div class="p-5">
-                  {card.metric && <p class="font-display text-4xl font-black uppercase leading-none text-eagles-green">{card.metric}</p>}
-                  <h3 class="mt-3 font-display text-2xl font-black uppercase leading-none">{card.title}</h3>
-                  <p class="mt-3 text-base leading-7 text-eagles-ink/70">{card.text}</p>
-                  {card.linkUrl && <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href={card.linkUrl}>{card.linkText ?? "View"}</a>}
-                </div>
-              </article>
-            ))
-          }
-        </div>
-      </div>
-    </section>
-  )}
-
   <section class="section-pad bg-white">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -184,10 +159,13 @@ export const prerender = false;
           <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Seen around the club</h2>
           <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/70">Match photos, training moments, sponsor shout-outs, and community updates from the Eagles channels.</p>
         </div>
-        <ButtonLink href="/weekly-highlights/" variant="secondary">View weekly highlights</ButtonLink>
+        <ButtonLink href="/social/" variant="secondary">Follow the Eagles</ButtonLink>
       </div>
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
-        {socialPosts.map((post) => <SocialPostCard post={post} />)}
+        {socialPosts.map((post) => <article class="surface overflow-hidden">
+          {post.imageUrl ? <img src={post.imageUrl} alt={post.imageAltText ?? ""} class="h-56 w-full object-cover" loading="lazy" /> : <div class="flex h-56 items-center justify-center bg-eagles-green font-display text-3xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
+          <div class="p-5">{post.title && <h3 class="font-display text-2xl font-black uppercase">{post.title}</h3>}{post.caption && <p class="mt-3 line-clamp-3 text-eagles-ink/70">{post.caption}</p>}<a class="mt-4 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a></div>
+        </article>)}
       </div>
     </div>
   </section>
@@ -202,11 +180,11 @@ export const prerender = false;
       </div>
       {spotlightTeam && (
         <article class="dark-surface overflow-hidden">
-          <img src={spotlightTeam.data.image ?? "/media/placeholders/team-seniors.svg"} alt="" class="h-80 w-full object-cover" loading="lazy" />
+          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="h-80 w-full object-cover" loading="lazy" />
           <div class="p-6">
             <p class="text-sm font-black uppercase text-eagles-lime">Team spotlight</p>
-            <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{spotlightTeam.data.name}</h3>
-            <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.data.description}</p>
+            <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{spotlightTeam.name}</h3>
+            <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.summary ?? "Meet one of the active Greenacre Eagles squads representing our club this season."}</p>
             <div class="mt-6">
               <ButtonLink href="/teams/" variant="primary">View teams</ButtonLink>
             </div>

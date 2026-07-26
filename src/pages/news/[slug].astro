@@ -3,11 +3,19 @@ import { getCollection, render } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import { formatDate } from "@lib/content";
-import { fetchPublicArticleBySlug, markdownArticle } from "@lib/public-content";
+import {
+  fetchPublicArticleBySlug,
+  markdownArticle,
+} from "@lib/public-content";
 
 const slug = Astro.params.slug ?? "";
 const dbArticle = await fetchPublicArticleBySlug(slug);
-const markdownMatch = dbArticle ? null : (await getCollection("news")).find((item) => (item.data.slug ?? item.id) === slug);
+
+const markdownMatch = dbArticle
+  ? null
+  : (await getCollection("news")).find(
+      (item) => (item.data.slug ?? item.id) === slug,
+    );
 
 if (!dbArticle && !markdownMatch) {
   return Astro.redirect("/news/");
@@ -16,6 +24,7 @@ if (!dbArticle && !markdownMatch) {
 const article = dbArticle ?? markdownArticle(markdownMatch!);
 const rendered = markdownMatch ? await render(markdownMatch) : null;
 const Content = rendered?.Content;
+
 const paragraphs = article.body
   .split(/\n{2,}/)
   .map((item) => item.trim())
@@ -24,26 +33,57 @@ const paragraphs = article.body
 export const prerender = false;
 ---
 
-<BaseLayout title={article.title} description={article.summary} image={article.image ?? undefined}>
+<BaseLayout
+  title={article.title}
+  description={article.summary}
+  image={article.image ?? undefined}
+>
   <article class="bg-white">
     <header class="bg-eagles-mist text-eagles-ink">
-      <div class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-end">
+      <div
+        class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-end"
+      >
         <div>
-          <p class="text-sm font-black uppercase text-eagles-green">{article.category} / {formatDate(new Date(article.date))}</p>
-          <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none md:text-7xl">{article.title}</h1>
-          <p class="mt-6 text-xl leading-9 text-eagles-ink/75">{article.summary}</p>
+          <p class="text-sm font-black uppercase text-eagles-green">
+            {article.category} / {formatDate(new Date(article.date))}
+          </p>
+
+          <h1
+            class="mt-4 font-display text-5xl font-black uppercase leading-none md:text-7xl"
+          >
+            {article.title}
+          </h1>
+
+          <p class="mt-6 text-xl leading-9 text-eagles-ink/75">
+            {article.summary}
+          </p>
         </div>
-        <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
+
+        <img
+          src={article.image ?? "/media/placeholders/matchday-card.svg"}
+          alt={article.image ? article.title : ""}
+          class="h-96 w-full object-cover shadow-match-card"
+          style="border-radius: 8px"
+        />
       </div>
     </header>
+
     <div class="section-shell max-w-4xl py-14">
-      <div class="prose prose-lg max-w-none prose-headings:font-display prose-headings:uppercase prose-a:font-bold prose-a:text-eagles-green">
-        {Content ? <Content /> : paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+      <div
+        class="prose prose-lg max-w-none prose-headings:font-display prose-headings:uppercase prose-a:font-bold prose-a:text-eagles-green"
+      >
+        {
+          Content
+            ? <Content />
+            : paragraphs.map((paragraph) => <p>{paragraph}</p>)
+        }
       </div>
+
       <div class="mt-10 border-t border-eagles-line pt-8">
-        <ButtonLink href="/news/" variant="secondary">Back to news</ButtonLink>
+        <ButtonLink href="/news/" variant="secondary">
+          Back to news
+        </ButtonLink>
       </div>
     </div>
   </article>
 </BaseLayout>
-
