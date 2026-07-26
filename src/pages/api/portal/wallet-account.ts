@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { requireUser } from "@lib/auth/guards";
+import { requirePermission } from "@lib/auth/guards";
 import { optionalUuidSchema, redirectWithMessage } from "@lib/forms";
 
 export const prerender = false;
@@ -13,7 +13,7 @@ const schema = z.object({
 });
 
 export const POST: APIRoute = async (context) => {
-  const session = await requireUser(context);
+  const session = await requirePermission(context, ["wallet.adjust"]);
   if (!session) return context.redirect("/login/");
 
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));

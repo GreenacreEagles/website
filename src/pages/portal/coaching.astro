@@ -4,6 +4,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDate, statusLabel } from "@lib/format";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ if (!session) return Astro.redirect("/login/");
 const query = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
 const typeFilter = Astro.url.searchParams.get("type") ?? "";
 const ageFilter = Astro.url.searchParams.get("age") ?? "";
-const { data: resources } = await session.supabase
+const { data: resources } = await createSupabaseServiceClient(Astro)
   .from("coaching_resources")
   .select("id,title,summary,body,resource_type,status,visibility,duration_minutes,age_group_tags,skill_level_tags,equipment_required,external_url,published_at,updated_at")
   .eq("status", "active")

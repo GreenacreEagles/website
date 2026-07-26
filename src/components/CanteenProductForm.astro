@@ -1,0 +1,24 @@
+---
+import FormActions from "@components/FormActions.astro";
+import { statusLabel } from "@lib/format";
+const { product, categories, dietaryOptions, allergenOptions } = Astro.props;
+---
+<form class="grid gap-4" method="post" action="/api/admin/canteen-product/">
+  <input type="hidden" name="product_id" value={product?.id ?? ""} />
+  <div class="grid gap-4 md:grid-cols-2">
+    <label><span class="label">Name</span><input class="field" name="name" value={product?.name ?? ""} required /></label>
+    <label><span class="label">Category</span><select class="field" name="category_id"><option value="">Uncategorised</option>{categories.map((c: any) => <option value={c.id} selected={product?.category_id === c.id}>{c.name}</option>)}</select></label>
+  </div>
+  <label><span class="label">Description</span><textarea class="field min-h-24" name="description">{product?.description ?? ""}</textarea></label>
+  <div class="grid gap-4 md:grid-cols-2"><label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" value={product ? (product.price_cents / 100).toFixed(2) : ""} required /></label><label><span class="label">Image object key (optional)</span><input class="field" name="image_object_key" value={product?.image_object_key ?? ""} /></label></div>
+  <div class="grid gap-4 md:grid-cols-3"><label><span class="label">Stock quantity</span><input class="field" name="stock_quantity" type="number" min="0" value={product?.stock_quantity ?? ""} /></label><label><span class="label">Low stock threshold</span><input class="field" name="low_stock_threshold" type="number" min="0" value={product?.low_stock_threshold ?? 5} required /></label><label><span class="label">Voucher validity days</span><input class="field" name="voucher_valid_days" type="number" min="1" value={product?.voucher_valid_days ?? 14} required /></label></div>
+  <fieldset class="border border-eagles-line p-4" style="border-radius:8px">
+    <legend class="px-2 font-black">Dietary tags and allergens</legend>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div><p class="label">Dietary tags</p><div class="mt-2 grid grid-cols-2 gap-2">{dietaryOptions.map((item: string) => <label class="text-sm"><input type="checkbox" name="dietary_info" value={item} checked={product?.dietary_info?.includes(item)} /> {statusLabel(item)}</label>)}</div></div>
+      <div><p class="label">Allergens</p><div class="mt-2 grid grid-cols-2 gap-2">{allergenOptions.map((item: string) => <label class="text-sm"><input type="checkbox" name="allergen_info" value={item} checked={product?.allergen_info?.includes(item)} /> {statusLabel(item)}</label>)}</div></div>
+    </div>
+  </fieldset>
+  <div class="flex flex-wrap gap-5"><label class="font-bold"><input type="checkbox" name="is_active" checked={product ? product.is_active : true} /> Active</label><label class="font-bold"><input type="checkbox" name="is_sold_out" checked={product?.is_sold_out} /> Sold out</label></div>
+  <FormActions submitLabel={product ? "Save product" : "Create product"} />
+</form>

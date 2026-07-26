@@ -5,10 +5,11 @@ import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDateTime,formatMoney,statusLabel } from "@lib/format";
 import { getPublicMediaUrl } from "@lib/media";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
 export const prerender=false;
 const session=await requireUser(Astro);if(!session)return Astro.redirect("/login/");if(session.isChildAccount)return Astro.redirect("/portal/teams/");
 const [{data:products},{data:orders}]=await Promise.all([
- (session.supabase as any).from("merchandise_products").select("id,name,description,category,status,featured,image_url,image_object_key,merchandise_variants(id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status","active").order("featured",{ascending:false}).order("sort_order").limit(80),
+ (createSupabaseServiceClient(Astro) as any).from("merchandise_products").select("id,name,description,category,status,featured,image_url,image_object_key,merchandise_variants(id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status","active").order("featured",{ascending:false}).order("sort_order").limit(80),
  (session.supabase as any).from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at").eq("customer_id",session.user.id).order("created_at",{ascending:false}).limit(20)
 ]);
 ---

@@ -1,352 +1,269 @@
 ---
-import EmptyState from "@components/EmptyState.astro";
 import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
+import CanteenProductForm from "@components/CanteenProductForm.astro";
+import EmptyState from "@components/EmptyState.astro";
 import FormActions from "@components/FormActions.astro";
-import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+import { createSupabaseServiceClient } from "@lib/supabase/server";
 
 export const prerender = false;
-
-const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.reverse"]);
+const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.redeem"]);
 if (!session) return Astro.redirect("/login/");
 
+const service = createSupabaseServiceClient(Astro) as any;
+const now = new Date().toISOString();
+const [{ data: categories }, { data: products }, { data: orders }, { count: voucherCount }] = await Promise.all([
+  service.from("canteen_categories").select("id,name,is_active,display_order").order("display_order").order("name"),
+  service.from("canteen_products").select("id,category_id,name,description,price_cents,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
+  service.from("canteen_orders").select("id,order_number,order_status,payment_status,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)").in("order_status", ["paid", "accepted", "preparing", "ready_for_pickup"]).eq("payment_status", "paid").order("created_at", { ascending: false }).limit(100),
+  service.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active").is("claimed_at", null).gt("remaining_value_cents", 0).or(`expires_at.is.null,expires_at.gt.${now}`),
+]);
+
+const canManageCatalog = session.permissions.has("*") || session.permissions.has("canteen.manage");
+const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
+const canManageVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.manage");
+const canRedeem = canManageOrders || session.permissions.has("*") || session.permissions.has("canteen.vouchers.redeem");
+const soldOutCount = (products ?? []).filter((p: any) => p.is_active && p.is_sold_out).length;
+const lowStockCount = (products ?? []).filter((p: any) => p.is_active && !p.is_sold_out && p.stock_quantity !== null && p.stock_quantity <= p.low_stock_threshold).length;
+const dietaryOptions = ["vegetarian", "vegan", "halal", "gluten-free", "dairy-free"];
+const allergenOptions = ["gluten", "dairy", "egg", "peanuts", "tree nuts", "soy", "sesame", "fish", "shellfish"];
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: venues }, { data: groundVenues }, { data: categories }, { data: products }, { data: orders }, { data: vouchers }, { data: redemptions }, { data: profiles }, { data: teams }] = await Promise.all([
-  session.supabase.from("canteen_venues").select("id,name,is_active").order("name"),
-  session.supabase.from("venues").select("id,name").order("name"),
-  session.supabase.from("canteen_categories").select("id,name,is_active").order("display_order"),
-  session.supabase.from("canteen_products" as any).select("id,name,price_cents,is_active,is_sold_out,fulfilment_type,stock_quantity,low_stock_threshold,voucher_valid_days,max_quantity_per_order,canteen_categories(name)").order("name").limit(100),
-  session.supabase.from("canteen_orders" as any).select("id,order_number,order_status,payment_status,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_venues(name),canteen_order_items(product_name_snapshot,quantity,line_total_cents,fulfilment_type_snapshot,voucher_issuance_id)").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("voucher_issuances").select("id,voucher_type,status,remaining_value_cents,expires_at,profiles:beneficiary_id(full_name,email)").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("voucher_redemptions" as any).select("id,amount_cents,created_at,device_label,status,canteen_venues(name),voucher_issuances(issue_reason,profiles:beneficiary_id(full_name,email)),voucher_reversals(id,reason,created_at)").order("created_at", { ascending: false }).limit(40),
-  session.supabase.from("profiles").select("id,full_name,email").order("full_name").limit(200),
-  session.supabase.from("teams").select("id,name").order("name")
-]);
-const canManageCatalog = session.permissions.has("*") || session.permissions.has("canteen.manage");
-const canManageVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.manage");
-const canReverseVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.reverse");
-const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
-const orderActions: Record<string, { label: string; value: string }[]> = {
-  accepted: [
-    { label: "Preparing", value: "preparing" },
-    { label: "Ready", value: "ready_for_pickup" },
-    { label: "Cancel", value: "cancelled" }
-  ],
-  preparing: [
-    { label: "Ready", value: "ready_for_pickup" },
-    { label: "Cancel", value: "cancelled" }
-  ],
-  ready_for_pickup: [{ label: "Collected", value: "collected" }]
-};
-const productSummaries = (products ?? []).map((product: any) => ({
-  ...product,
-  stockLabel: product.stock_quantity === null || product.stock_quantity === undefined ? "open stock" : `${product.stock_quantity} left`,
-  stockTone:
-    product.is_sold_out
-      ? "text-red-700"
-      : product.stock_quantity !== null && product.stock_quantity !== undefined && product.stock_quantity <= product.low_stock_threshold
-        ? "text-amber-700"
-        : "text-eagles-ink/70"
-}));
+const requestKey = crypto.randomUUID();
 ---
 
 <PortalLayout title="Canteen operations" section="Administration" session={session}>
   <div class="grid gap-6">
     <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Canteen operations" intro="Run match day orders, catalogue setup and vouchers with global creation actions separated from live order handling.">
+    <AdminPageHeader title="Canteen operations" intro="Manage live orders and the canteen product catalogue.">
       <Fragment slot="actions">
-        {canManageOrders && (
-          <AdminDialog id="scan-canteen-code" title="Scan wallet or voucher" actionLabel="Scan Code" intro="Use the camera when available, or enter the wallet or voucher code manually." size="xl">
+        {canRedeem && (
+          <AdminDialog id="scan-canteen-code" title="Scan canteen code" actionLabel="Scan code" intro="Scan or enter an order, wallet or voucher code. Every redemption is confirmed before it is saved." size="xl">
             <div class="grid gap-5">
-              <section class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
-                <div class="grid gap-4 lg:grid-cols-[1fr_280px]">
-                  <div class="overflow-hidden bg-eagles-ink" style="border-radius:8px">
-                    <video class="aspect-video w-full object-cover" data-qr-video muted playsinline></video>
-                  </div>
-                  <div class="grid content-between gap-3">
-                    <p class="text-sm font-bold leading-6 text-eagles-ink/70" data-qr-status>Camera scanning is ready when your browser supports it.</p>
-                    <div class="flex flex-wrap gap-2">
-                      <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="button" data-qr-start>Start Camera</button>
-                      <button class="border border-eagles-line bg-white px-4 py-3 text-sm font-black text-eagles-ink" style="border-radius:8px" type="button" data-qr-stop>Stop</button>
-                    </div>
+              <section class="grid gap-4 border border-eagles-line bg-eagles-mist p-4 md:grid-cols-[1fr_260px]" style="border-radius:8px">
+                <video class="aspect-video w-full bg-eagles-ink object-cover" style="border-radius:8px" data-qr-video muted playsinline></video>
+                <div class="grid content-between gap-3">
+                  <p class="text-sm font-bold leading-6 text-eagles-ink/70" aria-live="polite" data-qr-status>Start the camera or enter a code below.</p>
+                  <div class="flex flex-wrap gap-2">
+                    <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="button" data-qr-start>Start camera</button>
+                    <button class="border border-eagles-line bg-white px-4 py-3 text-sm font-black" style="border-radius:8px" type="button" data-qr-stop>Stop</button>
                   </div>
                 </div>
               </section>
+              <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/complete-canteen-order/">
+                <input type="hidden" name="order_id" value="" />
+                <input type="hidden" name="source" value="qr" />
+                <h4 class="font-display text-2xl font-black uppercase">Order collection</h4>
+                <label><span class="label">Order QR or code</span><input class="field" name="order_code" data-scan-code data-code-type="order" placeholder="GEORDER:..." required /></label>
+                <FormActions submitLabel="Confirm collection" />
+              </form>
               <div class="grid gap-4 lg:grid-cols-2">
                 <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/wallet-qr-purchase/">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
-                  <div>
-                    <p class="font-display text-2xl font-black uppercase leading-none">Wallet purchase</p>
-                    <p class="mt-1 text-sm text-eagles-ink/70">Confirm the amount before debiting the member wallet.</p>
-                  </div>
-                  <label><span class="label">Wallet QR or code</span><input class="field" name="code" data-scan-code placeholder="GEWALLET:..." required /></label>
-                  <div class="grid gap-3 md:grid-cols-2">
-                    <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
-                    <label><span class="label">Description</span><input class="field" name="description" value="Canteen purchase" required /></label>
-                  </div>
+                  <h4 class="font-display text-2xl font-black uppercase">Wallet purchase</h4>
+                  <label><span class="label">Wallet code</span><input class="field" name="code" data-scan-code data-code-type="wallet" placeholder="GEWALLET:..." required /></label>
+                  <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
+                  <input type="hidden" name="description" value="Canteen purchase" />
                   <FormActions submitLabel="Confirm wallet purchase" />
                 </form>
                 <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/redeem-voucher/">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
                   <input type="hidden" name="device_label" value="Admin canteen scanner" />
-                  <div>
-                    <p class="font-display text-2xl font-black uppercase leading-none">Voucher redemption</p>
-                    <p class="mt-1 text-sm text-eagles-ink/70">Claim a fixed or declining canteen voucher.</p>
-                  </div>
-                  <label><span class="label">Voucher QR or code</span><input class="field" name="redemption_code" data-scan-code placeholder="GEVOUCHER:..." required /></label>
-                  <div class="grid gap-3 md:grid-cols-2">
-                    <label><span class="label">Venue</span><select class="field" name="venue_id" required>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-                    <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
-                  </div>
+                  <h4 class="font-display text-2xl font-black uppercase">Voucher claim</h4>
+                  <label><span class="label">Voucher code</span><input class="field" name="redemption_code" data-scan-code data-code-type="voucher" placeholder="GEVOUCHER:..." required /></label>
+                  <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
                   <FormActions submitLabel="Confirm voucher claim" />
                 </form>
               </div>
             </div>
-            <script is:inline>
-              (() => {
-                const dialog = document.getElementById("scan-canteen-code");
-                if (!dialog || dialog.dataset.scannerBound === "true") return;
-                dialog.dataset.scannerBound = "true";
-                const video = dialog.querySelector("[data-qr-video]");
-                const status = dialog.querySelector("[data-qr-status]");
-                const setStatus = (message) => {
-                  if (status) status.textContent = message;
-                };
-                let stream = null;
-                let detector = null;
-                let scanning = false;
-                let lastCode = "";
-                let lastAt = 0;
-
-                const stop = () => {
-                  scanning = false;
-                  stream?.getTracks().forEach((track) => track.stop());
-                  stream = null;
-                  if (video) video.srcObject = null;
-                  setStatus("Scanner stopped. Manual entry remains available.");
-                };
-
-                const applyCode = (raw) => {
-                  const code = String(raw || "").trim();
-                  const now = Date.now();
-                  if (!code || (code === lastCode && now - lastAt < 3000)) return;
-                  lastCode = code;
-                  lastAt = now;
-                  const targets = [...dialog.querySelectorAll("[data-scan-code]")];
-                  const preferred = code.toUpperCase().startsWith("GEVOUCHER:") ? "redemption_code" : "code";
-                  const target = targets.find((input) => input.name === preferred) || targets[0];
-                  if (target) {
-                    target.value = code;
-                    target.dispatchEvent(new Event("input", { bubbles: true }));
-                    target.focus();
-                  }
-                  setStatus(`Scanned ${code}. Check the amount, then confirm.`);
-                  stop();
-                };
-
-                const tick = async () => {
-                  if (!scanning || !detector || !video) return;
-                  try {
-                    const codes = await detector.detect(video);
-                    if (codes?.[0]?.rawValue) applyCode(codes[0].rawValue);
-                  } catch (error) {
-                    setStatus("Camera scanning paused. You can still enter the code manually.");
-                  }
-                  if (scanning) window.setTimeout(tick, 300);
-                };
-
-                dialog.querySelector("[data-qr-start]")?.addEventListener("click", async () => {
-                  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
-                    setStatus("This browser does not support camera QR scanning. Enter the code manually.");
-                    return;
-                  }
-                  try {
-                    detector = new BarcodeDetector({ formats: ["qr_code"] });
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = stream;
-                    await video.play();
-                    scanning = true;
-                    setStatus("Point the camera at a wallet or voucher QR code.");
-                    tick();
-                  } catch (error) {
-                    setStatus("Camera access was not available. Enter the code manually.");
-                  }
-                });
-
-                dialog.querySelector("[data-qr-stop]")?.addEventListener("click", stop);
-                dialog.addEventListener("close", stop);
-              })();
-            </script>
-          </AdminDialog>
-        )}
-        {canManageCatalog && (
-          <AdminDialog id="add-canteen-venue" title="Add canteen venue" actionLabel="Add venue" size="lg">
-            <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-              <input type="hidden" name="action" value="canteenVenue" />
-              <label><span class="label">Name</span><input class="field" name="name" placeholder="Allum Park canteen" required /></label>
-              <label><span class="label">Ground venue</span><select class="field" name="venue_id"><option value="">Not linked</option>{(groundVenues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-              <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
-              <FormActions submitLabel="Add venue" />
-            </form>
-          </AdminDialog>
-        )}
-        {canManageCatalog && (
-          <AdminDialog id="add-canteen-category" title="Add category" actionLabel="Add category" size="md">
-            <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-              <input type="hidden" name="action" value="canteenCategory" />
-              <label><span class="label">Name</span><input class="field" name="name" placeholder="Hot food" required /></label>
-              <label><span class="label">Display order</span><input class="field" name="display_order" type="number" min="0" value="0" /></label>
-              <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
-              <FormActions submitLabel="Add category" />
-            </form>
-          </AdminDialog>
-        )}
-        {canManageCatalog && (
-          <AdminDialog id="add-canteen-product" title="Add product" actionLabel="Add product" size="xl">
-            <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-              <input type="hidden" name="action" value="canteenProduct" />
-              <label><span class="label">Category</span><select class="field" name="category_id"><option value="">Uncategorised</option>{(categories ?? []).map((category) => <option value={category.id}>{category.name}</option>)}</select></label>
-              <label><span class="label">Name</span><input class="field" name="name" required /></label>
-              <label><span class="label">Description</span><textarea class="field min-h-20" name="description"></textarea></label>
-              <div class="grid gap-3 md:grid-cols-2">
-                <label><span class="label">Price</span><input class="field" name="price" type="number" min="0" step="0.01" required /></label>
-                <label><span class="label">Prep minutes</span><input class="field" name="preparation_minutes" type="number" min="0" value="5" /></label>
-              </div>
-              <div class="grid gap-3 md:grid-cols-2">
-                <label><span class="label">Fulfilment</span><select class="field" name="fulfilment_type"><option value="direct_order">Pickup order</option><option value="item_voucher">Wallet voucher</option></select></label>
-                <label><span class="label">Max per order</span><input class="field" name="max_quantity_per_order" type="number" min="1" /></label>
-              </div>
-              <div class="grid gap-3 md:grid-cols-3">
-                <label><span class="label">Stock quantity</span><input class="field" name="stock_quantity" type="number" min="0" /></label>
-                <label><span class="label">Low stock alert</span><input class="field" name="low_stock_threshold" type="number" min="0" value="5" /></label>
-                <label><span class="label">Voucher days</span><input class="field" name="voucher_valid_days" type="number" min="1" value="14" /></label>
-              </div>
-              <label><span class="label">Dietary tags</span><input class="field" name="dietary_info" placeholder="vegetarian, halal" /></label>
-              <label><span class="label">Allergens</span><input class="field" name="allergen_info" placeholder="gluten, dairy" /></label>
-              <div class="flex flex-wrap gap-4">
-                <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label>
-                <label class="inline-flex items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_sold_out" /> Sold out</label>
-              </div>
-              <FormActions submitLabel="Add product" />
-            </form>
           </AdminDialog>
         )}
         {canManageVouchers && (
-          <AdminDialog id="issue-voucher" title="Issue voucher" actionLabel="Issue voucher" size="lg">
-            <form class="grid gap-4" method="post" action="/api/admin/create-record/">
-              <input type="hidden" name="action" value="voucher" />
-              <label><span class="label">Member</span><select class="field" name="beneficiary_id"><option value="">No member selected</option>{(profiles ?? []).map((profile) => <option value={profile.id}>{profile.full_name ?? profile.email}</option>)}</select></label>
-              <label><span class="label">Team</span><select class="field" name="team_id"><option value="">No team</option>{(teams ?? []).map((team) => <option value={team.id}>{team.name}</option>)}</select></label>
-              <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Any canteen</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
-              <label><span class="label">Reason</span><input class="field" name="issue_reason" placeholder="Volunteer meal voucher" /></label>
-              <div class="grid gap-3 md:grid-cols-2">
-                <label><span class="label">Type</span><select class="field" name="voucher_type">{["fixed_amount", "declining_balance", "meal_deal"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-                <label><span class="label">Value</span><input class="field" name="value" type="number" min="0" step="0.01" required /></label>
+          <AdminDialog id="issue-benefit" title="Issue canteen benefit" actionLabel="Issue voucher" intro="Select members, teams, or both. Duplicate members are automatically removed." size="xl">
+            <form class="grid gap-5" method="post" action="/api/admin/canteen-benefits/" data-benefit-form>
+              <input type="hidden" name="request_key" value={requestKey} />
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label><span class="label">Find members</span><input class="field" type="search" data-recipient-search="member" autocomplete="off" placeholder="Search name or email" /></label>
+                  <div class="mt-2 max-h-48 overflow-auto border border-eagles-line" data-search-results="member" aria-live="polite"></div>
+                </div>
+                <div>
+                  <label><span class="label">Find teams</span><input class="field" type="search" data-recipient-search="team" autocomplete="off" placeholder="Search team name" /></label>
+                  <div class="mt-2 max-h-48 overflow-auto border border-eagles-line" data-search-results="team" aria-live="polite"></div>
+                </div>
               </div>
-              <label><span class="label">Expires</span><input class="field" name="expires_at" type="datetime-local" /></label>
-              <FormActions submitLabel="Issue voucher" />
+              <div class="border border-eagles-line bg-eagles-mist p-3" style="border-radius:8px">
+                <p class="label">Selected recipients</p>
+                <div class="mt-2 flex flex-wrap gap-2" data-selected-recipients><span class="text-sm text-eagles-ink/60">None selected.</span></div>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label><span class="label">Benefit</span><select class="field" name="benefit_type" data-benefit-type><option value="amount">Add wallet value</option><option value="item">Item voucher</option></select></label>
+                <label data-amount-field><span class="label">Wallet value</span><input class="field" name="amount" type="number" min="0.01" step="0.01" value="5.00" /></label>
+                <label class="hidden" data-product-field><span class="label">Active product</span><select class="field" name="product_id"><option value="">Select product</option>{(products ?? []).filter((p: any) => p.is_active && !p.is_sold_out).map((p: any) => <option value={p.id}>{p.name}</option>)}</select></label>
+                <label><span class="label">Expires (optional)</span><input class="field" name="expires_at" type="datetime-local" /></label>
+              </div>
+              <label><span class="label">Reason</span><input class="field" name="issue_reason" maxlength="300" placeholder="Volunteer meal, player reward…" /></label>
+              <p class="text-sm font-bold text-eagles-ink/70" data-benefit-summary aria-live="polite">No recipients selected.</p>
+              <FormActions submitLabel="Review and issue" />
             </form>
+          </AdminDialog>
+        )}
+        {canManageCatalog && (
+          <AdminDialog id="new-canteen-product" title="New product" actionLabel="New product" size="xl">
+            <CanteenProductForm categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} />
+          </AdminDialog>
+        )}
+        {canManageCatalog && (
+          <AdminDialog id="manage-canteen-categories" title="Manage categories" actionLabel="Manage categories" tone="secondary" size="lg">
+            <div class="grid gap-5">
+              {(categories ?? []).map((category: any, index: number) => (
+                <form class="grid gap-3 border border-eagles-line p-4 md:grid-cols-[1fr_130px_auto]" style="border-radius:8px" method="post" action="/api/admin/canteen-category/">
+                  <input type="hidden" name="category_id" value={category.id} />
+                  <label><span class="label">Name</span><input class="field" name="name" value={category.name} required /></label>
+                  <label><span class="label">Position</span><select class="field" name="position">{(categories ?? []).map((_: any, optionIndex: number) => <option value={optionIndex + 1} selected={index === optionIndex}>{optionIndex + 1}</option>)}</select></label>
+                  <div class="flex items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active} /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Save</button></div>
+                </form>
+              ))}
+              <form class="grid gap-3 border-t border-eagles-line pt-5 md:grid-cols-[1fr_130px_auto]" method="post" action="/api/admin/canteen-category/">
+                <input type="hidden" name="category_id" value="" />
+                <label><span class="label">New category</span><input class="field" name="name" required /></label>
+                <label><span class="label">Position</span><select class="field" name="position">{[...(categories ?? []), null].map((_: any, index: number) => <option value={index + 1} selected={index === (categories ?? []).length}>{index + 1}</option>)}</select></label>
+                <div class="flex items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Add</button></div>
+              </form>
+            </div>
           </AdminDialog>
         )}
       </Fragment>
     </AdminPageHeader>
-  </div>
-  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+
+    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Canteen summary">
+      {[
+        ["Active orders", (orders ?? []).length],
+        ["Active vouchers", voucherCount ?? 0],
+        ["Sold out", soldOutCount],
+        ["Low stock", lowStockCount],
+      ].map(([label, value]) => <article class="surface p-4"><p class="text-xs font-black uppercase tracking-wide text-eagles-ink/60">{label}</p><p class="mt-2 font-display text-4xl font-black text-eagles-green">{value}</p></article>)}
+    </section>
+
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Orders</h2>
+      <h2 class="font-display text-3xl font-black uppercase">Orders</h2>
+      <p class="mt-1 text-sm text-eagles-ink/65">Only orders that still need action are shown.</p>
       <div class="mt-5 grid gap-3">
-        {(orders ?? []).length === 0 && <EmptyState title="No canteen orders" text="Match day canteen orders will appear here once ordering is enabled." />}
+        {(orders ?? []).length === 0 && <EmptyState title="No active orders" text="New paid canteen orders will appear here." />}
         {(orders ?? []).map((order: any) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black">Order {order.order_number} - {formatMoney(order.total_cents)}</p>
-            <p class="text-sm text-eagles-ink/70">
-              {order.profiles?.full_name ?? order.profiles?.email ?? "Customer"}
-              {order.recipient?.full_name && order.recipient?.full_name !== order.profiles?.full_name ? ` for ${order.recipient.full_name}` : ""}
-              - {formatDateTime(order.created_at)}
-            </p>
-            {order.pickup_code && <p class="mt-2 inline-flex bg-eagles-mist px-3 py-1 font-mono text-xs font-black text-eagles-ink" style="border-radius:8px">{order.pickup_code}</p>}
-            <div class="mt-3 grid gap-2">
-              {(order.canteen_order_items ?? []).map((item: any) => (
-                <p class="flex justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
-                  <span>
-                    <strong>{item.quantity}x</strong> {item.product_name_snapshot}
-                    <span class="ml-2 text-xs font-bold uppercase text-eagles-ink/50">{statusLabel(item.fulfilment_type_snapshot)}</span>
-                    {item.voucher_issuance_id && <span class="ml-2 text-xs font-black text-eagles-green">Voucher issued</span>}
-                  </span>
-                  <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
-                </p>
-              ))}
-            </div>
-            {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold text-eagles-ink" style="border-radius:8px">{order.special_instructions}</p>}
-            <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
-            {canManageOrders && (
-              <div class="mt-4 flex flex-wrap gap-2">
-                {["unpaid", "awaiting_payment"].includes(order.payment_status) && (
-                  <form method="post" action="/api/admin/canteen-order-status/">
-                    <input type="hidden" name="order_id" value={order.id} />
-                    <input type="hidden" name="payment_status" value="paid" />
-                    <input type="hidden" name="reason" value="Payment received at canteen" />
-                    <input type="hidden" name="return_to" value="/admin/canteen/" />
-                    <button class="border border-eagles-green px-3 py-2 text-xs font-black text-eagles-green" style="border-radius:8px" type="submit">Mark paid</button>
-                  </form>
-                )}
-                {(orderActions[order.order_status] ?? []).map((action) => (
-                  <form method="post" action="/api/admin/canteen-order-status/">
-                    <input type="hidden" name="order_id" value={order.id} />
-                    <input type="hidden" name="order_status" value={action.value} />
-                    <input type="hidden" name="return_to" value="/admin/canteen/" />
-                    <button class:list={["px-3 py-2 text-xs font-black", action.value === "cancelled" ? "bg-red-50 text-red-700" : "bg-eagles-green text-white"]} style="border-radius:8px" type="submit">{action.label}</button>
-                  </form>
-                ))}
+          <article class="border border-eagles-line p-4" style="border-radius:8px">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="font-black">Order {order.order_number} · {formatMoney(order.total_cents)}</p>
+                <p class="text-sm text-eagles-ink/65">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} · {formatDateTime(order.created_at)}</p>
               </div>
-            )}
+              <div class="flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
+            </div>
+            <div class="mt-3 grid gap-1">{(order.canteen_order_items ?? []).map((item: any) => <p class="text-sm"><strong>{item.quantity}×</strong> {item.product_name_snapshot}</p>)}</div>
+            {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold" style="border-radius:8px">{order.special_instructions}</p>}
+            {canManageOrders && <form class="mt-4" method="post" action="/api/admin/complete-canteen-order/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}
           </article>
         ))}
       </div>
     </section>
-    <aside class="grid gap-5 content-start">
-      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Products</h2><div class="mt-4 grid gap-3">{productSummaries.map((product: any) => (
-        <p class="border-t border-eagles-line pt-3 text-sm">
-          <strong>{product.name}</strong><br />
-          {formatMoney(product.price_cents)} - {statusLabel(product.fulfilment_type)} - {product.is_sold_out ? "sold out" : product.is_active ? "available" : "hidden"}<br />
-          <span class={product.stockTone}>{product.stockLabel}</span>
-          {product.fulfilment_type === "item_voucher" && <span> - valid {product.voucher_valid_days} days</span>}
-        </p>
-      ))}</div></article>
-      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Venues</h2><div class="mt-4 grid gap-3">{(venues ?? []).map((venue) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{venue.name}</strong><br />{venue.is_active ? "active" : "inactive"}</p>)}</div></article>
-      <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase leading-none">Vouchers</h2><div class="mt-4 grid gap-3">{(vouchers ?? []).map((voucher: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{voucher.profiles?.full_name ?? "Member"}</strong><br />{formatMoney(voucher.remaining_value_cents)} - {statusLabel(voucher.status)}</p>)}</div></article>
-      <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Voucher claims</h2>
-        <div class="mt-4 grid gap-3">
-          {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear after canteen staff scan wallet QR codes.</p>}
-          {(redemptions ?? []).map((redemption: any) => (
-            <div class="border-t border-eagles-line pt-3 text-sm">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p class="font-black">{formatMoney(redemption.amount_cents)} - {statusLabel(redemption.status)}</p>
-                  <p class="text-eagles-ink/70">{redemption.voucher_issuances?.profiles?.full_name ?? redemption.voucher_issuances?.profiles?.email ?? "Member"}</p>
-                  <p class="text-eagles-ink/70">{redemption.canteen_venues?.name ?? "Canteen"} - {formatDateTime(redemption.created_at)}</p>
-                </div>
-                <StatusBadge label={statusLabel(redemption.status)} tone={redemption.status === "reversed" ? "red" : "green"} />
-              </div>
-              {redemption.voucher_reversals?.[0] && <p class="mt-2 bg-red-50 p-2 text-xs font-bold text-red-700" style="border-radius:8px">Reversed - {redemption.voucher_reversals[0].reason}</p>}
-              {canReverseVouchers && redemption.status === "completed" && (
-                <form class="mt-3 grid gap-2" method="post" action="/api/admin/reverse-voucher-redemption/">
-                  <input type="hidden" name="redemption_id" value={redemption.id} />
-                  <input type="hidden" name="return_to" value="/admin/canteen/" />
-                  <label><span class="label">Reversal reason</span><input class="field" name="reason" placeholder="Mistaken scan or duplicate claim" required /></label>
-                  <button class="bg-red-50 px-3 py-2 text-xs font-black text-red-700" style="border-radius:8px" type="submit">Reverse claim</button>
-                </form>
-              )}
-            </div>
-          ))}
-        </div>
-      </article>
-    </aside>
+
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase">Products</h2>
+      <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {(products ?? []).map((product: any) => (
+          <article class="border border-eagles-line p-4" style="border-radius:8px">
+            <div class="flex items-start justify-between gap-3"><div><p class="font-black">{product.name}</p><p class="text-sm text-eagles-ink/65">{product.canteen_categories?.name ?? "Uncategorised"} · {formatMoney(product.price_cents)}</p></div><StatusBadge label={product.is_sold_out ? "Sold out" : product.is_active ? "Active" : "Inactive"} tone={product.is_sold_out ? "red" : product.is_active ? "green" : "ink"} /></div>
+            <p class="mt-3 text-sm font-bold">{product.stock_quantity === null ? "Open stock" : `${product.stock_quantity} in stock`}</p>
+            {canManageCatalog && <div class="mt-4"><AdminDialog id={`edit-product-${product.id}`} title={`Edit ${product.name}`} actionLabel="Edit" tone="secondary" size="xl"><CanteenProductForm product={product} categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} /></AdminDialog></div>}
+          </article>
+        ))}
+      </div>
+    </section>
   </div>
 </PortalLayout>
+
+<script is:inline>
+  (() => {
+    const scanner = document.getElementById("scan-canteen-code");
+    if (scanner && scanner.dataset.bound !== "true") {
+      scanner.dataset.bound = "true";
+      const video = scanner.querySelector("[data-qr-video]");
+      const status = scanner.querySelector("[data-qr-status]");
+      let stream, detector, scanning = false;
+      const stop = () => { scanning = false; stream?.getTracks().forEach(t => t.stop()); stream = null; if (video) video.srcObject = null; };
+      const apply = raw => {
+        const code = String(raw || "").trim();
+        const upper = code.toUpperCase();
+        const type = upper.startsWith("GEORDER:") ? "order" : upper.startsWith("GEVOUCHER:") ? "voucher" : "wallet";
+        const field = scanner.querySelector(`[data-code-type="${type}"]`);
+        if (field) { field.value = code; field.focus(); status.textContent = "Code scanned. Check the details and confirm."; }
+        stop();
+      };
+      const tick = async () => { if (!scanning) return; try { const codes = await detector.detect(video); if (codes?.[0]?.rawValue) return apply(codes[0].rawValue); } catch {} window.setTimeout(tick, 300); };
+      scanner.querySelector("[data-qr-start]")?.addEventListener("click", async () => {
+        if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) { status.textContent = "Camera scanning is unavailable. Enter the code manually."; return; }
+        try { detector = new BarcodeDetector({ formats: ["qr_code"] }); stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); video.srcObject = stream; await video.play(); scanning = true; status.textContent = "Point the camera at a QR code."; tick(); } catch { status.textContent = "Camera access was unavailable. Enter the code manually."; }
+      });
+      scanner.querySelector("[data-qr-stop]")?.addEventListener("click", stop);
+      scanner.addEventListener("close", stop);
+    }
+
+    document.querySelectorAll("[data-benefit-form]").forEach(form => {
+      const selected = new Map();
+      const selectedBox = form.querySelector("[data-selected-recipients]");
+      const summary = form.querySelector("[data-benefit-summary]");
+      const render = () => {
+        selectedBox.innerHTML = "";
+        if (!selected.size) selectedBox.innerHTML = '<span class="text-sm text-eagles-ink/60">None selected.</span>';
+        selected.forEach((entry, key) => {
+          const label = document.createElement("label");
+          label.className = "inline-flex items-center gap-2 bg-white px-3 py-2 text-sm font-bold";
+          label.style.borderRadius = "8px";
+          label.innerHTML = `<input type="checkbox" name="${entry.type}_ids" value="${entry.id}" checked> ${entry.label} <span aria-hidden="true">×</span>`;
+          label.querySelector("input").addEventListener("change", () => { selected.delete(key); render(); });
+          selectedBox.appendChild(label);
+        });
+        summary.textContent = selected.size ? `${selected.size} selected. You will confirm once more before issuing.` : "No recipients selected.";
+      };
+      form.querySelectorAll("[data-recipient-search]").forEach(input => {
+        let timer;
+        input.addEventListener("input", () => {
+          clearTimeout(timer);
+          timer = setTimeout(async () => {
+            const type = input.dataset.recipientSearch;
+            const box = form.querySelector(`[data-search-results="${type}"]`);
+            box.textContent = "Searching…";
+            try {
+              const response = await fetch(`/api/admin/canteen-recipient-search/?type=${type}&q=${encodeURIComponent(input.value)}`);
+              const payload = await response.json();
+              box.innerHTML = "";
+              (payload.results || []).forEach(row => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "block w-full border-b border-eagles-line px-3 py-2 text-left text-sm hover:bg-eagles-mist";
+                button.textContent = type === "team" ? row.name : `${row.full_name || "Member"}${row.email ? ` · ${row.email}` : ""}`;
+                button.addEventListener("click", () => { selected.set(`${type}:${row.id}`, { type, id: row.id, label: button.textContent }); render(); });
+                box.appendChild(button);
+              });
+              if (!box.children.length) box.textContent = "No matches.";
+            } catch { box.textContent = "Search is temporarily unavailable."; }
+          }, 250);
+        });
+      });
+      const type = form.querySelector("[data-benefit-type]");
+      type.addEventListener("change", () => {
+        form.querySelector("[data-amount-field]").classList.toggle("hidden", type.value === "item");
+        form.querySelector("[data-product-field]").classList.toggle("hidden", type.value !== "item");
+      });
+      form.addEventListener("submit", event => {
+        if (!selected.size) { event.preventDefault(); window.alert("Select at least one member or team."); return; }
+        if (!window.confirm(`Issue this benefit to the ${selected.size} selected member/team entries? Team members will be deduplicated.`)) event.preventDefault();
+      }, { capture: true });
+    });
+  })();
+</script>

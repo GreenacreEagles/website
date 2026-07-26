@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
-import { optionalUuidSchema, redirectWithMessage, uuidSchema } from "@lib/forms";
+import { optionalUuidSchema, redirectWithMessage } from "@lib/forms";
 
 export const prerender = false;
 
@@ -10,7 +10,7 @@ const normaliseCode = (value: string) => value.trim().replace(/^GEVOUCHER:/i, ""
 
 const schema = z.object({
   redemption_code: z.string().trim().min(4).max(80),
-  venue_id: uuidSchema,
+    venue_id: optionalUuidSchema,
   amount: centsFromDollars,
   order_id: optionalUuidSchema,
   device_label: z.string().trim().max(120).optional(),
@@ -27,9 +27,9 @@ export const POST: APIRoute = async (context) => {
     return context.redirect(redirectWithMessage(redirectTo, "error", parsed.error.issues[0]?.message ?? "Check the voucher details."));
   }
 
-  const { data, error } = await session.supabase.rpc("redeem_voucher", {
+  const { data, error } = await (session.supabase as any).rpc("redeem_voucher", {
     redemption_token: normaliseCode(parsed.data.redemption_code),
-    redeem_venue_id: parsed.data.venue_id,
+    redeem_venue_id: parsed.data.venue_id ?? null,
     redeem_amount_cents: parsed.data.amount,
     redeem_order_id: parsed.data.order_id ?? undefined,
     device_label: parsed.data.device_label || "Canteen device"
@@ -55,10 +55,11 @@ export const POST: APIRoute = async (context) => {
   }
 
   if (parsed.data.order_id) {
-    await session.supabase
-      .from("canteen_orders")
-      .update({ payment_status: "paid", order_status: "accepted" })
-      .eq("id", parsed.data.order_id);
+    const { error: completionError } = await (session.supabase as any).rpc("complete_canteen_order", {
+      target_order_id: parsed.data.order_id,
+      completion_source: "voucher",
+    });
+    if (completionError) return context.redirect(redirectWithMessage(redirectTo, "error", completionError.message));
   }
 
   return context.redirect(redirectWithMessage(redirectTo, "success", "Voucher claimed."));
