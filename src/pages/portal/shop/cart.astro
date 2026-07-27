@@ -4,7 +4,7 @@ import PortalFeedback from "@components/PortalFeedback.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatMoney } from "@lib/format";
-import { getPublicMediaUrl } from "@lib/media";
+import { getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 import { loadMerchandiseCart, merchandiseCartTotals } from "@lib/merchandise-store";
 
 export const prerender = false;
@@ -38,7 +38,7 @@ const totals = merchandiseCartTotals(cart.items);
       <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
         <section class="grid gap-4" aria-label="Cart items">
           {cart.items.map((item) => {
-            const image = getPublicMediaUrl(item.image_object_key, Astro) ?? item.image_url;
+            const image = getPublicMediaUrl(item.image_object_key, Astro) ?? getSafeExternalImageUrl(item.image_url);
             return (
               <article class="surface grid gap-4 p-4 sm:grid-cols-[140px_1fr] sm:p-5">
                 {image

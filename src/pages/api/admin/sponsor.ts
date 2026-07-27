@@ -2,7 +2,8 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { getPublicMediaBucket, getUploadedFile, sponsorLogoObjectKey, validatePublicImage } from "@lib/media";
+import { deleteR2Object, getPublicMediaBucket, getUploadedFile, sponsorLogoObjectKey, validatePublicImage } from "@lib/media";
+import { writeAdminAudit } from "@lib/audit";
 
 export const prerender = false;
 const back = "/admin/sponsors/";
@@ -49,7 +50,7 @@ export const POST: APIRoute = async (context) => {
   if (values.mode === "delete") {
     if (!before) return redirect("error", "Sponsor not found.");
     const { error } = await service.from("sponsors").delete().eq("id", id);
-    if (!error && before.logo_object_key) await getPublicMediaBucket(context)?.delete(before.logo_object_key).catch((cause) => console.error("sponsor logo cleanup failed", { cause, id }));
+    if (!error && before.logo_object_key) await deleteR2Object(getPublicMediaBucket(context), before.logo_object_key, "sponsor logo");
     if (!error) {
       const { error: auditError } = await service.from("audit_logs").insert({ actor_id: session.user.id, action: "sponsor.deleted", entity_type: "sponsor", entity_id: id, before_state: before });
       if (auditError) console.error("sponsor audit insert failed", { code: auditError.code, message: auditError.message, action: "sponsor.deleted", id });
@@ -64,7 +65,7 @@ export const POST: APIRoute = async (context) => {
   const bucket = getPublicMediaBucket(context);
   if (file) {
     if (!bucket) return redirect("error", "Image uploads are not configured. Save the sponsor without a logo.");
-    const validation = await validatePublicImage(file, context);
+    const validation = await validatePublicImage(file, context, { maxBytes: 5_242_880, maxWidth: 1600, maxHeight: 1600 });
     if (!validation.ok) return redirect("error", validation.error);
     uploadedKey = sponsorLogoObjectKey(id, file.type);
     try {
@@ -85,24 +86,25 @@ export const POST: APIRoute = async (context) => {
     display_priority: values.display_priority,
     status: values.status,
     logo_object_key: logoObjectKey,
+    logo_url: removeLogo || uploadedKey ? null : before?.logo_url ?? null,
     updated_by: session.user.id,
     ...(before ? {} : { created_by: session.user.id })
   };
   const query = before ? service.from("sponsors").update(record).eq("id", id) : service.from("sponsors").insert(record);
   const { error } = await query;
-  if (error && uploadedKey) await bucket?.delete(uploadedKey).catch((cause) => console.error("sponsor failed-upload rollback failed", { cause, id, uploadedKey }));
+  if (error && uploadedKey) await deleteR2Object(bucket, uploadedKey, "sponsor upload rollback");
   if (error) {
     console.error("sponsor database mutation failed", { code: error.code, message: error.message, details: error.details, table: "sponsors", mode: values.mode, id });
     return redirect("error", error.message || "Sponsor could not be saved.");
   }
 
-  if (bucket && before?.logo_object_key && before.logo_object_key !== logoObjectKey) await bucket.delete(before.logo_object_key).catch((cause) => console.error("sponsor old-logo cleanup failed", { cause, id }));
+  if (before?.logo_object_key && before.logo_object_key !== logoObjectKey) await deleteR2Object(bucket, before.logo_object_key, "sponsor old logo");
   const actions = [before ? "sponsor.updated" : "sponsor.created"];
   if (before && before.status !== values.status) actions.push(values.status === "active" ? "sponsor.activated" : "sponsor.deactivated");
   if (before && before.display_priority !== values.display_priority) actions.push("sponsor.order_changed");
   if (uploadedKey) actions.push(before?.logo_object_key ? "sponsor.logo_replaced" : "sponsor.logo_uploaded");
   if (removeLogo && before?.logo_object_key) actions.push("sponsor.logo_removed");
-  const { error: auditError } = await service.from("audit_logs").insert(actions.map((action) => ({
+  await writeAdminAudit(context, actions.map((action) => ({
     actor_id: session.user.id,
     action,
     entity_type: "sponsor",
@@ -110,6 +112,5 @@ export const POST: APIRoute = async (context) => {
     before_state: before,
     after_state: record
   })));
-  if (auditError) console.error("sponsor audit insert failed", { code: auditError.code, message: auditError.message, actions, id });
   return redirect("success", before ? "Sponsor updated." : "Sponsor created.");
 };

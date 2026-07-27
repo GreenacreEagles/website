@@ -1,0 +1,19 @@
+---
+interface Props {
+  name?: string;
+  label?: string;
+  hasCurrent?: boolean;
+  currentHref?: string | null;
+  removeName?: string;
+  configured?: boolean;
+}
+const { name="attachment", label="Upload attachment", hasCurrent=false, currentHref=null, removeName="remove_attachment", configured=true } = Astro.props;
+---
+<div class="grid gap-3">
+  {hasCurrent && (currentHref ? <a class="font-black text-eagles-green underline" href={currentHref}>Download current attachment</a> : <p class="text-sm font-bold text-eagles-ink/70">A private attachment is stored.</p>)}
+  {configured ? <>
+    <label><span class="label">{hasCurrent ? "Replace attachment" : label}</span><input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name={name} type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,image/avif" /></label>
+    <p class="text-xs leading-5 text-eagles-ink/60">PDF, DOCX, JPEG, PNG, WebP or AVIF. The selected file name appears in the browser control.</p>
+    {hasCurrent && <label class="flex min-h-11 items-center gap-3"><input name={removeName} type="checkbox" /><span class="font-bold">Remove current attachment</span></label>}
+  </> : <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Private file uploads are unavailable. You can still save the resource or use an external link.</p>}
+</div>

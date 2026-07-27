@@ -4,10 +4,13 @@ import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
 import FormActions from "@components/FormActions.astro";
+import ImageUploadField from "@components/ImageUploadField.astro";
+import FileUploadField from "@components/FileUploadField.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, statusLabel } from "@lib/format";
+import { getMediaCapabilities } from "@lib/media";
 
 export const prerender = false;
 
@@ -16,6 +19,8 @@ if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
+const media = getMediaCapabilities(Astro);
+const imageUploadConfigured = media.publicMediaConfigured && media.publicMediaDeliveryConfigured;
 const canManageContent = session.permissions.has("*") || session.permissions.has("content.manage");
 const canManageCoaching = session.permissions.has("*") || session.permissions.has("coaching_resources.manage");
 
@@ -43,7 +48,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
               <label><span class="label">Status</span><select class="field" name="workflow_status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             </div>
             <label><span class="label">Publish at</span><input class="field" name="publish_at" type="datetime-local" /></label>
-            <label><span class="label">Featured image URL</span><input class="field" name="featured_image_url" type="url" /></label>
+            <ImageUploadField name="image" label="Upload featured image" configured={imageUploadConfigured} />
             <label><span class="label">Tags</span><input class="field" name="tags" placeholder="juniors, match day" /></label>
             <FormActions submitLabel="Save article" />
           </form>
@@ -64,6 +69,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
               <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             </div>
             <label><span class="label">External URL</span><input class="field" name="external_url" type="url" placeholder="Video, document or shared drive link" /></label>
+            <FileUploadField name="attachment" label="Upload private attachment" configured={media.privateMediaConfigured} />
             <label><span class="label">Review due</span><input class="field" name="review_due_on" type="date" /></label>
             <label><span class="label">Age groups</span><input class="field" name="age_group_tags" placeholder="U8, U12, Seniors" /></label>
             <label><span class="label">Skill levels</span><input class="field" name="skill_level_tags" placeholder="beginner, intermediate, advanced" /></label>

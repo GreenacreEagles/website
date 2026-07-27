@@ -9,16 +9,18 @@ import StatusBadge from "@components/StatusBadge.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
+import { getMediaCapabilities, getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 
 export const prerender = false;
 const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.redeem"]);
 if (!session) return Astro.redirect("/login/");
 
 const service = session.supabase as any;
+const { publicMediaConfigured } = getMediaCapabilities(Astro);
 const now = new Date().toISOString();
 const [{ data: categories }, { data: products }, { data: orders }, { count: voucherCount }] = await Promise.all([
   service.from("canteen_categories").select("id,name,is_active,display_order").order("display_order").order("name"),
-  service.from("canteen_products").select("id,category_id,name,description,price_cents,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
+  service.from("canteen_products").select("id,category_id,name,description,price_cents,image_url,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
   service.from("canteen_orders").select("id,order_number,order_status,payment_status,payment_method,subtotal_cents,voucher_discount_cents,wallet_credit_cents,amount_due_cents,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)").in("order_status", ["awaiting_payment", "paid", "accepted", "preparing", "ready_for_pickup"]).order("created_at", { ascending: false }).limit(100),
   service.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active").is("claimed_at", null).gt("remaining_value_cents", 0).or(`expires_at.is.null,expires_at.gt.${now}`),
 ]);
@@ -114,7 +116,7 @@ const requestKey = crypto.randomUUID();
         )}
         {canManageCatalog && (
           <AdminDialog id="new-canteen-product" title="New product" actionLabel="New product" size="xl">
-            <CanteenProductForm categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} />
+            <CanteenProductForm categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} mediaConfigured={publicMediaConfigured} />
           </AdminDialog>
         )}
         {canManageCatalog && (
@@ -179,7 +181,7 @@ const requestKey = crypto.randomUUID();
           <article class="border border-eagles-line p-4" style="border-radius:8px">
             <div class="flex items-start justify-between gap-3"><div><p class="font-black">{product.name}</p><p class="text-sm text-eagles-ink/65">{product.canteen_categories?.name ?? "Uncategorised"} · {formatMoney(product.price_cents)}</p></div><StatusBadge label={product.is_sold_out ? "Sold out" : product.is_active ? "Active" : "Inactive"} tone={product.is_sold_out ? "red" : product.is_active ? "green" : "ink"} /></div>
             <p class="mt-3 text-sm font-bold">{product.stock_quantity === null ? "Open stock" : `${product.stock_quantity} in stock`}</p>
-            {canManageCatalog && <div class="mt-4"><AdminDialog id={`edit-product-${product.id}`} title={`Edit ${product.name}`} actionLabel="Edit" tone="secondary" size="xl"><CanteenProductForm product={product} categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} /></AdminDialog></div>}
+            {canManageCatalog && <div class="mt-4"><AdminDialog id={`edit-product-${product.id}`} title={`Edit ${product.name}`} actionLabel="Edit" tone="secondary" size="xl"><CanteenProductForm product={product} categories={categories ?? []} dietaryOptions={dietaryOptions} allergenOptions={allergenOptions} mediaConfigured={publicMediaConfigured} currentUrl={getPublicMediaUrl(product.image_object_key,Astro)??getSafeExternalImageUrl(product.image_url)} /></AdminDialog></div>}
           </article>
         ))}
       </div>

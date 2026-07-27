@@ -1,0 +1,79 @@
+---
+interface Props {
+  name?: string;
+  label?: string;
+  currentUrl?: string | null;
+  currentAlt?: string;
+  hasCurrent?: boolean;
+  removeName?: string;
+  configured?: boolean;
+  unavailableMessage?: string;
+  required?: boolean;
+}
+const {
+  name = "image",
+  label = "Upload image",
+  currentUrl = null,
+  currentAlt = "Current image",
+  hasCurrent = Boolean(currentUrl),
+  removeName = "remove_image",
+  configured = true,
+  unavailableMessage = "Image uploads are temporarily unavailable. You can still save the other changes.",
+  required = false
+} = Astro.props;
+---
+<div class="grid gap-3" data-image-upload>
+  {currentUrl ? <img src={currentUrl} alt={currentAlt} class="max-h-52 w-full max-w-sm border border-eagles-line bg-eagles-mist object-contain" style="border-radius:8px" loading="lazy" /> : hasCurrent ? <p class="border border-eagles-line bg-eagles-mist p-3 text-sm text-eagles-ink/65" style="border-radius:8px">A current image is stored but its public delivery URL is unavailable.</p> : null}
+  {configured ? <>
+    <label>
+      <span class="label">{hasCurrent ? "Replace image" : label}</span>
+      <input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name={name} type="file" accept="image/jpeg,image/png,image/webp,image/avif" required={required} data-image-input />
+    </label>
+    <div class="hidden grid-cols-[72px_1fr] items-center gap-3 border border-eagles-line bg-eagles-mist p-3" style="border-radius:8px" data-image-selection>
+      <img class="h-16 w-16 object-cover" style="border-radius:6px" alt="Selected image preview" data-image-preview />
+      <div class="min-w-0"><p class="truncate text-sm font-bold" data-image-filename></p><button class="mt-1 text-sm font-black text-red-700" type="button" data-image-clear>Clear selection</button></div>
+    </div>
+    {hasCurrent && <label class="flex min-h-11 items-center gap-3"><input name={removeName} type="checkbox" /><span class="font-bold">Remove current image</span></label>}
+  </> : <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">{unavailableMessage}</p>}
+</div>
+
+<script is:inline>
+  (() => {
+    if (window.__greenacreImageUploadBound) return;
+    window.__greenacreImageUploadBound = true;
+    const reset = (root, input) => {
+      const selection = root.querySelector("[data-image-selection]");
+      const preview = root.querySelector("[data-image-preview]");
+      if (preview?.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+      if (input) input.value = "";
+      if (preview) { preview.removeAttribute("src"); delete preview.dataset.objectUrl; }
+      selection?.classList.add("hidden");
+      selection?.classList.remove("grid");
+      const filename = root.querySelector("[data-image-filename]");
+      if (filename) filename.textContent = "";
+    };
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-image-input]");
+      if (!input) return;
+      const root = input.closest("[data-image-upload]");
+      const file = input.files?.[0];
+      reset(root,null);
+      if (!file) return;
+      const preview = root.querySelector("[data-image-preview]");
+      const selection = root.querySelector("[data-image-selection]");
+      const filename = root.querySelector("[data-image-filename]");
+      const objectUrl = URL.createObjectURL(file);
+      preview.src = objectUrl;
+      preview.dataset.objectUrl = objectUrl;
+      filename.textContent = file.name;
+      selection.classList.remove("hidden");
+      selection.classList.add("grid");
+    });
+    document.addEventListener("click", (event) => {
+      const clear = event.target.closest("[data-image-clear]");
+      if (!clear) return;
+      const root = clear.closest("[data-image-upload]");
+      reset(root,root.querySelector("[data-image-input]"));
+    });
+  })();
+</script>

@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CollectionEntry } from "astro:content";
 import type { Database, Json } from "../types/database.types";
-import { getPublicMediaUrl } from "./media";
+import { getPublicMediaUrl, getSafeExternalImageUrl } from "./media";
 
 export type PublicArticle = {
   id: string;
@@ -92,7 +92,7 @@ export const fetchPublicArticles = async (limit = 20): Promise<PublicArticle[]> 
     summary: article.summary ?? "",
     body: bodyText(article.body),
     category: article.category ?? "Club news",
-    image: article.featured_image_url,
+    image: getSafeExternalImageUrl(article.featured_image_url),
     date: article.publish_at ?? article.updated_at,
     tags: article.tags ?? []
   }));
@@ -123,7 +123,7 @@ export const fetchPublicArticleBySlug = async (
     summary: data.summary ?? "",
     body: bodyText(data.body),
     category: data.category ?? "Club news",
-    image: data.featured_image_url,
+    image: getSafeExternalImageUrl(data.featured_image_url),
     date: data.publish_at ?? data.updated_at,
     tags: data.tags ?? [],
   };
@@ -133,7 +133,7 @@ export const fetchPublicSponsors = async (supabase: any, context: any, limit = 1
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("sponsors")
-    .select("id,name,tier,description,website_url,logo_object_key,display_priority,starts_on,ends_on")
+    .select("id,name,tier,description,website_url,logo_object_key,logo_url,display_priority,starts_on,ends_on")
     .eq("status", "active")
     .or(`starts_on.is.null,starts_on.lte.${today}`)
     .or(`ends_on.is.null,ends_on.gte.${today}`)
@@ -149,7 +149,7 @@ export const fetchPublicSponsors = async (supabase: any, context: any, limit = 1
     tier: sponsor.tier,
     description: sponsor.description,
     website: sponsor.website_url,
-    logo: getPublicMediaUrl(sponsor.logo_object_key, context),
+    logo: getPublicMediaUrl(sponsor.logo_object_key, context) ?? getSafeExternalImageUrl(sponsor.logo_url),
     sortOrder: sponsor.display_priority
   }));
 };

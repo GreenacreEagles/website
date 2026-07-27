@@ -3,7 +3,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDateTime,formatMoney,statusLabel } from "@lib/format";
-import { getPublicMediaUrl } from "@lib/media";
+import { getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 export const prerender=false;
 const session=await requireUser(Astro);
 if(!session)return Astro.redirect(`/login/?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
@@ -12,7 +12,7 @@ const {data:event}=await (session.supabase as any).from("club_events").select("i
 if(!event)return Astro.redirect("/portal/events/?error=Event unavailable.");
 const {data:tickets}=await (session.supabase as any).from("club_event_tickets").select("id,ticket_code,status,issued_at,redeemed_at,club_event_ticket_types(name)").eq("owner_user_id",session.user.id).eq("event_id",event.id).order("issued_at",{ascending:false});
 const canBuy=event.status==="active"&&event.visibility!=="private"&&new Date(event.starts_at)>new Date();
-const imageUrl=getPublicMediaUrl(event.image_object_key,Astro)??event.image_url;
+const imageUrl=getPublicMediaUrl(event.image_object_key,Astro)??getSafeExternalImageUrl(event.image_url);
 ---
 <PortalLayout title={event.title} section="Events" session={session}>
  <div class="grid gap-6 lg:grid-cols-[1fr_360px]">

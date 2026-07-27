@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../types/database.types";
-import { getPublicMediaUrl } from "./media";
+import { getPublicMediaUrl, getSafeExternalImageUrl } from "./media";
 
 export type PublicEventSummary = {
   id:string; slug:string; name:string; summary:string|null; imageUrl:string|null;
@@ -15,7 +15,7 @@ export async function getPublicEvents(client:SupabaseClient<Database>,context:{l
   return (data??[]).map((event:any)=>{
     const types=(event.club_event_ticket_types??[]).filter((type:any)=>type.active);
     const prices=types.map((type:any)=>type.price_cents);
-    return {id:event.id,slug:event.slug,name:event.title,summary:event.description,imageUrl:getPublicMediaUrl(event.image_object_key,context)??event.image_url,
+    return {id:event.id,slug:event.slug,name:event.title,summary:event.description,imageUrl:getPublicMediaUrl(event.image_object_key,context)??getSafeExternalImageUrl(event.image_url),
       startsAt:event.starts_at,endsAt:event.ends_at,venueName:event.venue??null,venueSuburb:null,
       minimumPriceCents:prices.length?Math.min(...prices):event.price_cents??null,currency:types[0]?.currency??"AUD",
       isFree:prices.length?prices.every((price:number)=>price===0):(event.price_cents??0)===0,isSoldOut:false};

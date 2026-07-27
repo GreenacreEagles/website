@@ -1,56 +1,9 @@
-import type { APIRoute } from "astro";
-import { z } from "zod";
-import { requirePermission } from "@lib/auth/guards";
-import { redirectWithMessage } from "@lib/forms";
-
-export const prerender = false;
-
-const uuid = z.string().uuid();
-const optionalUuid = z.preprocess((value) => value === "" ? null : value, uuid.nullable());
-const optionalInteger = z.preprocess((value) => value === "" ? null : Number(value), z.number().int().min(0).nullable());
-const schema = z.object({
-  product_id: z.preprocess((value) => value === "" ? null : value, uuid.nullable()),
-  category_id: optionalUuid,
-  name: z.string().trim().min(2).max(120),
-  description: z.string().trim().max(500).optional(),
-  price: z.coerce.number().min(0).max(10000),
-  image_object_key: z.string().trim().max(500).optional(),
-  stock_quantity: optionalInteger,
-  low_stock_threshold: z.coerce.number().int().min(0).max(9999),
-  voucher_valid_days: z.coerce.number().int().min(1).max(365),
-});
-
-export const POST: APIRoute = async (context) => {
-  const session = await requirePermission(context, ["canteen.manage"]);
-  if (!session) return context.redirect("/admin/");
-  const form = await context.request.formData();
-  if (form.get("intent") === "delete") {
-    const productId = uuid.safeParse(form.get("product_id"));
-    if (!productId.success) return context.redirect(redirectWithMessage("/admin/canteen/", "error", "Invalid product."));
-    const { error } = await session.supabase.from("canteen_products" as any).delete().eq("id", productId.data);
-    return context.redirect(redirectWithMessage("/admin/canteen/", error ? "error" : "success", error?.message ?? "Product deleted."));
-  }
-  const parsed = schema.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return context.redirect(redirectWithMessage("/admin/canteen/", "error", parsed.error.issues[0]?.message ?? "Check the product details."));
-
-  const values = {
-    category_id: parsed.data.category_id,
-    name: parsed.data.name,
-    description: parsed.data.description || null,
-    price_cents: Math.round(parsed.data.price * 100),
-    image_object_key: parsed.data.image_object_key || null,
-    stock_quantity: parsed.data.stock_quantity,
-    low_stock_threshold: parsed.data.low_stock_threshold,
-    voucher_valid_days: parsed.data.voucher_valid_days,
-    dietary_info: form.getAll("dietary_info").map(String),
-    allergen_info: form.getAll("allergen_info").map(String),
-    is_active: form.has("is_active"),
-    is_sold_out: form.has("is_sold_out"),
-    fulfilment_type: "direct_order",
-  };
-  const query = parsed.data.product_id
-    ? session.supabase.from("canteen_products" as any).update(values).eq("id", parsed.data.product_id)
-    : session.supabase.from("canteen_products" as any).insert(values);
-  const { error } = await query;
-  return context.redirect(redirectWithMessage("/admin/canteen/", error ? "error" : "success", error?.message ?? (parsed.data.product_id ? "Product updated." : "Product created.")));
-};
+import type{APIRoute}from"astro";
+import{z}from"zod";
+import{requirePermission}from"@lib/auth/guards";
+import{redirectWithMessage}from"@lib/forms";
+import{writeAdminAudit}from"@lib/audit";
+import{canteenImageObjectKey,deleteR2Object,getPublicMediaBucket,getUploadedFile,validatePublicImage}from"@lib/media";
+export const prerender=false;const back="/admin/canteen/";const uuid=z.string().uuid();const optionalUuid=z.preprocess((value)=>value===""?null:value,uuid.nullable());const optionalInteger=z.preprocess((value)=>value===""?null:Number(value),z.number().int().min(0).nullable());
+const schema=z.object({product_id:z.preprocess((value)=>value===""?null:value,uuid.nullable()),category_id:optionalUuid,name:z.string().trim().min(2).max(120),description:z.string().trim().max(500).optional(),price:z.coerce.number().min(0).max(10000),stock_quantity:optionalInteger,low_stock_threshold:z.coerce.number().int().min(0).max(9999),voucher_valid_days:z.coerce.number().int().min(1).max(365)});
+export const POST:APIRoute=async(context)=>{const correlationId=crypto.randomUUID();const redirect=(type:"success"|"error",message:string)=>context.redirect(redirectWithMessage(back,type,message),303);try{const session=await requirePermission(context,["canteen.manage"]);if(!session)return context.redirect("/login/",303);let form:FormData;try{form=await context.request.formData();}catch(cause){console.error("canteen product form parsing failed",{cause,correlationId});return redirect("error","The submitted product form could not be read.");}const productId=uuid.safeParse(form.get("product_id"));const service=session.supabase as any;let current:any=null;if(productId.success){const read=await service.from("canteen_products").select("*").eq("id",productId.data).maybeSingle();if(read.error)return redirect("error","The existing canteen product could not be checked.");current=read.data;}const bucket=getPublicMediaBucket(context);if(form.get("intent")==="delete"){if(!productId.success||!current)return redirect("error","Invalid product.");const{error}=await service.from("canteen_products").delete().eq("id",productId.data);if(error)return redirect("error",error.message??"Product could not be deleted.");if(current.image_object_key)await deleteR2Object(bucket,current.image_object_key,"canteen product image");await writeAdminAudit(context,{actor_id:session.user.id,action:"canteen_product.deleted",entity_type:"canteen_product",entity_id:productId.data,before_state:current,correlation_id:correlationId});return redirect("success","Product deleted.");}const parsed=schema.safeParse(Object.fromEntries(form));if(!parsed.success)return redirect("error",parsed.error.issues[0]?.message??"Check the product details.");const id=productId.success?productId.data:crypto.randomUUID();let imageObjectKey=current?.image_object_key??null;let imageUrl=current?.image_url??null;let uploadedKey:string|null=null;const image=getUploadedFile(form.get("image"));if(image){if(!bucket)return redirect("error","Public image storage is unavailable. Save the product without replacing its image.");const validation=await validatePublicImage(image,context,{maxBytes:6_291_456,maxWidth:2200,maxHeight:2200});if(!validation.ok)return redirect("error",validation.error);uploadedKey=canteenImageObjectKey(id,image.type);try{await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:image.type,cacheControl:"public, max-age=31536000, immutable"}});}catch(cause){console.error("canteen image upload failed",{cause,correlationId});return redirect("error","The canteen product image could not be uploaded.");}imageObjectKey=uploadedKey;imageUrl=null;}else if(form.get("remove_image")==="on"){imageObjectKey=null;imageUrl=null;}const values={id,category_id:parsed.data.category_id,name:parsed.data.name,description:parsed.data.description||null,price_cents:Math.round(parsed.data.price*100),image_object_key:imageObjectKey,image_url:imageUrl,stock_quantity:parsed.data.stock_quantity,low_stock_threshold:parsed.data.low_stock_threshold,voucher_valid_days:parsed.data.voucher_valid_days,dietary_info:form.getAll("dietary_info").map(String),allergen_info:form.getAll("allergen_info").map(String),is_active:form.has("is_active"),is_sold_out:form.has("is_sold_out"),fulfilment_type:"direct_order"};const result=productId.success?await service.from("canteen_products").update(values).eq("id",id):await service.from("canteen_products").insert(values);if(result.error&&uploadedKey)await deleteR2Object(bucket,uploadedKey,"canteen upload rollback");if(result.error){console.error("canteen product mutation failed",{code:result.error.code,message:result.error.message,correlationId});return redirect("error",result.error.message??"Product could not be saved.");}if(current?.image_object_key&&current.image_object_key!==imageObjectKey)await deleteR2Object(bucket,current.image_object_key,"old canteen image");await writeAdminAudit(context,{actor_id:session.user.id,action:`canteen_product.${productId.success?"updated":"created"}`,entity_type:"canteen_product",entity_id:id,before_state:current,after_state:values,correlation_id:correlationId});return redirect("success",productId.success?"Product updated.":"Product created.");}catch(cause){console.error("unexpected canteen product failure",{cause,correlationId});return redirect("error",`An unexpected error occurred. Reference ${correlationId}.`);}};

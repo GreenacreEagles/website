@@ -1,67 +1,8 @@
-import type { APIRoute } from "astro";
-import { z } from "zod";
-import { requirePermission } from "@lib/auth/guards";
-import { redirectWithMessage, uuidSchema } from "@lib/forms";
-import { getPublicMediaBucket, getUploadedFile, playerPhotoObjectKey, validatePublicImage } from "@lib/media";
-
-export const prerender = false;
-const schema = z.object({
-  player_id: uuidSchema,
-  action: z.enum(["save", "remove"]),
-  photo_consent: z.preprocess((value) => value === "on" || value === "true", z.boolean())
-});
-
-const redirect = (context: Parameters<APIRoute>[0], type: "error" | "success", message: string) =>
-  context.redirect(redirectWithMessage("/admin/players/", type, message));
-
-export const POST: APIRoute = async (context) => {
-  const session = await requirePermission(context, ["players.manage"]);
-  if (!session) return context.redirect("/admin/");
-  const formData = await context.request.formData();
-  const parsed = schema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return redirect(context, "error", "Check the public photo settings.");
-
-  const service = session.supabase;
-  const { data: current, error: readError } = await (service as any).from("player_records")
-    .select("id,photo_object_key,photo_consent,photo_updated_at").eq("id", parsed.data.player_id).maybeSingle();
-  if (readError || !current) return redirect(context, "error", "Player record not found.");
-
-  const file = getUploadedFile(formData.get("photo"));
-  const hasUpload = Boolean(file);
-  const bucket = getPublicMediaBucket(context);
-  let nextKey: string | null = current.photo_object_key;
-  let uploadedKey: string | null = null;
-
-  if (hasUpload) {
-    if (!bucket) return redirect(context, "error", "Public media storage is not configured. Connect the PUBLIC_MEDIA_BUCKET R2 binding before uploading.");
-    const validation = await validatePublicImage(file!, context);
-    if (!validation.ok) return redirect(context, "error", validation.error);
-    uploadedKey = playerPhotoObjectKey(current.id, file!.type);
-    try {
-      await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file!.type, cacheControl: "public, max-age=31536000, immutable" } });
-      nextKey = uploadedKey;
-    } catch {
-      return redirect(context, "error", "The photo could not be uploaded to public media storage.");
-    }
-  } else if (parsed.data.action === "remove") {
-    if (current.photo_object_key && !bucket) return redirect(context, "error", "Public media storage is not configured, so the existing photo cannot be removed safely.");
-    nextKey = null;
-  }
-
-  const after = { photo_object_key: nextKey, photo_consent: parsed.data.action === "remove" ? false : parsed.data.photo_consent, photo_updated_at: nextKey ? new Date().toISOString() : null };
-  const { error: updateError } = await (service as any).from("player_records").update(after).eq("id", current.id);
-  if (updateError) {
-    if (uploadedKey && bucket) await bucket.delete(uploadedKey).catch(() => undefined);
-    return redirect(context, "error", "The database could not be updated; the new upload was rolled back.");
-  }
-
-  if (bucket && current.photo_object_key && current.photo_object_key !== nextKey) {
-    await bucket.delete(current.photo_object_key).catch(() => undefined);
-  }
-  const action = parsed.data.action === "remove" ? "player_photo.removed" : hasUpload ? (current.photo_object_key ? "player_photo.replaced" : "player_photo.uploaded") : "player_photo.consent_updated";
-  await service.from("audit_logs").insert({
-    actor_id: session.user.id, action, entity_type: "player_record", entity_id: current.id,
-    before_state: current, after_state: after, reason: "Administrator managed public player photo"
-  } as any);
-  return redirect(context, "success", parsed.data.action === "remove" ? "Public player photo removed." : "Public player photo settings saved.");
-};
+import type{APIRoute}from"astro";
+import{z}from"zod";
+import{requirePermission}from"@lib/auth/guards";
+import{redirectWithMessage,uuidSchema}from"@lib/forms";
+import{writeAdminAudit}from"@lib/audit";
+import{deleteR2Object,getPublicMediaBucket,getUploadedFile,playerPhotoObjectKey,validatePublicImage}from"@lib/media";
+export const prerender=false;const back="/admin/players/";const schema=z.object({player_id:uuidSchema,photo_consent:z.preprocess((value)=>value==="on"||value==="true",z.boolean())});
+export const POST:APIRoute=async(context)=>{const correlationId=crypto.randomUUID();const redirect=(type:"success"|"error",message:string)=>context.redirect(redirectWithMessage(back,type,message),303);try{const session=await requirePermission(context,["players.manage"]);if(!session)return context.redirect("/login/",303);let form:FormData;try{form=await context.request.formData();}catch(cause){console.error("player photo form parsing failed",{cause,correlationId});return redirect("error","The submitted photo form could not be read.");}const parsed=schema.safeParse(Object.fromEntries(form));if(!parsed.success)return redirect("error","Check the public photo settings.");const service=session.supabase as any;const{data:current,error:readError}=await service.from("player_records").select("id,photo_object_key,photo_consent,photo_updated_at").eq("id",parsed.data.player_id).maybeSingle();if(readError||!current)return redirect("error","Player record not found.");const file=getUploadedFile(form.get("photo"));const remove=form.get("remove_photo")==="on";const bucket=getPublicMediaBucket(context);let nextKey=current.photo_object_key??null;let uploadedKey:string|null=null;if(file){if(!bucket)return redirect("error","Public image storage is unavailable.");const validation=await validatePublicImage(file,context,{maxBytes:8_388_608,maxWidth:2200,maxHeight:2200});if(!validation.ok)return redirect("error",validation.error);uploadedKey=playerPhotoObjectKey(current.id,file.type);try{await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=31536000, immutable"}});}catch(cause){console.error("player photo upload failed",{cause,correlationId});return redirect("error","The player photo could not be uploaded.");}nextKey=uploadedKey;}else if(remove){if(current.photo_object_key&&!bucket)return redirect("error","Public media storage is unavailable, so the existing photo cannot be removed safely.");nextKey=null;}const after={photo_object_key:nextKey,photo_consent:remove?false:parsed.data.photo_consent,photo_updated_at:nextKey?new Date().toISOString():null};const{error}=await service.from("player_records").update(after).eq("id",current.id);if(error&&uploadedKey)await deleteR2Object(bucket,uploadedKey,"player photo upload rollback");if(error){console.error("player photo update failed",{code:error.code,message:error.message,correlationId});return redirect("error","The player photo settings could not be saved.");}if(current.photo_object_key&&current.photo_object_key!==nextKey)await deleteR2Object(bucket,current.photo_object_key,"old player photo");const action=remove?"player_photo.removed":uploadedKey?(current.photo_object_key?"player_photo.replaced":"player_photo.uploaded"):"player_photo.consent_updated";await writeAdminAudit(context,{actor_id:session.user.id,action,entity_type:"player_record",entity_id:current.id,before_state:current,after_state:after,reason:"Administrator managed public player photo",correlation_id:correlationId});return redirect("success",remove?"Public player photo removed.":"Public player photo settings saved.");}catch(cause){console.error("unexpected player photo failure",{cause,correlationId});return redirect("error",`An unexpected error occurred. Reference ${correlationId}.`);}};

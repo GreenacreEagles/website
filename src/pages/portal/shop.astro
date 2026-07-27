@@ -5,7 +5,7 @@ import StatusBadge from "@components/StatusBadge.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatMoney } from "@lib/format";
-import { getPublicMediaUrl } from "@lib/media";
+import { getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 import { loadMerchandiseCart, merchandiseCartTotals } from "@lib/merchandise-store";
 
 export const prerender = false;
@@ -109,7 +109,7 @@ const productPrice = (product: any) => {
       )}
       {filteredProducts.map((product) => {
         const soldOut = !product.variants.some((variant: any) => variant.stock_quantity > 0);
-        const image = getPublicMediaUrl(product.image_object_key, Astro) ?? product.image_url;
+        const image = getPublicMediaUrl(product.image_object_key, Astro) ?? getSafeExternalImageUrl(product.image_url);
         return (
           <article class="surface flex h-full flex-col overflow-hidden">
             {image

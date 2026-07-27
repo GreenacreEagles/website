@@ -8,33 +8,33 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDateTime, statusLabel } from "@lib/format";
-import { getPublicMediaBucket, getPublicMediaUrl } from "@lib/media";
+import { getMediaCapabilities, getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 
 export const prerender = false;
 const session = await requirePermission(Astro, ["sponsors.view", "sponsors.manage"]);
 if (!session) return Astro.redirect("/login/");
 const canManage = session.permissions.has("*") || session.permissions.has("sponsors.manage");
-const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
-const { data: sponsors } = await (session.supabase as any).from("sponsors").select("id,name,tier,description,website_url,logo_object_key,status,display_priority,created_at,updated_at").order("display_priority").order("name");
+const { publicMediaConfigured } = getMediaCapabilities(Astro);
+const { data: sponsors } = await (session.supabase as any).from("sponsors").select("id,name,tier,description,website_url,logo_object_key,logo_url,status,display_priority,created_at,updated_at").order("display_priority").order("name");
 ---
 <PortalLayout title="Sponsors" section="Administration" session={session}>
   <div class="grid gap-6">
     <AdminFeedback success={Astro.url.searchParams.get("success")} error={Astro.url.searchParams.get("error")} />
     <AdminPageHeader title="Sponsor management" intro="Manage the club partners shown on the public website, including their logos, links, visibility and display order.">
-      {canManage && <Fragment slot="actions"><AdminDialog id="new-sponsor" title="New sponsor" actionLabel="New sponsor" intro="Add a current Greenacre Eagles club partner." size="xl"><form method="post" action="/api/admin/sponsor" enctype="multipart/form-data"><SponsorAdminFields mediaConfigured={mediaConfigured} /></form></AdminDialog></Fragment>}
+      {canManage && <Fragment slot="actions"><AdminDialog id="new-sponsor" title="New sponsor" actionLabel="New sponsor" intro="Add a current Greenacre Eagles club partner." size="xl"><form method="post" action="/api/admin/sponsor" enctype="multipart/form-data"><SponsorAdminFields mediaConfigured={publicMediaConfigured} /></form></AdminDialog></Fragment>}
     </AdminPageHeader>
     <section class="surface p-5 md:p-7">
       <div class="grid gap-3">
         {(sponsors ?? []).length === 0 && <EmptyState title="No sponsors yet" text="Create a sponsor when the club is ready to publish a partner." />}
         {(sponsors ?? []).map((sponsor: any) => {
-          const logo = getPublicMediaUrl(sponsor.logo_object_key, Astro);
+          const logo = getPublicMediaUrl(sponsor.logo_object_key, Astro) ?? getSafeExternalImageUrl(sponsor.logo_url);
           return <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div class="flex items-center gap-4">
                 {logo ? <img src={logo} alt={`${sponsor.name} logo`} class="h-16 w-24 object-contain" /> : <div class="flex h-16 w-24 items-center justify-center bg-eagles-mist text-xs font-black text-eagles-ink/60" aria-hidden="true">NO LOGO</div>}
                 <div><p class="font-black">{sponsor.name}</p><a class="text-sm text-eagles-green underline" href={sponsor.website_url} target="_blank" rel="noopener noreferrer">Visit website</a><p class="text-xs text-eagles-ink/60">Sort {sponsor.display_priority} · Updated {formatDateTime(sponsor.updated_at)}</p></div>
               </div>
-              <div class="flex items-center gap-3"><StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />{canManage && <AdminDialog id={`edit-${sponsor.id}`} title={`Edit ${sponsor.name}`} actionLabel="Edit" intro="Update sponsor details, logo and public visibility." size="xl"><form method="post" action="/api/admin/sponsor" enctype="multipart/form-data"><SponsorAdminFields sponsor={sponsor} mediaConfigured={mediaConfigured} /></form><form class="mt-6 border-t border-red-200 pt-5" method="post" action="/api/admin/sponsor"><input type="hidden" name="id" value={sponsor.id}/><input type="hidden" name="mode" value="delete"/><input type="hidden" name="name" value={sponsor.name}/><input type="hidden" name="description" value={sponsor.description ?? ""}/><input type="hidden" name="website_url" value={sponsor.website_url}/><input type="hidden" name="tier" value={sponsor.tier ?? ""}/><input type="hidden" name="display_priority" value={sponsor.display_priority}/><input type="hidden" name="status" value={sponsor.status}/><button class="font-black text-red-700" type="submit">Delete sponsor</button></form></AdminDialog>}</div>
+              <div class="flex items-center gap-3"><StatusBadge label={statusLabel(sponsor.status)} tone={sponsor.status === "active" ? "green" : "amber"} />{canManage && <AdminDialog id={`edit-${sponsor.id}`} title={`Edit ${sponsor.name}`} actionLabel="Edit" intro="Update sponsor details, logo and public visibility." size="xl"><form method="post" action="/api/admin/sponsor" enctype="multipart/form-data"><SponsorAdminFields sponsor={sponsor} mediaConfigured={publicMediaConfigured} currentUrl={logo} /></form><form class="mt-6 border-t border-red-200 pt-5" method="post" action="/api/admin/sponsor"><input type="hidden" name="id" value={sponsor.id}/><input type="hidden" name="mode" value="delete"/><input type="hidden" name="name" value={sponsor.name}/><input type="hidden" name="description" value={sponsor.description ?? ""}/><input type="hidden" name="website_url" value={sponsor.website_url}/><input type="hidden" name="tier" value={sponsor.tier ?? ""}/><input type="hidden" name="display_priority" value={sponsor.display_priority}/><input type="hidden" name="status" value={sponsor.status}/><button class="font-black text-red-700" type="submit">Delete sponsor</button></form></AdminDialog>}</div>
             </div>
           </article>;
         })}

@@ -3,10 +3,12 @@ import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
 import FormActions from "@components/FormActions.astro";
+import ImageUploadField from "@components/ImageUploadField.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDate, statusLabel } from "@lib/format";
+import { getMediaCapabilities, getPublicMediaUrl } from "@lib/media";
 
 export const prerender = false;
 
@@ -15,11 +17,12 @@ if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
+const { publicMediaConfigured } = getMediaCapabilities(Astro);
 const requestedSeasonId = Astro.url.searchParams.get("season");
 const requestedTeamId = Astro.url.searchParams.get("team");
 const [{ data: seasons }, { data: teams }, { data: competitions }, { data: profiles }, { data: teamStaff }, { data: teamPlayers }] = await Promise.all([
   session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
-  (session.supabase as any).from("teams").select("id,name,slug,season_id,competition_id,public,summary,sort_order,division,colour,status,external_fixture_url,seasons(id,name),competitions(id,name)").order("name"),
+  (session.supabase as any).from("teams").select("id,name,slug,season_id,competition_id,public,summary,sort_order,division,colour,status,external_fixture_url,image_object_key,seasons(id,name),competitions(id,name)").order("name"),
   session.supabase.from("competitions").select("id,name").order("name"),
   session.supabase.from("profiles").select("id,full_name,preferred_name,email").order("full_name").limit(300),
   session.supabase.from("team_staff").select("id,team_id,staff_role,status,starts_on,ends_on,profiles:user_id(full_name,preferred_name,email)").order("created_at", { ascending: false }).limit(300),
@@ -69,7 +72,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
           </form>
         </AdminDialog>}
         {canManage && <AdminDialog id="create-team" title="Create team" actionLabel="Team" size="xl">
-          <form class="grid gap-4" method="post" action="/api/admin/create-team">
+          <form class="grid gap-4" method="post" action="/api/admin/create-team" enctype="multipart/form-data">
             <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{seasonList.map((season) => <option value={season.id} selected={season.id === selectedSeason?.id}>{season.name}</option>)}</select></label>
             <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
             <label><span class="label">Name</span><input class="field" name="name" required /></label>
@@ -82,6 +85,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
             <label><span class="label">Division</span><input class="field" name="division" /></label>
             <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
             <label><span class="label">Fixture link</span><input class="field" name="external_fixture_url" type="url" /></label>
+            <ImageUploadField name="image" label="Upload team image" configured={publicMediaConfigured} />
             <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             <FormActions submitLabel="Create team" />
           </form>
@@ -139,6 +143,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
               </a>
               <div class="flex shrink-0 items-center gap-2">
                 <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
+                {canManage && <AdminDialog id={`team-image-${team.id}`} title={`Team image — ${team.name}`} actionLabel="Image" tone="secondary" size="md"><form class="grid gap-4" method="post" action="/api/admin/team-image" enctype="multipart/form-data"><input type="hidden" name="team_id" value={team.id}/><ImageUploadField name="image" label="Upload team image" currentUrl={getPublicMediaUrl(team.image_object_key,Astro)} currentAlt={team.name} hasCurrent={Boolean(team.image_object_key)} removeName="remove_image" configured={publicMediaConfigured}/><FormActions submitLabel="Save team image"/></form></AdminDialog>}
                 {canAssign && <AdminDialog id={"add-team-member-" + team.id} title={"Add person to " + team.name} actionLabel="+" size="lg">
                   <form class="grid gap-4" method="post" action="/api/admin/team-assignment">
                     <input type="hidden" name="team_id" value={team.id} />
