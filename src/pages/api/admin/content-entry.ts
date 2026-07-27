@@ -37,13 +37,18 @@ export const POST:APIRoute=async(context)=>{
     const idResult=z.string().uuid().safeParse(raw.id);
     const id=idResult.success?idResult.data:crypto.randomUUID();
     const service=session.supabase as any;
-    const adminService=createSupabaseServiceClient(context) as any;
+    let adminService:any=null;
+    const getAdminService=()=>adminService??=(createSupabaseServiceClient(context) as any);
     let current:any=null;
     if(idResult.success){
-      const selection=entity==="article"?"*":"*,file_records:attachment_file_id(id,bucket,object_path,mime_type)";
-      const {data,error}=await service.from(table).select(selection).eq("id",id).maybeSingle();
+      const {data,error}=await service.from(table).select("*").eq("id",id).maybeSingle();
       if(error){console.error("content current-record read failed",{entity,code:error.code,message:error.message,correlationId});return redirect("error","The existing record could not be checked.");}
       current=data;
+      if(entity==="coaching_resource"&&current?.attachment_file_id){
+        const {data:file,error:fileError}=await getAdminService().from("file_records").select("id,bucket,object_path,mime_type").eq("id",current.attachment_file_id).maybeSingle();
+        if(fileError){console.error("coaching attachment metadata read failed",{code:fileError.code,message:fileError.message,correlationId});return redirect("error","The existing attachment could not be checked.");}
+        current.file_records=file;
+      }
     }
 
     if(raw.intent==="delete"){
@@ -53,7 +58,7 @@ export const POST:APIRoute=async(context)=>{
       const {error}=await service.from(table).delete().eq("id",id);
       if(error)return redirect("error",error.message??"The record could not be deleted.");
       if(oldPublicKey)await deleteR2Object(getPublicMediaBucket(context),oldPublicKey,"article image");
-      if(oldPrivate){await deleteR2Object(getPrivateMediaBucket(context),oldPrivate.object_path,"coaching attachment");await adminService.from("file_records").delete().eq("id",oldPrivate.id);}
+      if(oldPrivate){await deleteR2Object(getPrivateMediaBucket(context),oldPrivate.object_path,"coaching attachment");await getAdminService().from("file_records").delete().eq("id",oldPrivate.id);}
       await writeAdminAudit(context,{actor_id:session.user.id,action:entity==="article"?"content_article.deleted":"coaching_resource.deleted",entity_type:table,entity_id:id,before_state:current,correlation_id:correlationId});
       return redirect("success",entity==="article"?"News article deleted.":"Coaching resource deleted.");
     }
@@ -96,7 +101,7 @@ export const POST:APIRoute=async(context)=>{
         try{await bucket.put(objectPath,validation.bytes,{httpMetadata:{contentType:attachment.type}});}catch(cause){console.error("coaching attachment upload failed",{cause,correlationId});return redirect("error","The coaching attachment could not be uploaded.");}
         const fileId=crypto.randomUUID();
         const bucketName=String(getRuntimeEnv(context,"R2_PRIVATE_BUCKET_NAME")??"greenacre-eagles-private-media");
-        const {error:fileError}=await adminService.from("file_records").insert({id:fileId,bucket:bucketName,object_path:objectPath,owner_id:session.user.id,related_entity_type:"coaching_resource",related_entity_id:id,visibility:"role_restricted",mime_type:attachment.type,size_bytes:attachment.size});
+        const {error:fileError}=await getAdminService().from("file_records").insert({id:fileId,bucket:bucketName,object_path:objectPath,owner_id:session.user.id,related_entity_type:"coaching_resource",related_entity_id:id,visibility:"role_restricted",mime_type:attachment.type,size_bytes:attachment.size});
         if(fileError){await deleteR2Object(bucket,objectPath,"coaching attachment rollback");console.error("coaching file record insert failed",{code:fileError.code,message:fileError.message,correlationId});return redirect("error","The attachment metadata could not be saved.");}
         uploadedPrivate={id:fileId,bucket:bucketName,object_path:objectPath,mime_type:attachment.type};
         attachmentFileId=fileId;
@@ -107,12 +112,12 @@ export const POST:APIRoute=async(context)=>{
     const result=idResult.success?await service.from(table).update(values).eq("id",id):await service.from(table).insert(values);
     if(result.error){
       if(uploadedPublicKey)await deleteR2Object(getPublicMediaBucket(context),uploadedPublicKey,"article upload rollback");
-      if(uploadedPrivate){await deleteR2Object(getPrivateMediaBucket(context),uploadedPrivate.object_path,"coaching upload rollback");await adminService.from("file_records").delete().eq("id",uploadedPrivate.id);}
+      if(uploadedPrivate){await deleteR2Object(getPrivateMediaBucket(context),uploadedPrivate.object_path,"coaching upload rollback");await getAdminService().from("file_records").delete().eq("id",uploadedPrivate.id);}
       console.error("content database mutation failed",{entity,code:result.error.code,message:result.error.message,correlationId});
       return redirect("error",result.error.code==="23505"?"That slug is already in use.":result.error.message??"The record could not be saved.");
     }
     if(oldPublicKey&&oldPublicKey!==uploadedPublicKey&&values.featured_image_url!==current?.featured_image_url)await deleteR2Object(getPublicMediaBucket(context),oldPublicKey,"old article image");
-    if(oldPrivate&&oldPrivate.id!==values.attachment_file_id){await deleteR2Object(getPrivateMediaBucket(context),oldPrivate.object_path,"old coaching attachment");await adminService.from("file_records").delete().eq("id",oldPrivate.id);}
+    if(oldPrivate&&oldPrivate.id!==values.attachment_file_id){await deleteR2Object(getPrivateMediaBucket(context),oldPrivate.object_path,"old coaching attachment");await getAdminService().from("file_records").delete().eq("id",oldPrivate.id);}
     await writeAdminAudit(context,{actor_id:session.user.id,action:`${entity}.${idResult.success?"updated":"created"}`,entity_type:table,entity_id:id,before_state:current,after_state:values,correlation_id:correlationId});
     return redirect("success",entity==="article"?"News article saved.":"Coaching resource saved.");
   }catch(cause){
