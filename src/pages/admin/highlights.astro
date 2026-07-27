@@ -24,7 +24,7 @@ const platforms = ["instagram","facebook","tiktok"];
     <AdminPageHeader title="Social Hub" intro="Manage the club’s official profiles and selected public social posts." />
     <section class="surface p-5 md:p-7">
       <div class="flex items-center justify-between gap-4"><h2 class="font-display text-3xl font-black uppercase">Social profiles</h2>
-        {canProfiles && <AdminDialog id="new-profile" title="New social profile" actionLabel="New social profile"><form class="grid gap-4" method="post" action="/api/admin/social-hub">
+        {canProfiles && <AdminDialog id="new-profile" title="New social profile" actionLabel="New social profile" intro="Add another official club account. More than one account can use the same platform."><form class="grid gap-4" method="post" action="/api/admin/social-hub">
           <input type="hidden" name="entity" value="profile" />
           <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p}>{p}</option>)}</select></label>
           <label><span class="label">Display name</span><input class="field" name="display_name" required maxlength="120" /></label>

@@ -70,6 +70,6 @@ export const POST: APIRoute = async (context) => {
     if (error && uploadedKey && bucket) await bucket.delete(uploadedKey).catch(()=>undefined);
     if (!error && bucket && oldKey && oldKey !== values.image_object_key) await bucket.delete(oldKey).catch(()=>undefined);
   }
-  const message = error?.code === "23505" ? "That profile or post URL already exists." : error?.message;
+  const message = error?.code === "23505" ? "That social profile or post URL already exists." : error?.message;
   return context.redirect(redirectWithMessage("/admin/highlights/", error ? "error" : "success", message ?? `${entity === "profile" ? "Social profile" : "Social post"} saved.`));
 };

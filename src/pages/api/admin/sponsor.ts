@@ -70,7 +70,7 @@ export const POST: APIRoute = async (context) => {
   const query = before ? service.from("sponsors").update(record).eq("id", id) : service.from("sponsors").insert(record);
   const { error } = await query;
   if (error && uploadedKey) await bucket?.delete(uploadedKey).catch(() => undefined);
-  if (error) return context.redirect(redirectWithMessage(back, "error", "Sponsor could not be saved."));
+  if (error) return context.redirect(redirectWithMessage(back, "error", error.message || "Sponsor could not be saved."));
 
   if (bucket && before?.logo_object_key && before.logo_object_key !== logoObjectKey) await bucket.delete(before.logo_object_key).catch(() => undefined);
   const actions = [before ? "sponsor.updated" : "sponsor.created"];
