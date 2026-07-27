@@ -257,7 +257,7 @@ The database is only 17 MB and most operational tables are empty. Current latenc
 #### C2. Anonymous execution surface on privileged database functions
 
 - **Evidence:** Supabase security advisor and production privilege inspection identify 13 anon-executable `SECURITY DEFINER` functions, including wallet, webhook, notification, voucher, team, and volunteer operations.
-- **Affected functions:** `adjust_wallet_balance`, `create_wallet_top_up`, `enqueue_admin_notification`, `ensure_wallet_account`, `process_payment_webhook`, `process_wallet_qr_purchase`, `request_team_access`, `request_volunteer_shift`, `reverse_wallet_ledger_entry`, `review_team_access_request`, `settle_wallet_top_up`, `update_volunteer_assignment`, and `update_volunteer_shift_status`.
+- **Affected functions:** `adjust_wallet_balance`, `create_wallet_top_up`, `enqueue_admin_notification`, `ensure_wallet_account`, `process_payment_webhook`, `process_wallet_qr_purchase`, `request_volunteer_shift`, `reverse_wallet_ledger_entry`, `settle_wallet_top_up`, `update_volunteer_assignment`, and `update_volunteer_shift_status`.
 - **Impact:** confirmed exposure through PostgREST. Exploitability depends on each function's internal checks, but service-only functions being callable by `anon` is an unacceptable attack surface.
 - **Correction:** revoke execute from `PUBLIC` and `anon` for every function by exact signature; grant only `authenticated` or `service_role` as justified. Verify `auth.uid()`, permission checks, safe `search_path`, input validation, idempotency, and audit behaviour.
 

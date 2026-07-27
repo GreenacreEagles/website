@@ -2,38 +2,22 @@
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
+import type { Json } from "../../types/database.types";
 
 export const prerender = false;
-
-const session = await requirePermission(Astro, ["roles.read"]);
+const session = await requirePermission(Astro, ["roles.read", "roles.manage"]);
 if (!session) return Astro.redirect("/login/");
-
 const { data: roles } = await session.supabase.from("role_catalog").select("*").order("sort_order");
+type CatalogPermission = { key: string; name: string; description?: string | null };
+const isCatalogPermission = (value: Json): value is CatalogPermission => typeof value === "object" && value !== null && !Array.isArray(value) && typeof value.key === "string" && typeof value.name === "string";
+const grouped = (value: Json | null) => (Array.isArray(value) ? value.filter(isCatalogPermission) : []).reduce((result: Record<string, CatalogPermission[]>, permission) => { const group = permission.key.split(".")[0]; (result[group] ??= []).push(permission); return result; }, {});
 ---
 
 <PortalLayout title="Roles & permissions" section="Administration" session={session}>
   <section class="surface p-5 md:p-7">
-    <div class="grid gap-4">
-      {(roles ?? []).map((role: any) => (
-        <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h2 class="font-display text-2xl font-black uppercase leading-none">{role.name}</h2>
-              <p class="mt-2 text-sm font-bold text-eagles-green">{role.key}</p>
-              <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{role.description}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              {role.may_request && <StatusBadge label="Requestable" tone="green" />}
-              {role.is_sensitive && <StatusBadge label="Sensitive" tone="amber" />}
-              {role.requires_team_scope && <StatusBadge label="Team scoped" tone="ink" />}
-              {role.requires_season_scope && <StatusBadge label="Season scoped" tone="ink" />}
-            </div>
-          </div>
-          <div class="mt-4 flex flex-wrap gap-2">
-            {(role.permissions ?? []).map((permission: any) => <span class="border border-eagles-line px-2 py-1 text-xs font-bold text-eagles-ink/70" style="border-radius:999px">{permission.key}</span>)}
-          </div>
-        </article>
-      ))}
+    <div class="max-w-4xl"><h2 class="font-display text-3xl font-black uppercase leading-none">Supported global roles</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Global roles can be combined. General User is automatic and cannot be removed. Player, Coach and Team Manager are team positions; volunteer approval and WWCC verification are statuses. Super Administrator is hidden except to technical administrators.</p></div>
+    <div class="mt-6 grid gap-4">
+      {(roles ?? []).map((role) => <article class="border border-eagles-line bg-white p-5" style="border-radius:8px"><div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><h3 class="font-display text-2xl font-black uppercase leading-none">{role.name}</h3><p class="mt-2 text-sm leading-6 text-eagles-ink/70">{role.description}</p></div><div class="flex gap-2"><StatusBadge label={role.role_kind === "technical" ? "Technical" : "Global"} tone={role.role_kind === "technical" ? "amber" : "green"} />{role.key === "general_user" && <StatusBadge label="Automatic" tone="ink" />}</div></div><div class="mt-5 grid gap-4 md:grid-cols-3">{Object.entries(grouped(role.permissions)).map(([group, permissions]) => <div><p class="text-xs font-black uppercase tracking-[.14em] text-eagles-green">{group}</p><ul class="mt-2 grid gap-1 text-sm text-eagles-ink/70">{permissions.map((permission) => <li>{permission.name}</li>)}</ul></div>)}</div></article>)}
     </div>
   </section>
 </PortalLayout>

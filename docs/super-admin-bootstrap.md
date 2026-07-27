@@ -52,3 +52,7 @@ Only an active super administrator can grant or remove the `super_administrator`
 ## Current Status
 
 As of the latest platform audit, the linked Supabase project has user signups but no active `super_administrator` assignment. The admin portal will remain inaccessible until this bootstrap step is completed.
+
+## Technical-only status
+
+Super Administrator remains solely for bootstrap and emergency ownership. It has the wildcard permission, is hidden from the everyday role catalog, cannot be assigned by Club Admin, and the final active Super Administrator cannot be revoked. Club Admin owns all normal club operations and receives every active standard permission without also holding other roles.

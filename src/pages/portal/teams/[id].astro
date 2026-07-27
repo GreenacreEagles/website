@@ -56,8 +56,8 @@ const [{ data: team }, { data: posts }, { data: squad }, { data: staff }, { data
 if (!team) return Astro.redirect("/portal/teams/");
 
 const activeStaffRole = (staff ?? []).find((item: any) => item.user_id === session.user.id)?.staff_role ?? "";
-const canPost = session.permissions.has("*") || session.permissions.has("team_posts.create") || session.permissions.has("teams.manage") || ["coach", "assistant_coach", "team_manager"].includes(activeStaffRole);
-const canSubmitReport = session.permissions.has("*") || session.permissions.has("match_reports.submit") || session.permissions.has("teams.manage") || ["coach", "assistant_coach", "team_manager"].includes(activeStaffRole);
+const canPost = session.permissions.has("*") || session.permissions.has("team_posts.create") || session.permissions.has("teams.manage") || ["coach", "team_manager"].includes(activeStaffRole);
+const canSubmitReport = session.permissions.has("*") || session.permissions.has("match_reports.submit") || session.permissions.has("teams.manage") || ["coach", "team_manager"].includes(activeStaffRole);
 const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
 ---
 

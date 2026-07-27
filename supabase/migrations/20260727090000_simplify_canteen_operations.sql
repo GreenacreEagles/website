@@ -22,6 +22,7 @@ begin
   if actor is null then raise exception 'Authentication required'; end if;
   if not (
     app_private.has_permission('canteen.orders.manage')
+    or app_private.has_permission('canteen.orders.fulfil')
     or app_private.has_permission('canteen.vouchers.redeem')
   ) then raise exception 'Not authorised'; end if;
   if completion_source not in ('manual', 'qr', 'voucher') then
@@ -138,6 +139,7 @@ declare
 begin
   if auth.uid() is null or not (
     app_private.has_permission('canteen.orders.manage')
+    or app_private.has_permission('canteen.orders.fulfil')
     or app_private.has_permission('canteen.vouchers.redeem')
   ) then raise exception 'Not authorised'; end if;
   if length(normalised_code) < 8 or length(normalised_code) > 80 then raise exception 'Invalid order code'; end if;

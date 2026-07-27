@@ -12,7 +12,7 @@ const schema = z.object({
 });
 
 export const POST: APIRoute = async (context) => {
-  const session = await requirePermission(context, ["roles.assign"]);
+  const session = await requirePermission(context, ["roles.assign", "roles.manage"]);
   if (!session) return context.redirect("/admin/");
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   const fallback = parsed.success && parsed.data.return_to ? parsed.data.return_to : "/admin/users/";

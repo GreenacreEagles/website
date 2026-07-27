@@ -71,7 +71,7 @@ const schemas = {
   teamStaff: z.object({
     team_id: uuidSchema,
     user_id: uuidSchema,
-    staff_role: z.enum(["coach", "assistant_coach", "team_manager", "trainer"]),
+    staff_role: z.enum(["coach", "team_manager"]),
     starts_on: nullableDate,
     ends_on: nullableDate,
     status: z.enum(["active", "inactive", "left"]).default("active")
@@ -222,7 +222,7 @@ const actionConfig = {
   competition: { permissions: ["club_structure.manage"], redirect: "/admin/teams/", success: "Competition created." },
   fixture: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Fixture saved internally." },
   training: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Training session created." },
-  teamStaff: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Team staff assignment saved." },
+  teamStaff: { permissions: ["club_structure.manage", "team_memberships.manage", "teams.manage"], redirect: "/admin/teams/", success: "Team staff assignment saved." },
   volunteerOpportunity: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer opportunity created." },
   volunteerShift: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer shift created." },
   canteenVenue: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen venue created." },
@@ -269,13 +269,13 @@ export const POST: APIRoute = async (context) => {
   } else if (action === "training") {
     ({ error } = await session.supabase.from("training_sessions").insert(data));
   } else if (action === "teamStaff") {
-    ({ error } = await session.supabase.from("team_staff").insert({
-      team_id: data.team_id,
-      user_id: data.user_id,
-      staff_role: data.staff_role,
-      starts_on: data.starts_on ?? null,
-      ends_on: data.ends_on ?? null,
-      status: data.status
+    ({ error } = await session.supabase.rpc("save_team_assignment", {
+      target_user_id: data.user_id,
+      target_team_id: data.team_id,
+      target_position: data.staff_role,
+      target_status: data.status,
+      target_starts_on: data.starts_on ?? null,
+      target_ends_on: data.ends_on ?? null
     }));
   } else if (action === "volunteerOpportunity") {
     ({ error } = await session.supabase.from("volunteer_opportunities").insert(data));

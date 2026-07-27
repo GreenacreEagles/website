@@ -49,3 +49,7 @@ Date: 2026-07-21
 - Confirm Cloudflare Pages bindings for `SESSION` and `IMAGES` before deploying the server-rendered build.
 - Attach the production custom domain when ready.
 - Canteen, volunteer management, player/staff operations, payments, messaging, and content administration are still future phases.
+
+## Role and compliance events
+
+The consolidation records role assignment/removal, team assignment changes and volunteer/WWCC decisions through the existing audit writer. Compliance audits store statuses and only the final four characters of a WWCC number. Full WWCC values must never be copied into general audit reasons, application logs or notifications. Historical role rows are revoked rather than deleted.

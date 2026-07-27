@@ -29,3 +29,7 @@ Supabase SSR cookies are read from incoming request headers and written by API/S
 New signups are provisioned as general users. Public signup metadata cannot grant admin permissions or super-administrator access.
 
 Public sign in, signup and password reset submissions support Cloudflare Turnstile. The widget renders when `PUBLIC_TURNSTILE_SITE_KEY` is configured, and the server validates `cf-turnstile-response` with Cloudflare Siteverify before calling Supabase Auth when `TURNSTILE_SECRET_KEY` is configured.
+
+## Consolidated authorisation model (2026-07-27)
+
+Authentication remains Supabase Auth with the existing server session flow. Authorisation is derived by get_portal_context from active, unrevoked assignments, active roles and active permissions. Global roles are distinct from team_staff/team_players and member_compliance. Role/request self-service is disabled. Permission helpers and RLS are the enforcement boundary; navigation is only presentation. See [role-management.md](./role-management.md).

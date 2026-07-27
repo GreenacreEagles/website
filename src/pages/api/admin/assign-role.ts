@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { optionalUuidSchema, redirectWithMessage, uuidSchema } from "@lib/forms";
+import { redirectWithMessage, uuidSchema } from "@lib/forms";
 import { requirePermission } from "@lib/auth/guards";
 
 export const prerender = false;
@@ -8,8 +8,6 @@ export const prerender = false;
 const schema = z.object({
   user_id: uuidSchema,
   role_id: uuidSchema,
-  team_id: optionalUuidSchema,
-  season_id: optionalUuidSchema,
   starts_at: z.string().optional(),
   ends_at: z.string().optional(),
   reason: z.string().trim().min(10).max(1000),
@@ -19,7 +17,7 @@ const schema = z.object({
 const toTimestamp = (value?: string) => (value ? new Date(value).toISOString() : undefined);
 
 export const POST: APIRoute = async (context) => {
-  const session = await requirePermission(context, ["roles.assign"]);
+  const session = await requirePermission(context, ["roles.assign", "roles.manage"]);
   if (!session) return context.redirect("/admin/");
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   const fallback = parsed.success && parsed.data.return_to ? parsed.data.return_to : "/admin/users/";
@@ -28,8 +26,8 @@ export const POST: APIRoute = async (context) => {
   const { error } = await session.supabase.rpc("assign_user_role", {
     target_user_id: parsed.data.user_id,
     target_role_id: parsed.data.role_id,
-    target_team_id: parsed.data.team_id ?? undefined,
-    target_season_id: parsed.data.season_id ?? undefined,
+    target_team_id: undefined,
+    target_season_id: undefined,
     starts_at: toTimestamp(parsed.data.starts_at),
     ends_at: toTimestamp(parsed.data.ends_at),
     assignment_reason: parsed.data.reason

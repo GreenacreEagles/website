@@ -38,7 +38,7 @@ Member-driven role or team access requests are disabled in source and by the lat
 
 ## Teams And Match Reports
 
-Administrators manage the club hierarchy from `/admin/teams/`. The page now includes team staff assignment for coaches, assistant coaches, team managers and trainers; active squad visibility from player-team links; internal training-session review; and a match-report review queue.
+Administrators manage the club hierarchy from `/admin/teams/`. The page includes team staff assignment for Coaches and Team Managers; active squad visibility from player-team links; internal training-session review; and a match-report review queue.
 
 Coaches and team managers submit reports from the member team page. Report review actions stay in administration and require `match_reports.review`.
 
@@ -85,3 +85,7 @@ Members create wallet accounts and manual top-up requests from `/portal/vouchers
 Administrators use `/admin/wallets/` to review pending top-ups, mark them succeeded, failed or cancelled, create member wallets, record controlled credit/debit adjustments and reverse mistaken ledger entries. Settlement and adjustment actions run through wallet RPCs so ledger writes are idempotent and auditable.
 
 Payment providers are registered in `payment_providers`, and provider delivery attempts are recorded in `payment_webhook_events`. Processor callbacks should post to `/api/webhooks/payments/` with `PAYMENT_WEBHOOK_SECRET`; the API uses the Supabase service role key to call `public.process_payment_webhook`, which ignores replayed provider events and prevents duplicate wallet credits.
+
+## Access administration
+
+Users and Access separates global roles, Player/Coach/Team Manager assignments, and volunteer/WWCC compliance. The role catalog shows only supported global roles; technical Super Administrator is visible only to wildcard administrators. Teams no longer reviews member access requests. Canteen Staff uses the portal fulfilment screen rather than the broad admin workspace. All forms post to guarded APIs backed by audited RPCs.

@@ -63,7 +63,7 @@ export async function getPublicTeam(client: Client, context: Context, slug: stri
       photoUrl: player.photo_consent ? getPublicMediaUrl(player.photo_object_key, context) : null
     };
   });
-  const roleLabels: Record<string, string> = { coach: "Coach", assistant_coach: "Assistant coach", team_manager: "Team manager", trainer: "Trainer" };
+  const roleLabels: Record<string, string> = { coach: "Coach", team_manager: "Team Manager" };
   const publicStaff = (staff ?? []).map((row: any) => ({
     id: row.id,
     displayName: row.profiles?.preferred_name || row.profiles?.full_name || "Team staff",

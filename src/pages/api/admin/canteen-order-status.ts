@@ -22,7 +22,7 @@ const schema = z.object({
 });
 
 export const POST: APIRoute = async (context) => {
-  const session = await requirePermission(context, ["canteen.orders.manage"]);
+  const session = await requirePermission(context, ["canteen.orders.fulfil", "canteen.orders.manage"]);
   if (!session) return context.redirect("/login/");
 
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
@@ -31,6 +31,10 @@ export const POST: APIRoute = async (context) => {
     return context.redirect(redirectWithMessage(redirectTo, "error", parsed.error.issues[0]?.message ?? "Check the order details."));
   }
 
+  const canManage = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
+  if (!canManage && (parsed.data.payment_status || parsed.data.order_status === "cancelled")) {
+    return context.redirect(redirectWithMessage(redirectTo, "error", "Canteen Staff can fulfil orders but cannot change payments or cancel orders."));
+  }
   if (!parsed.data.order_status && !parsed.data.payment_status) {
     return context.redirect(redirectWithMessage(redirectTo, "error", "Choose an order or payment status."));
   }

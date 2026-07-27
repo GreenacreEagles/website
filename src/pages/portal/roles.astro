@@ -5,56 +5,60 @@ import { requireUser } from "@lib/auth/guards";
 import { formatDateTime, statusLabel } from "@lib/format";
 
 export const prerender = false;
-
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
-const { data: assignments } = await session.supabase
-  .from("user_role_assignments")
-  .select("id,status,starts_at,ends_at,reason,assigned_by,revoked_at,roles(id,key,name,description,is_sensitive),teams(id,name),seasons(id,name)")
-  .eq("user_id", session.user.id)
-  .order("created_at", { ascending: false });
+const [{ data: assignments }, { data: staff }, { data: playerRecords }, { data: complianceData }] = await Promise.all([
+  session.supabase.from("user_role_assignments").select("id,status,starts_at,ends_at,reason,revoked_at,roles(id,key,name,description)").eq("user_id", session.user.id).is("team_id", null).is("season_id", null).order("created_at", { ascending: false }),
+  session.supabase.from("team_staff").select("id,staff_role,status,starts_on,ends_on,teams(id,name,seasons(name))").eq("user_id", session.user.id).order("created_at", { ascending: false }),
+  session.supabase.from("player_records").select("id,registration_status,seasons(name),team_players(id,status,starts_on,ends_on,teams(id,name))").eq("user_id", session.user.id),
+  session.supabase.from("member_compliance").select("volunteer_status,wwcc_status,wwcc_expiry_date").eq("user_id", session.user.id).maybeSingle()
+]);
 
+type RoleAssignment = NonNullable<typeof assignments>[number];
+const compliance = complianceData;
 const now = Date.now();
-const assignmentState = (assignment: any) => {
+const assignmentState = (assignment: RoleAssignment) => {
   if (assignment.status === "revoked") return ["Revoked", "red"] as const;
   if (assignment.ends_at && new Date(assignment.ends_at).getTime() <= now) return ["Expired", "amber"] as const;
   if (new Date(assignment.starts_at).getTime() > now) return ["Scheduled", "amber"] as const;
   return [statusLabel(assignment.status), assignment.status === "active" ? "green" : "ink"] as const;
 };
+const teamAssignments = [
+  ...(staff ?? []).map((item) => ({ id: item.id, position: item.staff_role === "team_manager" ? "Team Manager" : "Coach", status: item.status, starts: item.starts_on, ends: item.ends_on, team: item.teams?.name, season: item.teams?.seasons?.name })),
+  ...(playerRecords ?? []).flatMap((record) => (record.team_players ?? []).map((item) => ({ id: item.id, position: "Player", status: item.status, starts: item.starts_on, ends: item.ends_on, team: item.teams?.name, season: record.seasons?.name })))
+];
 ---
 
 <PortalLayout title="My roles" section="Access" session={session}>
-  <section class="surface p-5 md:p-7">
-    <div class="max-w-3xl">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Approved club access</h2>
-      <p class="mt-3 text-base leading-7 text-eagles-ink/70">
-        These roles come from approved club assignments. They cannot be edited from your account page, and expired or revoked roles do not grant portal permissions.
-      </p>
-    </div>
-    <div class="mt-6 grid gap-4">
-      {(assignments ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No role assignments are linked to your account yet.</p>}
-      {(assignments ?? []).map((assignment: any) => {
-        const [label, tone] = assignmentState(assignment);
-        return (
+  <div class="grid gap-6">
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Global club roles</h2>
+      <p class="mt-3 max-w-3xl text-base leading-7 text-eagles-ink/70">This page is read-only. Club administrators assign global roles; team positions are managed separately. You cannot request roles or team access.</p>
+      <div class="mt-6 grid gap-4">
+        {(assignments ?? []).map((assignment) => { const [label, tone] = assignmentState(assignment); return (
           <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h3 class="font-display text-2xl font-black uppercase leading-none">{assignment.roles?.name ?? "Club role"}</h3>
-                <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{assignment.roles?.description ?? "Approved Greenacre Eagles access."}</p>
-              </div>
-              <StatusBadge label={label} tone={tone} />
-            </div>
-            <dl class="mt-4 grid gap-3 text-sm md:grid-cols-4">
-              <div><dt class="font-black">Team</dt><dd>{assignment.teams?.name ?? "Club-wide"}</dd></div>
-              <div><dt class="font-black">Season</dt><dd>{assignment.seasons?.name ?? "All seasons"}</dd></div>
-              <div><dt class="font-black">Starts</dt><dd>{formatDateTime(assignment.starts_at)}</dd></div>
-              <div><dt class="font-black">Expires</dt><dd>{formatDateTime(assignment.ends_at)}</dd></div>
-            </dl>
+            <div class="flex items-start justify-between gap-3"><div><h3 class="font-display text-2xl font-black uppercase leading-none">{assignment.roles?.name ?? "Club role"}</h3><p class="mt-2 text-sm leading-6 text-eagles-ink/70">{assignment.roles?.description}</p></div><StatusBadge label={label} tone={tone} /></div>
+            <dl class="mt-4 grid gap-3 text-sm md:grid-cols-2"><div><dt class="font-black">Starts</dt><dd>{formatDateTime(assignment.starts_at)}</dd></div><div><dt class="font-black">Expires</dt><dd>{formatDateTime(assignment.ends_at)}</dd></div></dl>
           </article>
-        );
-      })}
-    </div>
-  </section>
+        ); })}
+      </div>
+    </section>
+
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Team positions</h2>
+      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Player, Coach and Team Manager are scoped to a team and season; they are not global roles.</p>
+      <div class="mt-5 grid gap-3 md:grid-cols-2">
+        {teamAssignments.length === 0 && <p class="text-sm text-eagles-ink/70">No team positions are assigned.</p>}
+        {teamAssignments.map((item) => <article class="border border-eagles-line p-4" style="border-radius:8px"><div class="flex justify-between gap-3"><h3 class="font-black">{item.position}</h3><StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "ink"} /></div><p class="mt-2 text-sm">{item.team ?? "Team"} · {item.season ?? "Season"}</p></article>)}
+      </div>
+    </section>
+
+    <section class="surface p-5 md:p-7">
+      <h2 class="font-display text-3xl font-black uppercase leading-none">Volunteer & compliance status</h2>
+      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Volunteer approval and Working With Children Check verification are eligibility statuses, not roles. Sensitive WWCC details are only visible to authorised administrators.</p>
+      <dl class="mt-5 grid gap-4 md:grid-cols-3"><div><dt class="text-xs font-black uppercase text-eagles-ink/60">Volunteer</dt><dd class="mt-1 font-black">{statusLabel(compliance?.volunteer_status ?? "pending")}</dd></div><div><dt class="text-xs font-black uppercase text-eagles-ink/60">WWCC</dt><dd class="mt-1 font-black">{statusLabel(compliance?.wwcc_status ?? "not_supplied")}</dd></div><div><dt class="text-xs font-black uppercase text-eagles-ink/60">WWCC expiry</dt><dd class="mt-1 font-black">{compliance?.wwcc_expiry_date ?? "Not recorded"}</dd></div></dl>
+    </section>
+  </div>
 </PortalLayout>

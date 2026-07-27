@@ -1281,6 +1281,62 @@ export type Database = {
           },
         ]
       }
+      member_compliance: {
+        Row: {
+          user_id: string
+          volunteer_status: string
+          volunteer_approved_at: string | null
+          volunteer_approved_by: string | null
+          volunteer_reason: string | null
+          volunteer_notes: string | null
+          wwcc_number: string | null
+          wwcc_status: string
+          wwcc_expiry_date: string | null
+          wwcc_verified_at: string | null
+          wwcc_verified_by: string | null
+          wwcc_name: string | null
+          wwcc_notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          volunteer_status?: string
+          volunteer_approved_at?: string | null
+          volunteer_approved_by?: string | null
+          volunteer_reason?: string | null
+          volunteer_notes?: string | null
+          wwcc_number?: string | null
+          wwcc_status?: string
+          wwcc_expiry_date?: string | null
+          wwcc_verified_at?: string | null
+          wwcc_verified_by?: string | null
+          wwcc_name?: string | null
+          wwcc_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          volunteer_status?: string
+          volunteer_approved_at?: string | null
+          volunteer_approved_by?: string | null
+          volunteer_reason?: string | null
+          volunteer_notes?: string | null
+          wwcc_number?: string | null
+          wwcc_status?: string
+          wwcc_expiry_date?: string | null
+          wwcc_verified_at?: string | null
+          wwcc_verified_by?: string | null
+          wwcc_name?: string | null
+          wwcc_notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "member_compliance_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] }
+        ]
+      }
       notifications: {
         Row: {
           body: string
@@ -1432,6 +1488,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           key: string
           name: string
         }
@@ -1439,6 +1496,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           key: string
           name: string
         }
@@ -1446,6 +1504,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           key?: string
           name?: string
         }
@@ -1782,6 +1841,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_active: boolean
           is_sensitive: boolean
           is_system: boolean
           key: string
@@ -1790,12 +1850,14 @@ export type Database = {
           requires_season_scope: boolean
           requires_super_admin_approval: boolean
           requires_team_scope: boolean
+          role_kind: string
           sort_order: number
         }
         Insert: {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_sensitive?: boolean
           is_system?: boolean
           key: string
@@ -1804,12 +1866,14 @@ export type Database = {
           requires_season_scope?: boolean
           requires_super_admin_approval?: boolean
           requires_team_scope?: boolean
+          role_kind?: string
           sort_order?: number
         }
         Update: {
           created_at?: string
           description?: string | null
           id?: string
+          is_active?: boolean
           is_sensitive?: boolean
           is_system?: boolean
           key?: string
@@ -1818,6 +1882,7 @@ export type Database = {
           requires_season_scope?: boolean
           requires_super_admin_approval?: boolean
           requires_team_scope?: boolean
+          role_kind?: string
           sort_order?: number
         }
         Relationships: []
@@ -1955,6 +2020,7 @@ export type Database = {
       }
       team_players: {
         Row: {
+          assigned_by: string | null
           created_at: string
           ends_on: string | null
           id: string
@@ -1966,6 +2032,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_by?: string | null
           created_at?: string
           ends_on?: string | null
           id?: string
@@ -1977,6 +2044,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_by?: string | null
           created_at?: string
           ends_on?: string | null
           id?: string
@@ -2006,6 +2074,7 @@ export type Database = {
       }
       team_staff: {
         Row: {
+          assigned_by: string | null
           created_at: string
           ends_on: string | null
           id: string
@@ -2017,6 +2086,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_by?: string | null
           created_at?: string
           ends_on?: string | null
           id?: string
@@ -2028,6 +2098,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_by?: string | null
           created_at?: string
           ends_on?: string | null
           id?: string
@@ -2836,6 +2907,7 @@ export type Database = {
         Row: {
           description: string | null
           id: string | null
+          is_active: boolean | null
           is_sensitive: boolean | null
           is_system: boolean | null
           key: string | null
@@ -2845,6 +2917,7 @@ export type Database = {
           requires_season_scope: boolean | null
           requires_super_admin_approval: boolean | null
           requires_team_scope: boolean | null
+          role_kind: string | null
           sort_order: number | null
         }
         Relationships: []
@@ -2866,6 +2939,9 @@ export type Database = {
       }
     }
     Functions: {
+      save_team_assignment: { Args: { target_user_id: string; target_team_id: string; target_position: string; target_status?: string; target_starts_on?: string | null; target_ends_on?: string | null }; Returns: string }
+      update_member_compliance: { Args: { target_user_id: string; target_volunteer_status: string; target_wwcc_status: string; target_wwcc_number?: string | null; target_wwcc_expiry_date?: string | null; target_wwcc_name?: string | null; decision_reason: string; internal_notes?: string | null }; Returns: undefined }
+
       admin_dashboard_summary: { Args: never; Returns: Json }
       checkout_merchandise_cart: {
         Args: { request_key: string; target_notes?: string }
