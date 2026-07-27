@@ -168,7 +168,7 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
           <h2 class="font-display text-2xl font-black uppercase leading-none">Invitations</h2>
           <div class="mt-4 grid gap-3">
             {invitationList.map((invitation: any) => (
-              <form class="border-t border-eagles-line pt-3" method="post" action="/api/portal/family-invitation-accept/">
+              <form class="border-t border-eagles-line pt-3" method="post" action="/api/portal/family-invitation-accept">
                 <input type="hidden" name="invitation_id" value={invitation.id} />
                 <p class="font-black">{invitation.families?.name ?? "Family group"}</p>
                 <p class="mt-1 text-sm text-eagles-ink/70">Invited as {statusLabel(invitation.relationship)} by {invitation.profiles?.preferred_name || invitation.profiles?.full_name || "a guardian"}.</p>
@@ -180,7 +180,7 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
       )}
 
       {manageableFamilyIds.length > 0 && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/child-account/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/child-account">
           <h2 class="font-display text-2xl font-black uppercase leading-none">Create child login</h2>
           <p class="text-sm leading-6 text-eagles-ink/70">Child logins use a username and password, do not need an email address, and only open Teams and Wallet.</p>
           <label><span class="label">Family</span><select class="field" name="family_id">{membershipList.filter((member: any) => manageableFamilyIds.includes(member.family_id)).map((member: any) => <option value={member.family_id}>{member.families?.name ?? "Family"}</option>)}</select></label>
@@ -193,7 +193,7 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
       )}
 
       {manageableFamilyIds.length > 0 && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-invite/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-invite">
           <h2 class="font-display text-2xl font-black uppercase leading-none">Invite guardian</h2>
           <label><span class="label">Family</span><select class="field" name="family_id">{membershipList.filter((member: any) => manageableFamilyIds.includes(member.family_id)).map((member: any) => <option value={member.family_id}>{member.families?.name ?? "Family"}</option>)}</select></label>
           <label><span class="label">Email</span><input class="field" type="email" name="email" required /></label>
@@ -204,7 +204,7 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
       )}
 
       {assignableVouchers.length > 0 && childMembers.length > 0 && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-voucher-assignment/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-voucher-assignment">
           <h2 class="font-display text-2xl font-black uppercase leading-none">Assign voucher</h2>
           <label><span class="label">Voucher</span><select class="field" name="voucher_id">{assignableVouchers.map((voucher: any) => <option value={voucher.id}>{voucher.issue_reason ?? statusLabel(voucher.voucher_type)} - {formatMoney(voucher.remaining_value_cents)}</option>)}</select></label>
           <label><span class="label">Child</span><select class="field" name="child_id">{childMembers.map((member: any) => <option value={member.user_id}>{member.profiles?.preferred_name || member.profiles?.full_name || member.profiles?.email}</option>)}</select></label>

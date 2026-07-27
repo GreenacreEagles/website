@@ -29,5 +29,5 @@ export const POST: APIRoute = async (context) => {
   });
 
   if (error) return context.redirect(redirectWithMessage("/portal/merchandise/", "error", "Store access could not be created."));
-  return context.redirect(`/api/merchandise/store-session/?token=${encodeURIComponent(token)}`);
+  return context.redirect(`/api/merchandise/store-session?token=${encodeURIComponent(token)}`);
 };

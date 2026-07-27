@@ -4,7 +4,12 @@ import { requirePermission } from "@lib/auth/guards";
 export const prerender = false;
 export const GET: APIRoute = async (context) => {
   const session = await requirePermission(context, ["canteen.vouchers.manage"]);
-  if (!session) return new Response(JSON.stringify({ error: "Unauthorised" }), { status: 401 });
+  if (!session) {
+    return new Response(JSON.stringify({ error: "Unauthorised" }), {
+      status: 401,
+      headers: { "content-type": "application/json", "cache-control": "no-store" },
+    });
+  }
   const q = context.url.searchParams.get("q")?.trim().slice(0, 80) ?? "";
   const type = context.url.searchParams.get("type") === "team" ? "team" : "member";
   const client = session.supabase as any;

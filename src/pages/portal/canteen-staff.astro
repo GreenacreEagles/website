@@ -93,7 +93,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
               {canFulfilOrders && (
                 <div class="mt-4 flex flex-wrap gap-2">
                   {(nextActions[order.order_status] ?? []).map((action) => (
-                    <form method="post" action="/api/admin/canteen-order-status/">
+                    <form method="post" action="/api/admin/canteen-order-status">
                       <input type="hidden" name="order_id" value={order.id} />
                       <input type="hidden" name="order_status" value={action.value} />
                       <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
@@ -110,7 +110,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
 
     <aside class="grid gap-5 content-start">
       {canRedeemVouchers && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/redeem-voucher/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/admin/redeem-voucher">
           <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
           <h2 class="font-display text-2xl font-black uppercase leading-none">Claim voucher</h2>
           <label>
@@ -152,7 +152,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
                 </p>
               )}
               {canReverseVouchers && redemption.status === "completed" && (
-                <form class="mt-3 grid gap-2" method="post" action="/api/admin/reverse-voucher-redemption/">
+                <form class="mt-3 grid gap-2" method="post" action="/api/admin/reverse-voucher-redemption">
                   <input type="hidden" name="redemption_id" value={redemption.id} />
                   <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
                   <label><span class="label">Reversal reason</span><input class="field" name="reason" placeholder="Mistaken scan or duplicate claim" required /></label>

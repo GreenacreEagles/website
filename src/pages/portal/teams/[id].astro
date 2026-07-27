@@ -97,7 +97,7 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
             {post.body && <p class="mt-4 whitespace-pre-line text-base leading-7 text-eagles-ink/75">{post.body}</p>}
 
             {post.post_type === "poll" && (
-              <form class="mt-5 grid gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-poll-response/">
+              <form class="mt-5 grid gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-poll-response">
                 <input type="hidden" name="team_id" value={team.id} />
                 <input type="hidden" name="post_id" value={post.id} />
                 <p class="font-black">Poll response</p>
@@ -119,7 +119,7 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
               </form>
             )}
 
-            <form class="mt-5 flex flex-wrap gap-2 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction/">
+            <form class="mt-5 flex flex-wrap gap-2 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction">
               <input type="hidden" name="team_id" value={team.id} />
               <input type="hidden" name="post_id" value={post.id} />
               {reactionLabels.map((reaction) => (
@@ -135,7 +135,7 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
 
     <aside class="grid gap-5 content-start">
       {canPost && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post">
           <h2 class="font-display text-2xl font-black uppercase leading-none">Create post</h2>
           <input type="hidden" name="team_id" value={team.id} />
           <label><span class="label">Type</span><select class="field" name="post_type"><option value="announcement">Announcement</option><option value="activity">Activity notice</option><option value="poll">Poll</option></select></label>
@@ -203,7 +203,7 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
     </article>
 
     {canSubmitReport && (
-      <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report/">
+      <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report">
         <input type="hidden" name="team_id" value={team.id} />
         <h2 class="font-display text-2xl font-black uppercase leading-none">Submit report</h2>
         <label><span class="label">Fixture</span><select class="field" name="fixture_id"><option value="">General team report</option>{(fixtures ?? []).map((fixture: any) => <option value={fixture.id}>{fixture.round ? `${fixture.round} - ` : ""}{fixture.opponent} - {formatDateTime(fixture.starts_at)}</option>)}</select></label>

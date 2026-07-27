@@ -94,7 +94,7 @@ const walletCards = await Promise.all(
       ))}
       {(wallets ?? []).length === 0 && <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase">Wallet unavailable</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your member wallet is created automatically with your account. Please contact the club if it is not visible here.</p></article>}
       {(wallets ?? []).length > 0 && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-top-up/">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-top-up">
           <input type="hidden" name="return_to" value="/portal/vouchers/" />
           <h2 class="font-display text-2xl font-black uppercase leading-none">Top up wallet</h2>
           <label><span class="label">Wallet</span><select class="field" name="wallet_id">{(wallets ?? []).map((wallet: any) => <option value={wallet.id}>{statusLabel(wallet.account_type)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>

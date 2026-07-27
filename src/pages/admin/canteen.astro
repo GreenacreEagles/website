@@ -54,7 +54,7 @@ const requestKey = crypto.randomUUID();
                   </div>
                 </div>
               </section>
-              <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/complete-canteen-order/">
+              <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/complete-canteen-order">
                 <input type="hidden" name="order_id" value="" />
                 <input type="hidden" name="source" value="qr" />
                 <h4 class="font-display text-2xl font-black uppercase">Order collection</h4>
@@ -62,7 +62,7 @@ const requestKey = crypto.randomUUID();
                 <FormActions submitLabel="Confirm collection" />
               </form>
               <div class="grid gap-4 lg:grid-cols-2">
-                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/wallet-qr-purchase/">
+                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/wallet-qr-purchase">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
                   <h4 class="font-display text-2xl font-black uppercase">Wallet purchase</h4>
                   <label><span class="label">Wallet code</span><input class="field" name="code" data-scan-code data-code-type="wallet" placeholder="GEWALLET:..." required /></label>
@@ -70,7 +70,7 @@ const requestKey = crypto.randomUUID();
                   <input type="hidden" name="description" value="Canteen purchase" />
                   <FormActions submitLabel="Confirm wallet purchase" />
                 </form>
-                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/redeem-voucher/">
+                <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/redeem-voucher">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
                   <input type="hidden" name="device_label" value="Admin canteen scanner" />
                   <h4 class="font-display text-2xl font-black uppercase">Voucher claim</h4>
@@ -84,7 +84,7 @@ const requestKey = crypto.randomUUID();
         )}
         {canManageVouchers && (
           <AdminDialog id="issue-benefit" title="Issue canteen benefit" actionLabel="Issue voucher" intro="Select members, teams, or both. Duplicate members are automatically removed." size="xl">
-            <form class="grid gap-5" method="post" action="/api/admin/canteen-benefits/" data-benefit-form>
+            <form class="grid gap-5" method="post" action="/api/admin/canteen-benefits" data-benefit-form>
               <input type="hidden" name="request_key" value={requestKey} />
               <div class="grid gap-4 md:grid-cols-2">
                 <div>
@@ -121,14 +121,14 @@ const requestKey = crypto.randomUUID();
           <AdminDialog id="manage-canteen-categories" title="Manage categories" actionLabel="Manage categories" tone="secondary" size="lg">
             <div class="grid gap-5">
               {(categories ?? []).map((category: any, index: number) => (
-                <form class="grid gap-3 border border-eagles-line p-4 md:grid-cols-[1fr_130px_auto]" style="border-radius:8px" method="post" action="/api/admin/canteen-category/">
+                <form class="grid gap-3 border border-eagles-line p-4 md:grid-cols-[1fr_130px_auto]" style="border-radius:8px" method="post" action="/api/admin/canteen-category">
                   <input type="hidden" name="category_id" value={category.id} />
                   <label><span class="label">Name</span><input class="field" name="name" value={category.name} required /></label>
                   <label><span class="label">Position</span><select class="field" name="position">{(categories ?? []).map((_: any, optionIndex: number) => <option value={optionIndex + 1} selected={index === optionIndex}>{optionIndex + 1}</option>)}</select></label>
                   <div class="flex flex-wrap items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active} /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Save</button><button class="text-xs font-black text-red-700" name="intent" value="delete" formnovalidate onclick="return confirm('Delete this category? Products will become uncategorised.')">Delete</button></div>
                 </form>
               ))}
-              <form class="grid gap-3 border-t border-eagles-line pt-5 md:grid-cols-[1fr_130px_auto]" method="post" action="/api/admin/canteen-category/">
+              <form class="grid gap-3 border-t border-eagles-line pt-5 md:grid-cols-[1fr_130px_auto]" method="post" action="/api/admin/canteen-category">
                 <input type="hidden" name="category_id" value="" />
                 <label><span class="label">New category</span><input class="field" name="name" required /></label>
                 <label><span class="label">Position</span><select class="field" name="position">{[...(categories ?? []), null].map((_: any, index: number) => <option value={index + 1} selected={index === (categories ?? []).length}>{index + 1}</option>)}</select></label>
@@ -166,7 +166,7 @@ const requestKey = crypto.randomUUID();
             <div class="mt-3 grid gap-1">{(order.canteen_order_items ?? []).map((item: any) => <p class="text-sm"><strong>{item.quantity}×</strong> {item.product_name_snapshot}</p>)}</div>
             <p class="mt-3 text-sm font-bold text-eagles-muted">{order.payment_method === "pay_at_club" ? `Pay at club · $${((order.amount_due_cents ?? 0) / 100).toFixed(2)} due` : "Paid with member benefits"}</p>
             {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold" style="border-radius:8px">{order.special_instructions}</p>}
-            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="payment_status" value="paid" /><input type="hidden" name="order_status" value="accepted" /><input type="hidden" name="reason" value="Payment received at club" /><button class="bg-eagles-ink px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Mark payment received</button></form>}{order.payment_status === "paid" && <form method="post" action="/api/admin/complete-canteen-order/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}</div>}
+            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="payment_status" value="paid" /><input type="hidden" name="order_status" value="accepted" /><input type="hidden" name="reason" value="Payment received at club" /><button class="bg-eagles-ink px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Mark payment received</button></form>}{order.payment_status === "paid" && <form method="post" action="/api/admin/complete-canteen-order"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}</div>}
           </article>
         ))}
       </div>
@@ -239,7 +239,10 @@ const requestKey = crypto.randomUUID();
             const box = form.querySelector(`[data-search-results="${type}"]`);
             box.textContent = "Searching…";
             try {
-              const response = await fetch(`/api/admin/canteen-recipient-search/?type=${type}&q=${encodeURIComponent(input.value)}`);
+              const requestPath = `/api/admin/canteen-recipient-search?type=${type}&q=${encodeURIComponent(input.value)}`;
+              const response = await fetch(requestPath, { credentials: "same-origin", headers: { Accept: "application/json" } });
+              const contentType = response.headers.get("content-type") || "";
+              if (!response.ok || !contentType.includes("application/json")) throw new Error(`${requestPath} returned HTTP ${response.status} (${contentType || "unknown content type"})`);
               const payload = await response.json();
               box.innerHTML = "";
               (payload.results || []).forEach(row => {
@@ -251,7 +254,7 @@ const requestKey = crypto.randomUUID();
                 box.appendChild(button);
               });
               if (!box.children.length) box.textContent = "No matches.";
-            } catch { box.textContent = "Search is temporarily unavailable."; }
+            } catch (error) { box.textContent = error instanceof Error ? `Search failed: ${error.message}` : "Search is temporarily unavailable."; }
           }, 250);
         });
       });

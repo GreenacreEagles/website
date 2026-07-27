@@ -199,7 +199,7 @@ const attentionItems = [
           ))}
         </div>
         {(notifications ?? []).some((notification: any) => !notification.read_at) && (
-          <form class="mt-4" method="post" action="/api/portal/notification/">
+          <form class="mt-4" method="post" action="/api/portal/notification">
             <input type="hidden" name="action" value="mark_all_read" />
             <button class="text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">Mark all read</button>
           </form>

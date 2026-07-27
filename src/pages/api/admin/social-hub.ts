@@ -21,6 +21,13 @@ const postSchema = z.object({ platform, post_url:z.string().url().max(800), titl
   .refine((v) => httpsFor(v.platform, v.post_url), { message:"Post URL must be an HTTPS URL for the selected platform." });
 
 export const POST: APIRoute = async (context) => {
+  const contentType = context.request.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!contentType.startsWith("multipart/form-data") && !contentType.startsWith("application/x-www-form-urlencoded")) {
+    return new Response(JSON.stringify({ error: "Expected form data." }), {
+      status: 415,
+      headers: { "content-type": "application/json", "cache-control": "no-store" },
+    });
+  }
   const formData = await context.request.formData();
   const raw = Object.fromEntries(formData);
   const entity = raw.entity === "profile" ? "profile" : "post";

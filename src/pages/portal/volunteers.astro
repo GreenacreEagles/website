@@ -41,7 +41,7 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
             <StatusBadge label={`${spotsRemaining}/${shift.capacity} spots left`} tone="ink" />
           </div>
           {!myAssignment && shift.status === "open" && spotsRemaining > 0 && (
-            <form class="mt-5" method="post" action="/api/portal/volunteer-shift/">
+            <form class="mt-5" method="post" action="/api/portal/volunteer-shift">
               <input type="hidden" name="shift_id" value={shift.id} />
               <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Volunteer for this shift</button>
             </form>
@@ -53,20 +53,20 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
             <div class="mt-5 flex flex-wrap gap-2">
               <StatusBadge label={myAssignment.status === "replacement_requested" ? "Replacement requested" : "You are on this shift"} tone="green" />
               {myAssignment.status !== "checked_in" && (
-                <form method="post" action="/api/portal/volunteer-assignment/">
+                <form method="post" action="/api/portal/volunteer-assignment">
                   <input type="hidden" name="assignment_id" value={myAssignment.id} />
                   <input type="hidden" name="status" value="checked_in" />
                   <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Check in</button>
                 </form>
               )}
               {myAssignment.status !== "replacement_requested" && (
-                <form method="post" action="/api/portal/volunteer-assignment/">
+                <form method="post" action="/api/portal/volunteer-assignment">
                   <input type="hidden" name="assignment_id" value={myAssignment.id} />
                   <input type="hidden" name="status" value="replacement_requested" />
                   <button class="bg-yellow-100 px-4 py-3 text-sm font-black text-yellow-900" style="border-radius:8px" type="submit">Request replacement</button>
                 </form>
               )}
-              <form method="post" action="/api/portal/volunteer-assignment/">
+              <form method="post" action="/api/portal/volunteer-assignment">
                 <input type="hidden" name="assignment_id" value={myAssignment.id} />
                 <input type="hidden" name="status" value="cancelled" />
                 <button class="bg-red-50 px-4 py-3 text-sm font-black text-red-700" style="border-radius:8px" type="submit">Cancel shift</button>
@@ -90,20 +90,20 @@ const [{ data: shifts }, { data: assignments }] = await Promise.all([
             {assignment.status !== "cancelled" && assignment.status !== "completed" && (
               <div class="mt-3 flex flex-wrap gap-2">
                 {assignment.status !== "checked_in" && (
-                  <form method="post" action="/api/portal/volunteer-assignment/">
+                  <form method="post" action="/api/portal/volunteer-assignment">
                     <input type="hidden" name="assignment_id" value={assignment.id} />
                     <input type="hidden" name="status" value="checked_in" />
                     <button class="text-sm font-black text-eagles-green" type="submit">Check in</button>
                   </form>
                 )}
                 {assignment.status !== "replacement_requested" && (
-                  <form method="post" action="/api/portal/volunteer-assignment/">
+                  <form method="post" action="/api/portal/volunteer-assignment">
                     <input type="hidden" name="assignment_id" value={assignment.id} />
                     <input type="hidden" name="status" value="replacement_requested" />
                     <button class="text-sm font-black text-yellow-900" type="submit">Request replacement</button>
                   </form>
                 )}
-                <form method="post" action="/api/portal/volunteer-assignment/">
+                <form method="post" action="/api/portal/volunteer-assignment">
                   <input type="hidden" name="assignment_id" value={assignment.id} />
                   <input type="hidden" name="status" value="cancelled" />
                   <button class="text-sm font-black text-red-700" type="submit">Cancel</button>

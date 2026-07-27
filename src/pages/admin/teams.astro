@@ -48,7 +48,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
     <AdminPageHeader title="Seasons and teams" intro="Choose a season, open a team, then manage its players and staff from one focused workspace.">
       <Fragment slot="actions">
         {canManage && <AdminDialog id="create-competition" title="Create competition" actionLabel="Competition" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record">
             <input type="hidden" name="action" value="competition" />
             <label><span class="label">Name</span><input class="field" name="name" placeholder="Bankstown Premier League" required /></label>
             <label><span class="label">Season</span><select class="field" name="season_id"><option value="">No season</option>{seasonList.map((season) => <option value={season.id} selected={season.id === selectedSeason?.id}>{season.name}</option>)}</select></label>
@@ -57,7 +57,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
           </form>
         </AdminDialog>}
         {canManage && <AdminDialog id="create-season" title="Create season" actionLabel="Season" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-season/">
+          <form class="grid gap-4" method="post" action="/api/admin/create-season">
             <label><span class="label">Name</span><input class="field" name="name" placeholder="Season 2027" required /></label>
             <label><span class="label">Year</span><input class="field" name="year" type="number" min="2000" max="2100" required /></label>
             <div class="grid gap-3 md:grid-cols-2">
@@ -69,7 +69,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
           </form>
         </AdminDialog>}
         {canManage && <AdminDialog id="create-team" title="Create team" actionLabel="Team" size="xl">
-          <form class="grid gap-4" method="post" action="/api/admin/create-team/">
+          <form class="grid gap-4" method="post" action="/api/admin/create-team">
             <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select season</option>{seasonList.map((season) => <option value={season.id} selected={season.id === selectedSeason?.id}>{season.name}</option>)}</select></label>
             <label><span class="label">Competition</span><select class="field" name="competition_id"><option value="">Not set</option>{(competitions ?? []).map((competition) => <option value={competition.id}>{competition.name}</option>)}</select></label>
             <label><span class="label">Name</span><input class="field" name="name" required /></label>
@@ -140,7 +140,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
               <div class="flex shrink-0 items-center gap-2">
                 <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
                 {canAssign && <AdminDialog id={"add-team-member-" + team.id} title={"Add person to " + team.name} actionLabel="+" size="lg">
-                  <form class="grid gap-4" method="post" action="/api/admin/team-assignment/">
+                  <form class="grid gap-4" method="post" action="/api/admin/team-assignment">
                     <input type="hidden" name="team_id" value={team.id} />
                     <input type="hidden" name="status" value="active" />
                     <input type="hidden" name="return_to" value={teamUrl(team.id)} />

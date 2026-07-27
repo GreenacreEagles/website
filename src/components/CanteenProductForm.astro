@@ -3,7 +3,7 @@ import FormActions from "@components/FormActions.astro";
 import { statusLabel } from "@lib/format";
 const { product, categories, dietaryOptions, allergenOptions } = Astro.props;
 ---
-<form class="grid gap-4" method="post" action="/api/admin/canteen-product/">
+<form class="grid gap-4" method="post" action="/api/admin/canteen-product">
   <input type="hidden" name="product_id" value={product?.id ?? ""} />
   <div class="grid gap-4 md:grid-cols-2">
     <label><span class="label">Name</span><input class="field" name="name" value={product?.name ?? ""} required /></label>

@@ -32,7 +32,7 @@ const activeAssignmentCount = (shift: any) =>
     <AdminPageHeader title="Volunteer management" intro="Coordinate opportunities, shifts and roster updates while keeping the active lists front and centre.">
       <Fragment slot="actions">
         <AdminDialog id="add-volunteer-opportunity" title="Add opportunity" actionLabel="Add opportunity" intro="Create a volunteer role that shifts can be scheduled against." size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record">
             <input type="hidden" name="action" value="volunteerOpportunity" />
             <label><span class="label">Title</span><input class="field" name="title" placeholder="Canteen helper" required /></label>
             <label><span class="label">Type</span><input class="field" name="opportunity_type" placeholder="canteen" required /></label>
@@ -43,7 +43,7 @@ const activeAssignmentCount = (shift: any) =>
           </form>
         </AdminDialog>
         <AdminDialog id="add-volunteer-shift" title="Add shift" actionLabel="Add shift" intro="Schedule a shift for an existing role and set the capacity needed." size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record/">
+          <form class="grid gap-4" method="post" action="/api/admin/create-record">
             <input type="hidden" name="action" value="volunteerShift" />
             <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
             <label><span class="label">Location</span><input class="field" name="venue" maxlength="240" placeholder="e.g. Clubhouse" /></label>
@@ -89,7 +89,7 @@ const activeAssignmentCount = (shift: any) =>
                 </p>
                 <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : shift.status === "cancelled" ? "red" : "amber"} />
               </div>
-              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action/">
+              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action">
                 <input type="hidden" name="action" value="shift" />
                 <input type="hidden" name="shift_id" value={shift.id} />
                 <label><span class="label">Shift status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item} selected={shift.status === item}>{statusLabel(item)}</option>)}</select></label>
@@ -113,7 +113,7 @@ const activeAssignmentCount = (shift: any) =>
                 </p>
                 <StatusBadge label={statusLabel(assignment.status)} tone={assignment.status === "completed" ? "green" : assignment.status === "cancelled" ? "red" : "amber"} />
               </div>
-              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action/">
+              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action">
                 <input type="hidden" name="action" value="assignment" />
                 <input type="hidden" name="assignment_id" value={assignment.id} />
                 <label><span class="label">Assignment status</span><select class="field" name="status">{["interested", "assigned", "checked_in", "completed", "cancelled", "replacement_requested"].map((item) => <option value={item} selected={assignment.status === item}>{statusLabel(item)}</option>)}</select></label>

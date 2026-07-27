@@ -35,14 +35,14 @@ const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
     <AdminPageHeader title="Players and families" intro="Manage player records, family groups and team links with focused actions instead of a permanent form stack.">
       <Fragment slot="actions">
         <AdminDialog id="create-family" title="Create family" actionLabel="Create family" size="md">
-          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action">
             <input type="hidden" name="action" value="family" />
             <label><span class="label">Family name</span><input class="field" name="name" required /></label>
             <FormActions submitLabel="Create family" />
           </form>
         </AdminDialog>
         <AdminDialog id="link-family-member" title="Link family member" actionLabel="Link member" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action">
             <input type="hidden" name="action" value="familyMember" />
             <label><span class="label">Family</span><select class="field" name="family_id" required><option value="">Select</option>{(families ?? []).map((family: any) => <option value={family.id}>{family.name}</option>)}</select></label>
             <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
@@ -58,7 +58,7 @@ const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
           </form>
         </AdminDialog>
         <AdminDialog id="create-player-record" title="Create player record" actionLabel="Create player" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action">
             <input type="hidden" name="action" value="player" />
             <label><span class="label">User</span><select class="field" name="user_id" required><option value="">Select</option>{(profiles ?? []).map((profile: any) => <option value={profile.id}>{profile.full_name || profile.email}</option>)}</select></label>
             <label><span class="label">Season</span><select class="field" name="season_id" required><option value="">Select</option>{(seasons ?? []).map((season: any) => <option value={season.id}>{season.name}</option>)}</select></label>
@@ -69,7 +69,7 @@ const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
           </form>
         </AdminDialog>
         <AdminDialog id="assign-player-team" title="Assign player to team" actionLabel="Assign to team" size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/family-player-action/">
+          <form class="grid gap-4" method="post" action="/api/admin/family-player-action">
             <input type="hidden" name="action" value="teamPlayer" />
             <label><span class="label">Player</span><select class="field" name="player_id" required><option value="">Select</option>{(players ?? []).map((player: any) => <option value={player.id}>{player.profiles?.full_name || player.profiles?.email} - {player.seasons?.name}</option>)}</select></label>
             <label><span class="label">Team</span><select class="field" name="team_id" required><option value="">Select</option>{(teams ?? []).map((team: any) => <option value={team.id}>{team.name}</option>)}</select></label>
@@ -98,7 +98,7 @@ const mediaConfigured = Boolean(getPublicMediaBucket(Astro));
               <div class="mt-2 flex gap-2"><StatusBadge label={statusLabel(player.registration_status)} tone={player.registration_status === "registered" ? "green" : "amber"} /><StatusBadge label={player.photo_consent ? "Photo consent" : "No photo consent"} tone={player.photo_consent ? "green" : "amber"} /></div>
               <div class="mt-3">
                 <AdminDialog id={`player-photo-${player.id}`} title="Manage public photo" actionLabel="Manage public photo" size="md" tone="secondary">
-                  <form class="grid gap-4" method="post" action="/api/admin/player-public-photo/" enctype="multipart/form-data">
+                  <form class="grid gap-4" method="post" action="/api/admin/player-public-photo" enctype="multipart/form-data">
                     <input type="hidden" name="player_id" value={player.id} />
                     <input type="hidden" name="action" value="save" />
                     {!mediaConfigured && <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Public media storage is not connected. Consent can be reviewed, but uploads and removal require the PUBLIC_MEDIA_BUCKET R2 binding.</p>}

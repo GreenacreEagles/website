@@ -29,7 +29,7 @@ const requestKey = crypto.randomUUID();
       <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Review your order, then place it for collection and payment at the club.</p>
     </header>
 
-    <form id="checkout-form" class="grid gap-6 xl:grid-cols-[1fr_380px]" method="post" action="/api/portal/merchandise-checkout/">
+    <form id="checkout-form" class="grid gap-6 xl:grid-cols-[1fr_380px]" method="post" action="/api/portal/merchandise-checkout">
       <input type="hidden" name="request_key" value={requestKey} />
       <input type="hidden" name="payment_method" value="pay_at_club" />
 
