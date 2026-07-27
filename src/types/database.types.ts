@@ -1126,10 +1126,15 @@ export type Database = {
           created_at: string
           customer_id: string
           id: string
+          idempotency_key: string | null
           notes: string | null
           order_number: string
+          paid_at: string | null
+          payment_method: string
+          payment_status: string
           pickup_or_delivery: string
           status: string
+          stock_released_at: string | null
           total_cents: number
           updated_at: string
         }
@@ -1137,10 +1142,15 @@ export type Database = {
           created_at?: string
           customer_id: string
           id?: string
+          idempotency_key?: string | null
           notes?: string | null
           order_number: string
+          paid_at?: string | null
+          payment_method?: string
+          payment_status?: string
           pickup_or_delivery?: string
           status?: string
+          stock_released_at?: string | null
           total_cents?: number
           updated_at?: string
         }
@@ -1148,10 +1158,15 @@ export type Database = {
           created_at?: string
           customer_id?: string
           id?: string
+          idempotency_key?: string | null
           notes?: string | null
           order_number?: string
+          paid_at?: string | null
+          payment_method?: string
+          payment_status?: string
           pickup_or_delivery?: string
           status?: string
+          stock_released_at?: string | null
           total_cents?: number
           updated_at?: string
         }
@@ -1168,34 +1183,46 @@ export type Database = {
       merchandise_products: {
         Row: {
           category: string | null
+          available_from: string | null
+          available_until: string | null
           created_at: string
           description: string | null
           featured: boolean
           id: string
           image_url: string | null
+          image_object_key: string | null
           name: string
+          sort_order: number
           status: string
           updated_at: string
         }
         Insert: {
           category?: string | null
+          available_from?: string | null
+          available_until?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
           id?: string
           image_url?: string | null
+          image_object_key?: string | null
           name: string
+          sort_order?: number
           status?: string
           updated_at?: string
         }
         Update: {
           category?: string | null
+          available_from?: string | null
+          available_until?: string | null
           created_at?: string
           description?: string | null
           featured?: boolean
           id?: string
           image_url?: string | null
+          image_object_key?: string | null
           name?: string
+          sort_order?: number
           status?: string
           updated_at?: string
         }
@@ -2840,6 +2867,38 @@ export type Database = {
     }
     Functions: {
       admin_dashboard_summary: { Args: never; Returns: Json }
+      checkout_merchandise_cart: {
+        Args: { request_key: string; target_notes?: string }
+        Returns: {
+          order_id: string
+          order_number: string
+          order_status: string
+          payment_status: string
+          payment_method: string
+          total_cents: number
+        }[]
+      }
+      clear_merchandise_cart: { Args: never; Returns: number }
+      get_merchandise_cart: {
+        Args: never
+        Returns: {
+          cart_item_id: string
+          variant_id: string
+          product_id: string
+          product_name: string
+          product_description: string | null
+          category: string
+          image_url: string | null
+          image_object_key: string | null
+          variant_label: string | null
+          sku: string | null
+          unit_price_cents: number
+          quantity: number
+          stock_quantity: number
+          is_available: boolean
+          availability_message: string | null
+        }[]
+      }
       get_portal_context: { Args: never; Returns: Json }
       has_any_permission: {
         Args: {
@@ -2894,6 +2953,17 @@ export type Database = {
           target_team_id?: string
         }
         Returns: string
+      }
+      set_merchandise_cart_item: {
+        Args: {
+          target_variant_id: string
+          target_quantity: number
+          add_to_existing?: boolean
+        }
+        Returns: {
+          item_count: number
+          total_quantity: number
+        }[]
       }
       reverse_voucher_redemption: {
         Args: { reason: string; target_redemption_id: string }

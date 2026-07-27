@@ -18,7 +18,7 @@ const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const [{ data: products }, { data: orders }] = await Promise.all([
   session.supabase.from("merchandise_products").select("id,name,description,category,image_url,status,featured,merchandise_variants(id,sku,size,colour,price_cents,sale_price_cents,stock_quantity,low_stock_threshold,is_active)").order("updated_at", { ascending: false }).limit(100),
-  session.supabase.from("merchandise_orders" as any).select("id,order_number,status,total_cents,pickup_or_delivery,notes,created_at,profiles:customer_id(full_name,email),merchandise_order_items(product_name_snapshot,variant_label_snapshot,sku_snapshot,quantity,line_total_cents)").order("created_at", { ascending: false }).limit(80)
+  session.supabase.from("merchandise_orders" as any).select("id,order_number,status,total_cents,pickup_or_delivery,payment_method,payment_status,notes,created_at,profiles:customer_id(full_name,email),merchandise_order_items(product_name_snapshot,variant_label_snapshot,sku_snapshot,quantity,line_total_cents)").order("created_at", { ascending: false }).limit(80)
 ]);
 const productSummaries = (products ?? []).map((product: any) => ({
   ...product,
@@ -31,7 +31,7 @@ const productSummaries = (products ?? []).map((product: any) => ({
 const merchOrders = (orders ?? []) as any[];
 const orderActions: Record<string, { label: string; value: string; tone?: "green" | "red" | "ink" }[]> = {
   awaiting_payment: [
-    { label: "Mark paid", value: "paid", tone: "green" },
+    { label: "Mark payment received", value: "paid", tone: "green" },
     { label: "Cancel", value: "cancelled", tone: "red" }
   ],
   paid: [
@@ -142,6 +142,7 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
                 <div>
                   <p class="font-black">Order {order.order_number} - {formatMoney(order.total_cents)}</p>
                   <p class="text-sm text-eagles-ink/70">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} - {formatDateTime(order.created_at)} - {statusLabel(order.pickup_or_delivery)}</p>
+                  <p class="mt-1 text-sm font-bold text-eagles-ink/70">Payment: {order.payment_method === "pay_at_club" ? "Pay at club" : statusLabel(order.payment_method)} - {statusLabel(order.payment_status)}</p>
                 </div>
                 <StatusBadge label={statusLabel(order.status)} tone={["completed", "paid", "ready_for_pickup"].includes(order.status) ? "green" : order.status === "cancelled" ? "red" : "amber"} />
               </div>

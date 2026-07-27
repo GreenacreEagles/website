@@ -1,0 +1,104 @@
+---
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDate, statusLabel } from "@lib/format";
+
+export const prerender = false;
+
+const session = await requirePermission(Astro, ["coaching_resources.read", "teams.manage", "club_structure.manage"]);
+if (!session) return Astro.redirect(`/login/?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+
+const slug = Astro.params.slug ?? "";
+const safeSlug = /^[a-z0-9-]+$/.test(slug);
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(slug);
+
+if (!safeSlug) return Astro.redirect("/portal/coaching/");
+
+const columns = "id,slug,title,summary,body,resource_type,status,visibility,duration_minutes,age_group_tags,skill_level_tags,equipment_required,external_url,published_at,review_due_on,updated_at";
+let { data: resource } = await (session.supabase as any)
+  .from("coaching_resources")
+  .select(columns)
+  .eq("slug", slug)
+  .eq("status", "active")
+  .maybeSingle();
+
+if (!resource && isUuid) {
+  const result = await (session.supabase as any)
+    .from("coaching_resources")
+    .select(columns)
+    .eq("id", slug)
+    .eq("status", "active")
+    .maybeSingle();
+  resource = result.data;
+}
+
+if (!resource) return Astro.redirect("/portal/coaching/");
+
+const bodyText = typeof resource.body?.text === "string"
+  ? resource.body.text
+  : typeof resource.body === "string"
+    ? resource.body
+    : "";
+---
+
+<PortalLayout title={resource.title} section="Coaching Resources" session={session}>
+  <div class="grid gap-6">
+    <a class="inline-flex w-fit text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/coaching/">
+      <span aria-hidden="true">←</span>&nbsp; Back to coaching resources
+    </a>
+
+    <article class="surface p-6 md:p-8">
+      <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
+      <h1 class="mt-3 max-w-4xl font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">{resource.title}</h1>
+
+      <div class="mt-5 flex flex-wrap gap-2">
+        <StatusBadge label={statusLabel(resource.visibility)} tone="ink" />
+        {resource.duration_minutes !== null && <StatusBadge label={`${resource.duration_minutes} min`} tone="green" />}
+        <StatusBadge label={formatDate(resource.published_at ?? resource.updated_at)} tone="ink" />
+      </div>
+
+      {resource.summary && <p class="mt-7 max-w-4xl text-lg leading-8 text-eagles-ink/75">{resource.summary}</p>}
+
+      {bodyText && (
+        <section class="mt-8 border-t border-eagles-line pt-7">
+          <h2 class="font-display text-3xl font-black uppercase text-eagles-ink">Resource details</h2>
+          <p class="mt-4 max-w-4xl whitespace-pre-line text-base leading-8 text-eagles-ink/80">{bodyText}</p>
+        </section>
+      )}
+
+      <div class="mt-8 grid gap-5 border-t border-eagles-line pt-7 md:grid-cols-2">
+        <section>
+          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Suitable for</h2>
+          {(resource.age_group_tags?.length || resource.skill_level_tags?.length) ? (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {(resource.age_group_tags ?? []).map((tag: string) => <StatusBadge label={tag} tone="green" />)}
+              {(resource.skill_level_tags ?? []).map((tag: string) => <StatusBadge label={statusLabel(tag)} tone="ink" />)}
+            </div>
+          ) : <p class="mt-3 text-sm text-eagles-ink/65">No specific age group or skill level listed.</p>}
+        </section>
+
+        <section>
+          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Equipment</h2>
+          {resource.equipment_required?.length > 0
+            ? <ul class="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-eagles-ink/75">{resource.equipment_required.map((item: string) => <li>{item}</li>)}</ul>
+            : <p class="mt-3 text-sm text-eagles-ink/65">No equipment requirements listed.</p>}
+        </section>
+      </div>
+
+      {resource.review_due_on && <p class="mt-7 text-xs font-bold uppercase text-eagles-ink/55">Review due {formatDate(resource.review_due_on)}</p>}
+
+      {resource.external_url && (
+        <a
+          class="mt-8 inline-flex bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink"
+          style="border-radius:8px"
+          href={resource.external_url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open external resource
+        </a>
+      )}
+    </article>
+  </div>
+</PortalLayout>

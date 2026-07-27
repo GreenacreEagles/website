@@ -1,0 +1,106 @@
+---
+import PortalFeedback from "@components/PortalFeedback.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatMoney } from "@lib/format";
+import { loadMerchandiseCart, merchandiseCartTotals } from "@lib/merchandise-store";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect(`/login/?returnTo=${encodeURIComponent("/portal/shop/checkout/")}`);
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
+
+const cart = await loadMerchandiseCart(session.supabase);
+const totals = merchandiseCartTotals(cart.items);
+if (cart.items.length === 0) return Astro.redirect("/portal/shop/cart/");
+
+const error = Astro.url.searchParams.get("error");
+const requestKey = crypto.randomUUID();
+---
+
+<PortalLayout title="Checkout" section="Club Store" session={session}>
+  <div class="grid gap-6">
+    <PortalFeedback error={error ?? cart.error} />
+
+    <header class="surface p-6 md:p-8">
+      <p class="eyebrow">Final review</p>
+      <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">Checkout</h1>
+      <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Review your order, then place it for collection and payment at the club.</p>
+    </header>
+
+    <form id="checkout-form" class="grid gap-6 xl:grid-cols-[1fr_380px]" method="post" action="/api/portal/merchandise-checkout/">
+      <input type="hidden" name="request_key" value={requestKey} />
+      <input type="hidden" name="payment_method" value="pay_at_club" />
+
+      <div class="grid gap-6">
+        <section class="surface p-5 md:p-7" aria-labelledby="customer-heading">
+          <h2 id="customer-heading" class="font-display text-3xl font-black uppercase text-eagles-ink">Customer</h2>
+          <dl class="mt-4 grid gap-2 text-sm">
+            <div><dt class="font-black">Name</dt><dd>{session.profile.full_name}</dd></div>
+            <div><dt class="font-black">Email</dt><dd>{session.profile.email ?? session.user.email ?? "Not provided"}</dd></div>
+            {session.profile.mobile && <div><dt class="font-black">Mobile</dt><dd>{session.profile.mobile}</dd></div>}
+          </dl>
+        </section>
+
+        <section class="surface p-5 md:p-7" aria-labelledby="items-heading">
+          <h2 id="items-heading" class="font-display text-3xl font-black uppercase text-eagles-ink">Items</h2>
+          <div class="mt-5 grid gap-4">
+            {cart.items.map((item) => (
+              <article class="flex flex-col gap-2 border-t border-eagles-line pt-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 class="font-black">{item.quantity}× {item.product_name}</h3>
+                  <p class="text-sm text-eagles-ink/65">{item.variant_label ?? "Standard option"} · {formatMoney(item.unit_price_cents)} each</p>
+                  {!item.is_available && <p class="mt-2 text-sm font-bold text-red-700" role="alert">{item.availability_message}</p>}
+                </div>
+                <p class="font-black">{formatMoney(item.unit_price_cents * item.quantity)}</p>
+              </article>
+            ))}
+          </div>
+          <label class="mt-6 block">
+            <span class="label">Collection notes (optional)</span>
+            <textarea class="field min-h-24" name="notes" maxlength="500" placeholder="Anything the club should know about your collection"></textarea>
+          </label>
+        </section>
+
+        <section class="surface border-2 border-eagles-green p-5 md:p-7" aria-labelledby="payment-heading">
+          <h2 id="payment-heading" class="font-display text-3xl font-black uppercase text-eagles-ink">Payment method</h2>
+          <div class="mt-4 flex items-start gap-3">
+            <input id="pay-at-club" type="radio" checked disabled class="mt-1" />
+            <label for="pay-at-club">
+              <span class="font-black">Pay at the club</span>
+              <span class="mt-1 block text-sm leading-6 text-eagles-ink/70">Place your order now and pay when you collect it from the club. No card details are required.</span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <aside class="surface h-fit p-5 xl:sticky xl:top-24">
+        <h2 class="font-display text-3xl font-black uppercase text-eagles-ink">Confirmation</h2>
+        <dl class="mt-5 grid gap-3">
+          <div class="flex justify-between gap-4"><dt>Customer</dt><dd class="text-right font-bold">{session.profile.full_name}</dd></div>
+          <div class="flex justify-between gap-4"><dt>Items</dt><dd class="font-bold">{totals.quantity}</dd></div>
+          <div class="flex justify-between gap-4"><dt>Collection</dt><dd class="font-bold">From the club</dd></div>
+          <div class="flex justify-between gap-4"><dt>Payment</dt><dd class="font-bold">Pay at the club</dd></div>
+          <div class="flex justify-between gap-4 border-t border-eagles-line pt-3 text-lg"><dt class="font-black">Total</dt><dd class="font-black">{formatMoney(totals.totalCents)}</dd></div>
+        </dl>
+        <p class="mt-4 text-sm leading-6 text-eagles-ink/65">Stock, availability and prices will be checked securely when you place the order.</p>
+        <button id="place-order-button" class="mt-5 w-full min-h-12 bg-eagles-green px-5 py-3 font-black text-white enabled:hover:bg-eagles-ink disabled:cursor-wait disabled:bg-eagles-ink/50" style="border-radius:8px" type="submit" disabled={!totals.canCheckout}>
+          {totals.canCheckout ? "Place order" : "Cart needs attention"}
+        </button>
+        <a class="mt-3 flex min-h-11 items-center justify-center font-black text-eagles-green" href="/portal/shop/cart/">Back to cart</a>
+      </aside>
+    </form>
+  </div>
+
+  <script>
+    const form = document.querySelector<HTMLFormElement>("#checkout-form");
+    const button = document.querySelector<HTMLButtonElement>("#place-order-button");
+    form?.addEventListener("submit", () => {
+      if (!button) return;
+      button.disabled = true;
+      button.textContent = "Placing order…";
+      button.setAttribute("aria-busy", "true");
+    });
+  </script>
+</PortalLayout>

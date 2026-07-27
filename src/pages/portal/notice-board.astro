@@ -11,45 +11,26 @@ const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
-const [{ data: announcements }, { data: news }, { data: events }, { data: sponsors }] = await Promise.all([
-  session.supabase
-    .from("club_announcements")
-    .select("id,title,message,priority,starts_at,ends_at,status,updated_at")
-    .eq("status", "active")
-    .order("priority", { ascending: false })
-    .order("starts_at", { ascending: false, nullsFirst: false })
-    .limit(40),
-  session.supabase
-    .from("content_articles")
-    .select("id,title,summary,category,publish_at,updated_at")
-    .eq("workflow_status", "active")
-    .order("publish_at", { ascending: false, nullsFirst: false })
-    .limit(40),
-  session.supabase
-    .from("club_events")
-    .select("id,title,description,starts_at,status,venues(name)")
-    .eq("status", "active")
-    .order("starts_at", { ascending: true })
-    .limit(20),
-  session.supabase
-    .from("sponsors")
-    .select("id,name,tier,description,website_url,display_priority,status")
-    .eq("status", "active")
-    .order("display_priority", { ascending: true })
-    .limit(12)
-]);
+const { data: announcements } = await session.supabase
+  .from("club_announcements")
+  .select("id,title,message,priority,starts_at,ends_at,status,updated_at")
+  .eq("status", "active")
+  .order("priority", { ascending: false })
+  .order("starts_at", { ascending: false, nullsFirst: false })
+  .limit(40);
 
-const items = [
-  ...((announcements ?? []) as any[]).map((item) => ({ ...item, type: "Important notice", date: item.starts_at ?? item.updated_at, title: item.title, text: item.message, pinned: item.priority > 0 })),
-  ...((events ?? []) as any[]).map((item) => ({ ...item, type: "Event", date: item.starts_at, title: item.title, text: item.description ?? item.venues?.name ?? "Club event" })),
-  ...((news ?? []) as any[]).map((item) => ({ ...item, type: item.category ?? "News", date: item.publish_at ?? item.updated_at, title: item.title, text: item.summary ?? "Club news update" })),
-  ...((sponsors ?? []) as any[]).map((item) => ({ ...item, type: "Sponsor update", date: null, title: item.name, text: item.description ?? item.tier ?? "Club partner" }))
-].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime());
+const items = (announcements ?? []).map((item) => ({
+  ...item,
+  type: "Important notice",
+  date: item.starts_at ?? item.updated_at,
+  text: item.message,
+  pinned: item.priority > 0
+}));
 ---
 
 <PortalLayout title="Club Notice Board" section="Member portal" session={session}>
   <section class="grid gap-4">
-    {items.length === 0 && <EmptyState title="No active club notices" text="Announcements, events, news, highlights and sponsor updates will appear here when active." />}
+    {items.length === 0 && <EmptyState title="No active club notices" text="Active club announcements will appear here." />}
     {items.map((item) => (
       <article class="surface p-5 md:p-7">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

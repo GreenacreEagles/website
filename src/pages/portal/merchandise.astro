@@ -1,22 +1,114 @@
 ---
 import EmptyState from "@components/EmptyState.astro";
-import PortalLayout from "@layouts/PortalLayout.astro";
+import PortalFeedback from "@components/PortalFeedback.astro";
 import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
 import { requireUser } from "@lib/auth/guards";
-import { formatDateTime,formatMoney,statusLabel } from "@lib/format";
-import { getPublicMediaUrl } from "@lib/media";
-export const prerender=false;
-const session=await requireUser(Astro);if(!session)return Astro.redirect("/login/");if(session.isChildAccount)return Astro.redirect("/portal/teams/");
-const [{data:products},{data:orders}]=await Promise.all([
- (session.supabase as any).from("merchandise_products").select("id,name,description,category,status,featured,image_url,image_object_key,merchandise_variants(id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active)").eq("status","active").order("featured",{ascending:false}).order("sort_order").limit(80),
- (session.supabase as any).from("merchandise_orders").select("id,order_number,status,total_cents,pickup_or_delivery,created_at").eq("customer_id",session.user.id).order("created_at",{ascending:false}).limit(20)
-]);
+import { formatDateTime, formatMoney } from "@lib/format";
+import {
+  merchandiseOrderLabel,
+  merchandisePaymentLabel,
+  merchandisePaymentMethodLabel
+} from "@lib/merchandise-store";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect("/login/");
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
+
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const { data: orderData, error: orderError } = await (session.supabase as any)
+  .from("merchandise_orders")
+  .select("id,order_number,status,payment_method,payment_status,total_cents,pickup_or_delivery,created_at,merchandise_order_items(product_name_snapshot,variant_label_snapshot,quantity,line_total_cents)")
+  .eq("customer_id", session.user.id)
+  .order("created_at", { ascending: false })
+  .limit(50);
+
+const orders = (orderData ?? []) as any[];
+const pastStatuses = new Set(["completed", "cancelled", "refunded", "partially_refunded"]);
+const activeOrders = orders.filter((order) => !pastStatuses.has(order.status));
+const pastOrders = orders.filter((order) => pastStatuses.has(order.status));
+const orderTone = (status: string) => status === "cancelled" || status === "refunded"
+  ? "red"
+  : status === "completed" || status === "ready_for_pickup"
+    ? "green"
+    : "amber";
 ---
+
 <PortalLayout title="Merchandise" section="Club merchandise" session={session}>
- <div class="grid gap-6 xl:grid-cols-[1fr_360px]"><section class="grid gap-4 md:grid-cols-2">
-  {Astro.url.searchParams.get("success")&&<p class="border border-eagles-green bg-green-50 p-4 font-bold text-eagles-green md:col-span-2">{Astro.url.searchParams.get("success")}</p>}
-  {Astro.url.searchParams.get("error")&&<p class="border border-red-200 bg-red-50 p-4 font-bold text-red-700 md:col-span-2">{Astro.url.searchParams.get("error")}</p>}
-  {(products??[]).length===0&&<EmptyState title="Club merchandise coming soon" text="Kit, training gear and supporter items will appear here when available."/>}
-  {(products??[]).map((p:any)=>{const variants=(p.merchandise_variants??[]).filter((v:any)=>v.is_active&&v.stock_quantity>0);const image=getPublicMediaUrl(p.image_object_key,Astro)??p.image_url;return <article class="surface overflow-hidden">{image&&<img src={image} alt={`${p.name} product`} class="h-52 w-full object-cover" loading="lazy"/>}<div class="p-5"><p class="eyebrow">{p.category??"Club merchandise"}</p><h2 class="mt-2 font-display text-2xl font-black uppercase">{p.name}</h2><p class="mt-3 text-sm text-eagles-ink/70">{p.description}</p>{variants.length>0?<form class="mt-5 grid gap-3" method="post" action="/api/portal/merchandise-order/"><label><span class="label">Option</span><select class="field" name="variant_id" required>{variants.map((v:any)=><option value={v.id}>{[v.size,v.colour].filter(Boolean).join(" / ")||p.name} · {formatMoney(v.sale_price_cents??v.price_cents)} · {v.stock_quantity} left</option>)}</select></label><label><span class="label">Quantity</span><input class="field" name="quantity" type="number" min="1" max="10" value="1"/></label><label><span class="label">Collection</span><select class="field" name="pickup_or_delivery"><option value="pickup">Pickup</option><option value="delivery">Delivery</option></select></label><label><span class="label">Notes</span><input class="field" name="notes"/></label><button class="bg-eagles-green px-4 py-3 font-black text-white" type="submit">Place merchandise order</button></form>:<p class="mt-4 font-bold">Currently out of stock.</p>}</div></article>})}
- </section><aside class="surface p-5"><h2 class="font-display text-2xl font-black uppercase">My merchandise orders</h2><div class="mt-4 grid gap-3">{(orders??[]).length===0&&<p class="text-sm">Your merchandise orders will appear here.</p>}{(orders??[]).map((o:any)=><article class="border-t border-eagles-line pt-3"><p class="font-black">{o.order_number}</p><p class="text-sm">{formatMoney(o.total_cents)} · {formatDateTime(o.created_at)}</p><StatusBadge label={statusLabel(o.status)} tone={["completed","collected"].includes(o.status)?"green":"amber"}/></article>)}</div></aside></div>
+  <div class="grid gap-6">
+    <PortalFeedback success={success} error={error ?? orderError?.message} />
+
+    <header class="surface flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+      <div>
+        <p class="eyebrow">Member orders</p>
+        <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Merchandise</h1>
+        <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">View your club merchandise orders or visit the online store.</p>
+      </div>
+      <a class="inline-flex min-h-12 items-center justify-center bg-eagles-green px-6 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href="/portal/shop/">
+        Go to shop
+      </a>
+    </header>
+
+    {orders.length === 0 ? (
+      <EmptyState
+        title="You have not placed any merchandise orders yet"
+        text="Visit the club store to view available kit, training gear and supporter items."
+        href="/portal/shop/"
+        action="Go to shop"
+      />
+    ) : (
+      <>
+        <section class="surface p-5 md:p-7" aria-labelledby="active-orders-heading">
+          <h2 id="active-orders-heading" class="font-display text-3xl font-black uppercase leading-none text-eagles-ink">Active orders</h2>
+          <div class="mt-5 grid gap-4">
+            {activeOrders.length === 0 && <p class="text-sm leading-6 text-eagles-ink/65">You have no active merchandise orders.</p>}
+            {activeOrders.map((order) => (
+              <article class="border border-eagles-line bg-white p-4 md:p-5" style="border-radius:8px">
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-wide text-eagles-ink/55">Order {order.order_number}</p>
+                    <h3 class="mt-1 font-display text-2xl font-black uppercase text-eagles-ink">{formatMoney(order.total_cents)}</h3>
+                    <p class="mt-1 text-sm text-eagles-ink/65">Placed {formatDateTime(order.created_at)}</p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <StatusBadge label={merchandiseOrderLabel(order.status)} tone={orderTone(order.status)} />
+                    <StatusBadge label={merchandisePaymentLabel(order.payment_status ?? (order.status === "awaiting_payment" ? "awaiting_payment" : "paid"))} tone={order.payment_status === "paid" ? "green" : "amber"} />
+                  </div>
+                </div>
+                <div class="mt-4 grid gap-2 border-t border-eagles-line pt-4">
+                  {(order.merchandise_order_items ?? []).map((item: any) => (
+                    <p class="flex flex-wrap justify-between gap-3 text-sm">
+                      <span><strong>{item.quantity}×</strong> {item.product_name_snapshot}{item.variant_label_snapshot ? ` — ${item.variant_label_snapshot}` : ""}</span>
+                      <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
+                    </p>
+                  ))}
+                </div>
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <p class="text-sm font-bold text-eagles-ink/65">{merchandisePaymentMethodLabel(order.payment_method ?? "pay_at_club")} · Collection from the club</p>
+                  <a class="font-black text-eagles-green hover:text-eagles-ink" href={`/portal/merchandise/orders/${order.id}/`}>View order</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {pastOrders.length > 0 && (
+          <section class="surface p-5 md:p-7" aria-labelledby="past-orders-heading">
+            <h2 id="past-orders-heading" class="font-display text-3xl font-black uppercase leading-none text-eagles-ink">Past orders</h2>
+            <div class="mt-5 grid gap-3">
+              {pastOrders.map((order) => (
+                <a class="flex flex-col gap-2 border border-eagles-line bg-white p-4 hover:border-eagles-green md:flex-row md:items-center md:justify-between" style="border-radius:8px" href={`/portal/merchandise/orders/${order.id}/`}>
+                  <span><strong>{order.order_number}</strong><br /><span class="text-sm text-eagles-ink/65">{formatDateTime(order.created_at)} · {formatMoney(order.total_cents)}</span></span>
+                  <StatusBadge label={merchandiseOrderLabel(order.status)} tone={orderTone(order.status)} />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+      </>
+    )}
+  </div>
 </PortalLayout>

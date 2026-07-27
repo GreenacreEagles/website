@@ -1,4 +1,160 @@
 ---
-export const prerender=false;
-return Astro.redirect("/portal/canteen/",301);
+import EmptyState from "@components/EmptyState.astro";
+import PortalFeedback from "@components/PortalFeedback.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatMoney } from "@lib/format";
+import { getPublicMediaUrl } from "@lib/media";
+import { loadMerchandiseCart, merchandiseCartTotals } from "@lib/merchandise-store";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect(`/login/?returnTo=${encodeURIComponent("/portal/shop/")}`);
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
+
+const query = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+const categoryFilter = Astro.url.searchParams.get("category") ?? "";
+const stockFilter = Astro.url.searchParams.get("stock") ?? "all";
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const now = Date.now();
+
+const [{ data: productData, error: productError }, cart] = await Promise.all([
+  (session.supabase as any)
+    .from("merchandise_products")
+    .select("id,name,description,category,status,featured,image_url,image_object_key,available_from,available_until,sort_order,merchandise_variants(id,size,colour,price_cents,sale_price_cents,stock_quantity,is_active)")
+    .eq("status", "active")
+    .order("featured", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .limit(120),
+  loadMerchandiseCart(session.supabase)
+]);
+
+const products = ((productData ?? []) as any[])
+  .filter((product) => (!product.available_from || new Date(product.available_from).getTime() <= now)
+    && (!product.available_until || new Date(product.available_until).getTime() > now))
+  .map((product) => ({
+    ...product,
+    variants: (product.merchandise_variants ?? []).filter((variant: any) => variant.is_active)
+  }));
+
+const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[])).sort();
+const filteredProducts = products.filter((product) => {
+  const searchText = [product.name, product.description, product.category].filter(Boolean).join(" ").toLowerCase();
+  const inStock = product.variants.some((variant: any) => variant.stock_quantity > 0);
+  return (!query || searchText.includes(query))
+    && (!categoryFilter || product.category === categoryFilter)
+    && (stockFilter === "all" || (stockFilter === "in_stock" ? inStock : !inStock));
+});
+
+const cartTotals = merchandiseCartTotals(cart.items);
+const variantPrice = (variant: any) => variant.sale_price_cents ?? variant.price_cents;
+const productPrice = (product: any) => {
+  const prices = product.variants.map(variantPrice);
+  if (prices.length === 0) return null;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return min === max ? formatMoney(min) : `${formatMoney(min)}–${formatMoney(max)}`;
+};
 ---
+
+<PortalLayout title="Club Store" section="Club merchandise" session={session}>
+  <div class="grid gap-6 pb-20 md:pb-0">
+    <PortalFeedback success={success} error={error ?? productError?.message ?? cart.error} />
+
+    <header class="surface flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+      <div>
+        <p class="eyebrow">Greenacre Eagles</p>
+        <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">Club Store</h1>
+        <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Shop Greenacre Eagles merchandise and collect your order from the club.</p>
+      </div>
+      <a class="inline-flex min-h-12 items-center justify-center gap-3 bg-eagles-ink px-5 py-3 font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
+        View cart <span class="inline-flex min-w-7 justify-center bg-white px-2 py-1 text-xs text-eagles-ink" style="border-radius:999px">{cartTotals.quantity}</span>
+      </a>
+    </header>
+
+    <form class="surface grid gap-4 p-4 lg:grid-cols-[1fr_240px_190px_auto]" method="get" role="search">
+      <label>
+        <span class="label">Search products</span>
+        <input class="field" type="search" name="q" value={Astro.url.searchParams.get("q") ?? ""} placeholder="Shirts, hoodies, training gear" />
+      </label>
+      <label>
+        <span class="label">Category</span>
+        <select class="field" name="category">
+          <option value="">All products</option>
+          {categories.map((category) => <option value={category} selected={categoryFilter === category}>{category}</option>)}
+        </select>
+      </label>
+      <label>
+        <span class="label">Availability</span>
+        <select class="field" name="stock">
+          <option value="all" selected={stockFilter === "all"}>All availability</option>
+          <option value="in_stock" selected={stockFilter === "in_stock"}>In stock</option>
+          <option value="sold_out" selected={stockFilter === "sold_out"}>Sold out</option>
+        </select>
+      </label>
+      <div class="flex items-end gap-2">
+        <button class="min-h-12 flex-1 bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">Apply</button>
+        {(query || categoryFilter || stockFilter !== "all") && <a class="inline-flex min-h-12 items-center px-3 font-black text-eagles-green" href="/portal/shop/">Reset</a>}
+      </div>
+    </form>
+
+    <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Merchandise products">
+      {filteredProducts.length === 0 && (
+        <div class="sm:col-span-2 xl:col-span-3">
+          <EmptyState title="No products match your search" text="Try another search, category or availability filter." href="/portal/shop/" action="View all products" />
+        </div>
+      )}
+      {filteredProducts.map((product) => {
+        const soldOut = !product.variants.some((variant: any) => variant.stock_quantity > 0);
+        const image = getPublicMediaUrl(product.image_object_key, Astro) ?? product.image_url;
+        return (
+          <article class="surface flex h-full flex-col overflow-hidden">
+            {image
+              ? <img src={image} alt={product.name} class="aspect-[4/3] w-full object-cover" width="800" height="600" loading="lazy" />
+              : <div class="flex aspect-[4/3] items-center justify-center bg-eagles-mist p-6 text-center font-display text-3xl font-black uppercase text-eagles-ink/35" role="img" aria-label={`${product.name} image unavailable`}>Greenacre Eagles</div>}
+            <div class="flex flex-1 flex-col p-5">
+              <div class="flex items-start justify-between gap-3">
+                <p class="eyebrow">{product.category ?? "Club merchandise"}</p>
+                {soldOut && <StatusBadge label="Sold out" tone="red" />}
+              </div>
+              <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{product.name}</h2>
+              <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{product.description ?? "Greenacre Eagles club merchandise."}</p>
+              <p class="mt-4 text-xl font-black text-eagles-green">{productPrice(product) ?? "Unavailable"}</p>
+
+              <form class="mt-auto grid gap-3 pt-5" method="post" action="/api/portal/merchandise-cart/">
+                <input type="hidden" name="action" value="add" />
+                <input type="hidden" name="return_to" value="/portal/shop/" />
+                <label>
+                  <span class="label">Choose option</span>
+                  <select class="field" name="variant_id" required disabled={soldOut}>
+                    <option value="">Select size or colour</option>
+                    {product.variants.map((variant: any) => (
+                      <option value={variant.id} disabled={variant.stock_quantity < 1}>
+                        {[variant.size, variant.colour].filter(Boolean).join(" / ") || "Standard"} · {formatMoney(variantPrice(variant))} · {variant.stock_quantity > 0 ? `${variant.stock_quantity} available` : "Sold out"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span class="label">Quantity</span>
+                  <input class="field" name="quantity" type="number" inputmode="numeric" min="1" max="50" value="1" required disabled={soldOut} />
+                </label>
+                <button class="min-h-12 bg-eagles-green px-5 py-3 font-black text-white enabled:hover:bg-eagles-ink disabled:cursor-not-allowed disabled:bg-eagles-ink/35" style="border-radius:8px" type="submit" disabled={soldOut}>
+                  {soldOut ? "Currently sold out" : "Add to cart"}
+                </button>
+                {soldOut && <p class="text-sm text-eagles-ink/65">This product remains visible but cannot be ordered until stock is available.</p>}
+              </form>
+            </div>
+          </article>
+        );
+      })}
+    </section>
+  </div>
+
+  <a class="fixed bottom-4 left-4 right-4 z-40 flex min-h-12 items-center justify-center gap-3 bg-eagles-ink px-5 py-3 font-black text-white shadow-xl md:hidden" style="border-radius:8px" href="/portal/shop/cart/">
+    View cart <span class="bg-white px-2 py-1 text-xs text-eagles-ink" style="border-radius:999px">{cartTotals.quantity}</span>
+  </a>
+</PortalLayout>

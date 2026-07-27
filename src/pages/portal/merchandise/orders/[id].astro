@@ -1,0 +1,120 @@
+---
+import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import { requireUser } from "@lib/auth/guards";
+import { formatDateTime, formatMoney } from "@lib/format";
+import {
+  merchandiseOrderLabel,
+  merchandisePaymentLabel,
+  merchandisePaymentMethodLabel
+} from "@lib/merchandise-store";
+
+export const prerender = false;
+
+const session = await requireUser(Astro);
+if (!session) return Astro.redirect(`/login/?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
+if (session.isChildAccount) return Astro.redirect("/portal/teams/");
+
+const orderId = Astro.params.id ?? "";
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(orderId)) {
+  return Astro.redirect("/portal/merchandise/");
+}
+
+const { data: order } = await (session.supabase as any)
+  .from("merchandise_orders")
+  .select("id,order_number,customer_id,total_cents,status,pickup_or_delivery,notes,payment_method,payment_status,created_at,updated_at")
+  .eq("id", orderId)
+  .eq("customer_id", session.user.id)
+  .maybeSingle();
+
+if (!order) return Astro.redirect("/portal/merchandise/");
+
+const [{ data: itemData }, { data: historyData }] = await Promise.all([
+  (session.supabase as any)
+    .from("merchandise_order_items")
+    .select("id,product_name_snapshot,variant_label_snapshot,sku_snapshot,unit_price_cents_snapshot,quantity,line_total_cents")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: true }),
+  (session.supabase as any)
+    .from("merchandise_order_status_history")
+    .select("id,old_status,new_status,created_at")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: true })
+]);
+
+const items = (itemData ?? []) as any[];
+const history = (historyData ?? []) as any[];
+const paymentStatus = order.payment_status ?? (order.status === "awaiting_payment" ? "awaiting_payment" : "paid");
+---
+
+<PortalLayout title={`Order ${order.order_number}`} section="Merchandise" session={session}>
+  <div class="grid gap-6">
+    <a class="inline-flex w-fit font-black text-eagles-green hover:text-eagles-ink" href="/portal/merchandise/">← Back to merchandise orders</a>
+
+    <header class="surface p-6 md:p-8">
+      <p class="eyebrow">Merchandise order</p>
+      <div class="mt-2 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 class="font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">{order.order_number}</h1>
+          <p class="mt-3 text-eagles-ink/65">Placed {formatDateTime(order.created_at)}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <StatusBadge label={merchandiseOrderLabel(order.status)} tone={["completed", "ready_for_pickup"].includes(order.status) ? "green" : order.status === "cancelled" ? "red" : "amber"} />
+          <StatusBadge label={merchandisePaymentLabel(paymentStatus)} tone={paymentStatus === "paid" ? "green" : "amber"} />
+        </div>
+      </div>
+      {order.payment_method === "pay_at_club" && paymentStatus === "awaiting_payment" && (
+        <p class="mt-6 border border-eagles-green bg-green-50 p-4 font-bold text-eagles-green" style="border-radius:8px">
+          Payment is due when you collect your order from the club.
+        </p>
+      )}
+    </header>
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_340px]">
+      <section class="surface p-5 md:p-7" aria-labelledby="order-items-heading">
+        <h2 id="order-items-heading" class="font-display text-3xl font-black uppercase text-eagles-ink">Order items</h2>
+        <div class="mt-5 grid gap-4">
+          {items.map((item) => (
+            <article class="flex flex-col gap-2 border-t border-eagles-line pt-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 class="font-black">{item.quantity}× {item.product_name_snapshot}</h3>
+                <p class="text-sm text-eagles-ink/65">{item.variant_label_snapshot ?? "Standard option"} · {formatMoney(item.unit_price_cents_snapshot)} each</p>
+              </div>
+              <p class="font-black">{formatMoney(item.line_total_cents)}</p>
+            </article>
+          ))}
+          <div class="flex justify-between gap-4 border-t-2 border-eagles-ink pt-4 text-xl">
+            <strong>Total</strong><strong>{formatMoney(order.total_cents)}</strong>
+          </div>
+        </div>
+        {order.notes && <div class="mt-6 bg-eagles-mist p-4" style="border-radius:8px"><h3 class="font-black">Collection notes</h3><p class="mt-2 whitespace-pre-line text-sm leading-6">{order.notes}</p></div>}
+      </section>
+
+      <aside class="grid content-start gap-6">
+        <section class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Order details</h2>
+          <dl class="mt-4 grid gap-3 text-sm">
+            <div><dt class="font-black">Payment method</dt><dd>{merchandisePaymentMethodLabel(order.payment_method ?? "pay_at_club")}</dd></div>
+            <div><dt class="font-black">Payment status</dt><dd>{merchandisePaymentLabel(paymentStatus)}</dd></div>
+            <div><dt class="font-black">Order status</dt><dd>{merchandiseOrderLabel(order.status)}</dd></div>
+            <div><dt class="font-black">Collection</dt><dd>{order.pickup_or_delivery === "pickup" ? "Collect from the club" : "Delivery"}</dd></div>
+          </dl>
+        </section>
+
+        <section class="surface p-5">
+          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Order timeline</h2>
+          <ol class="mt-4 grid gap-4">
+            {history.length === 0
+              ? <li class="text-sm text-eagles-ink/65">Order placed {formatDateTime(order.created_at)}</li>
+              : history.map((entry) => (
+                <li class="border-l-4 border-eagles-green pl-3">
+                  <p class="font-black">{merchandiseOrderLabel(entry.new_status)}</p>
+                  <p class="text-xs text-eagles-ink/55">{formatDateTime(entry.created_at)}</p>
+                </li>
+              ))}
+          </ol>
+        </section>
+      </aside>
+    </div>
+  </div>
+</PortalLayout>

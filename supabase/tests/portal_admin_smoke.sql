@@ -13,7 +13,16 @@ values ('00000000-0000-4000-8000-000000000213', 'Smoke Test Season', 2027, '2027
 insert into public.teams (id, season_id, name, slug, division, status)
 values ('00000000-0000-4000-8000-000000000214', '00000000-0000-4000-8000-000000000213', 'Smoke Test Team', 'smoke-test-team', 'Blue', 'active');
 
-select app_private.bootstrap_super_admin('00000000-0000-4000-8000-000000000211', 'Rollback smoke test bootstrap for portal admin RPCs');
+-- Seed the rollback-only admin directly so this suite remains repeatable
+-- against databases that already have their one bootstrapped super admin.
+insert into public.user_role_assignments (user_id, role_id, status, reason)
+select
+  '00000000-0000-4000-8000-000000000211',
+  r.id,
+  'active',
+  'Rollback smoke test super administrator'
+from public.roles r
+where r.key = 'super_administrator';
 
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212', true);
 
@@ -708,10 +717,23 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000212
 do $$
 begin
   perform *
-  from public.create_merchandise_order(
+  from public.set_merchandise_cart_item(
     '00000000-0000-4000-8000-000000000218',
     2,
-    'pickup',
+    false
+  );
+
+  perform *
+  from public.checkout_merchandise_cart(
+    'smoke-merch-store-00000001',
+    'Smoke merchandise order'
+  );
+
+  -- A repeated browser submission must return the original order without
+  -- reserving stock or inserting a second order.
+  perform *
+  from public.checkout_merchandise_cart(
+    'smoke-merch-store-00000001',
     'Smoke merchandise order'
   );
 end $$;
@@ -724,12 +746,31 @@ select 'member can create stock-backed merchandise order',
     join public.merchandise_order_items moi on moi.order_id = mo.id
     where mo.customer_id = '00000000-0000-4000-8000-000000000212'
       and mo.status = 'awaiting_payment'
+      and mo.payment_method = 'pay_at_club'
+      and mo.payment_status = 'awaiting_payment'
+      and mo.idempotency_key = 'smoke-merch-store-00000001'
       and mo.total_cents = 9000
       and moi.variant_id = '00000000-0000-4000-8000-000000000218'
       and moi.quantity = 2
       and moi.line_total_cents = 9000
   ),
-  'member order inserted with line item snapshot';
+  'member cart checked out with pay-at-club state and line item snapshot';
+
+insert into smoke_results
+select 'merchandise checkout is idempotent and clears cart',
+  (
+    select count(*) = 1
+    from public.merchandise_orders
+    where customer_id = '00000000-0000-4000-8000-000000000212'
+      and idempotency_key = 'smoke-merch-store-00000001'
+  )
+  and not exists (
+    select 1
+    from public.shop_cart_items
+    where user_id = '00000000-0000-4000-8000-000000000212'
+      and product_type = 'merchandise'
+  ),
+  'replayed request returns one order and successful checkout removes merchandise cart rows';
 
 insert into smoke_results
 select 'merchandise order reserves stock',
@@ -764,8 +805,13 @@ select 'merchandise manager can mark order paid',
     where order_id = moved.order_id
       and old_status = 'awaiting_payment'
       and new_status = 'paid'
+  )
+  and (
+    select mo.payment_status = 'paid' and mo.paid_at is not null
+    from public.merchandise_orders mo
+    where mo.id = moved.order_id
   ),
-  'status RPC records merchandise history'
+  'status RPC records history and synchronises the payment state'
 from moved;
 
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000211', true);
