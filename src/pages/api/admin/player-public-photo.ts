@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage, uuidSchema } from "@lib/forms";
-import { getPublicMediaBucket, playerPhotoObjectKey, validatePublicImage } from "@lib/media";
+import { getPublicMediaBucket, getUploadedFile, playerPhotoObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender = false;
 const schema = z.object({
@@ -26,19 +26,19 @@ export const POST: APIRoute = async (context) => {
     .select("id,photo_object_key,photo_consent,photo_updated_at").eq("id", parsed.data.player_id).maybeSingle();
   if (readError || !current) return redirect(context, "error", "Player record not found.");
 
-  const file = formData.get("photo");
-  const hasUpload = file instanceof File && file.size > 0;
+  const file = getUploadedFile(formData.get("photo"));
+  const hasUpload = Boolean(file);
   const bucket = getPublicMediaBucket(context);
   let nextKey: string | null = current.photo_object_key;
   let uploadedKey: string | null = null;
 
   if (hasUpload) {
     if (!bucket) return redirect(context, "error", "Public media storage is not configured. Connect the PUBLIC_MEDIA_BUCKET R2 binding before uploading.");
-    const validation = await validatePublicImage(file, context);
+    const validation = await validatePublicImage(file!, context);
     if (!validation.ok) return redirect(context, "error", validation.error);
-    uploadedKey = playerPhotoObjectKey(current.id, file.type);
+    uploadedKey = playerPhotoObjectKey(current.id, file!.type);
     try {
-      await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=31536000, immutable" } });
+      await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file!.type, cacheControl: "public, max-age=31536000, immutable" } });
       nextKey = uploadedKey;
     } catch {
       return redirect(context, "error", "The photo could not be uploaded to public media storage.");

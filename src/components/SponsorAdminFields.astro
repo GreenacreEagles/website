@@ -1,8 +1,8 @@
 ---
 import FormActions from "@components/FormActions.astro";
 import { statusLabel } from "@lib/format";
-interface Props { sponsor?: any; }
-const { sponsor } = Astro.props;
+interface Props { sponsor?: any; mediaConfigured?: boolean; }
+const { sponsor, mediaConfigured = false } = Astro.props;
 ---
 <div class="grid gap-4">
   {sponsor && <input type="hidden" name="id" value={sponsor.id} />}
@@ -15,7 +15,9 @@ const { sponsor } = Astro.props;
     <label><span class="label">Sort order</span><input class="field" name="display_priority" type="number" min="0" value={sponsor?.display_priority ?? 0} required /></label>
     <label><span class="label">Public status</span><select class="field" name="status">{["active","inactive"].map(value => <option value={value} selected={sponsor?.status === value}>{statusLabel(value)}</option>)}</select></label>
   </div>
-  <label><span class="label">Sponsor logo</span><input class="field" name="logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></label>
-  {sponsor?.logo_object_key && <label class="flex items-center gap-2"><input type="checkbox" name="remove_logo" /><span class="font-bold">Remove current logo</span></label>}
+  {mediaConfigured
+    ? <label><span class="label">Sponsor logo</span><input class="field" name="logo" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /></label>
+    : <p class="border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" style="border-radius:8px">Logo uploads are unavailable until public media storage is connected. You can save the sponsor without a logo.</p>}
+  {mediaConfigured && sponsor?.logo_object_key && <label class="flex items-center gap-2"><input type="checkbox" name="remove_logo" /><span class="font-bold">Remove current logo</span></label>}
   <FormActions submitLabel={sponsor ? "Save changes" : "Create sponsor"} />
 </div>

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { getPublicMediaBucket, socialPostImageObjectKey, validatePublicImage } from "@lib/media";
+import { getPublicMediaBucket, getUploadedFile, socialPostImageObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender = false;
 const platform = z.enum(["instagram", "facebook", "tiktok"]);
@@ -18,9 +18,6 @@ const profileSchema = z.object({ platform, display_name:z.string().trim().min(2)
   .refine((v) => httpsUrl(v.profile_url), { message:"Profile URL must be a valid HTTPS URL." });
 const postSchema = z.object({ platform, post_url:z.string().url().max(800), title:nullable(180), caption:nullable(2000), image_alt_text:nullable(240), published_at:z.preprocess(v=>v===""?null:v,z.string().datetime({ local:true }).nullable()), active:bool, featured:bool, sort_order:z.coerce.number().int().min(0).max(10000) })
   .refine((v) => httpsUrl(v.post_url), { message:"Post URL must be a valid HTTPS URL." });
-
-const isUploadedFile = (value: FormDataEntryValue | null): value is File =>
-  Boolean(value && typeof value === "object" && "size" in value && "type" in value && "arrayBuffer" in value);
 
 export const POST: APIRoute = async (context) => {
   const redirect = (type: "success" | "error", message: string) =>
@@ -65,7 +62,7 @@ export const POST: APIRoute = async (context) => {
     const values: any = { ...parsed.data, updated_by:session.user.id };
     let oldKey: string | null = null;
     let uploadedKey: string | null = null;
-    const file = formData.get("image");
+    const file = getUploadedFile(formData.get("image"));
     const removeImage = raw.remove_image === "on";
     const bucket = getPublicMediaBucket(context);
     if (entity === "post") {
@@ -74,7 +71,7 @@ export const POST: APIRoute = async (context) => {
         oldKey = current?.image_object_key ?? null;
       }
       values.image_object_key = oldKey;
-      if (isUploadedFile(file) && file.size > 0) {
+      if (file) {
         if (!bucket) {
           console.error("social-hub media upload unavailable", { entity, operation: "r2.put", binding: "PUBLIC_MEDIA_BUCKET" });
           return redirect("error", "Image uploads are not configured. Save the post without an image.");

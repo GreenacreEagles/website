@@ -3,6 +3,20 @@ export type R2Bucket = {
   delete(key: string | string[]): Promise<void>;
 };
 
+export type UploadedFile = {
+  size: number;
+  type: string;
+  arrayBuffer(): Promise<ArrayBuffer>;
+};
+
+export const getUploadedFile = (value: FormDataEntryValue | null): UploadedFile | null => {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<UploadedFile>;
+  if (typeof candidate.size !== "number" || candidate.size <= 0) return null;
+  if (typeof candidate.type !== "string" || typeof candidate.arrayBuffer !== "function") return null;
+  return candidate as UploadedFile;
+};
+
 type RuntimeContext = { locals?: any };
 
 export const getRuntimeEnv = (context: RuntimeContext, key: string) =>
@@ -84,7 +98,7 @@ const matchesMagicBytes = (bytes: Uint8Array, mimeType: string) => {
   return false;
 };
 
-export const validatePublicImage = async (file: File, context: RuntimeContext) => {
+export const validatePublicImage = async (file: UploadedFile, context: RuntimeContext) => {
   if (!PLAYER_PHOTO_TYPES.has(file.type)) return { ok: false as const, error: "Choose a JPEG, PNG, WebP or AVIF image." };
   if (file.size <= 0 || file.size > playerPhotoMaxBytes(context)) {
     return { ok: false as const, error: "Choose an image within the configured upload limit." };
