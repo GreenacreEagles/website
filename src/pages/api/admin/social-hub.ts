@@ -8,19 +8,23 @@ export const prerender = false;
 const platform = z.enum(["instagram", "facebook", "tiktok"]);
 const bool = z.preprocess((v) => v === "on" || v === "true", z.boolean());
 const nullable = (max: number) => z.preprocess((v) => v === "" ? null : v, z.string().trim().max(max).nullable());
-const httpsFor = (selected: string, value: string) => {
+const httpsUrl = (value: string) => {
   try {
     const url = new URL(value);
-    const domains: Record<string,string> = { instagram:"instagram.com", facebook:"facebook.com", tiktok:"tiktok.com" };
-    return url.protocol === "https:" && (url.hostname === domains[selected] || url.hostname.endsWith(`.${domains[selected]}`));
+    return url.protocol === "https:" && Boolean(url.hostname);
   } catch { return false; }
 };
 const profileSchema = z.object({ platform, display_name:z.string().trim().min(2).max(120), username:nullable(120), profile_url:z.string().url().max(500), active:bool, sort_order:z.coerce.number().int().min(0).max(10000) })
-  .refine((v) => httpsFor(v.platform, v.profile_url), { message:"Profile URL must be an HTTPS URL for the selected platform." });
-const postSchema = z.object({ platform, post_url:z.string().url().max(800), title:nullable(180), caption:nullable(2000), image_alt_text:nullable(240), published_at:z.preprocess(v=>v===""?null:v,z.string().nullable()), active:bool, featured:bool, sort_order:z.coerce.number().int().min(0).max(10000) })
-  .refine((v) => httpsFor(v.platform, v.post_url), { message:"Post URL must be an HTTPS URL for the selected platform." });
+  .refine((v) => httpsUrl(v.profile_url), { message:"Profile URL must be a valid HTTPS URL." });
+const postSchema = z.object({ platform, post_url:z.string().url().max(800), title:nullable(180), caption:nullable(2000), image_alt_text:nullable(240), published_at:z.preprocess(v=>v===""?null:v,z.string().datetime({ local:true }).nullable()), active:bool, featured:bool, sort_order:z.coerce.number().int().min(0).max(10000) })
+  .refine((v) => httpsUrl(v.post_url), { message:"Post URL must be a valid HTTPS URL." });
+
+const isUploadedFile = (value: FormDataEntryValue | null): value is File =>
+  Boolean(value && typeof value === "object" && "size" in value && "type" in value && "arrayBuffer" in value);
 
 export const POST: APIRoute = async (context) => {
+  const redirect = (type: "success" | "error", message: string) =>
+    context.redirect(redirectWithMessage("/admin/highlights/", type, message), 303);
   const contentType = context.request.headers.get("content-type")?.toLowerCase() ?? "";
   if (!contentType.startsWith("multipart/form-data") && !contentType.startsWith("application/x-www-form-urlencoded")) {
     return new Response(JSON.stringify({ error: "Expected form data." }), {
@@ -28,21 +32,35 @@ export const POST: APIRoute = async (context) => {
       headers: { "content-type": "application/json", "cache-control": "no-store" },
     });
   }
-  const formData = await context.request.formData();
+  let formData: FormData;
+  try {
+    formData = await context.request.formData();
+  } catch (cause) {
+    console.error("social-hub form parsing failed", { cause, contentType });
+    return redirect("error", "The submitted form could not be read. Please try again.");
+  }
   const raw = Object.fromEntries(formData);
-  const entity = raw.entity === "profile" ? "profile" : "post";
+  if (raw.entity !== "profile" && raw.entity !== "post") return redirect("error", "Choose a valid Social Hub record type.");
+  const entity = raw.entity;
   const permission = entity === "profile" ? "social_profiles.manage" : "social_posts.manage";
   const session = await requirePermission(context, [permission]);
-  if (!session) return context.redirect("/admin/");
+  if (!session) return context.redirect("/admin/", 303);
   const table = entity === "profile" ? "social_profiles" : "social_posts";
   const intent = raw.intent === "delete" ? "delete" : "save";
   let error: any = null;
   if (intent === "delete") {
-    if (!z.string().uuid().safeParse(raw.id).success) return context.redirect(redirectWithMessage("/admin/highlights/","error","Invalid record."));
+    if (!z.string().uuid().safeParse(raw.id).success) return redirect("error", "Invalid record.");
     ({ error } = await (session.supabase as any).from(table).delete().eq("id",raw.id));
   } else {
     const parsed = (entity === "profile" ? profileSchema : postSchema).safeParse(raw);
-    if (!parsed.success) return context.redirect(redirectWithMessage("/admin/highlights/","error",parsed.error.issues[0]?.message ?? "Check the form."));
+    if (!parsed.success) {
+      console.warn("social-hub validation rejected submission", {
+        entity,
+        fields: [...formData.keys()],
+        issue: parsed.error.issues[0],
+      });
+      return redirect("error", parsed.error.issues[0]?.message ?? "Check the form.");
+    }
     const id = typeof raw.id === "string" && z.string().uuid().safeParse(raw.id).success ? raw.id : crypto.randomUUID();
     const values: any = { ...parsed.data, updated_by:session.user.id };
     let oldKey: string | null = null;
@@ -56,20 +74,43 @@ export const POST: APIRoute = async (context) => {
         oldKey = current?.image_object_key ?? null;
       }
       values.image_object_key = oldKey;
-      if (file instanceof File && file.size > 0) {
-        if (!bucket) return context.redirect(redirectWithMessage("/admin/highlights/","error","Public media storage is not configured; save without an image or connect the R2 binding."));
+      if (isUploadedFile(file) && file.size > 0) {
+        if (!bucket) {
+          console.error("social-hub media upload unavailable", { entity, operation: "r2.put", binding: "PUBLIC_MEDIA_BUCKET" });
+          return redirect("error", "Image uploads are not configured. Save the post without an image.");
+        }
         const validation = await validatePublicImage(file, context);
-        if (!validation.ok) return context.redirect(redirectWithMessage("/admin/highlights/","error",validation.error));
+        if (!validation.ok) return redirect("error", validation.error);
         uploadedKey = socialPostImageObjectKey(id,file.type);
-        await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=31536000, immutable"}});
+        try {
+          await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=31536000, immutable"}});
+        } catch (cause) {
+          console.error("social-hub media upload failed", { cause, entity, operation: "r2.put", binding: "PUBLIC_MEDIA_BUCKET" });
+          return redirect("error", "The image could not be uploaded. No Social Hub record was created.");
+        }
         values.image_object_key = uploadedKey;
       } else if (removeImage) values.image_object_key = null;
     }
     if (typeof raw.id === "string" && z.string().uuid().safeParse(raw.id).success) ({ error } = await (session.supabase as any).from(table).update(values).eq("id",id));
     else ({ error } = await (session.supabase as any).from(table).insert({ ...values, id, created_by:session.user.id }));
     if (error && uploadedKey && bucket) await bucket.delete(uploadedKey).catch(()=>undefined);
-    if (!error && bucket && oldKey && oldKey !== values.image_object_key) await bucket.delete(oldKey).catch(()=>undefined);
+    if (!error && bucket && oldKey && oldKey !== values.image_object_key) {
+      await bucket.delete(oldKey).catch((cause) => {
+        console.error("social-hub old media cleanup failed", { cause, entity, operation: "r2.delete", objectKey: oldKey });
+      });
+    }
+  }
+  if (error) {
+    console.error("social-hub database operation failed", {
+      entity,
+      table,
+      intent,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
   }
   const message = error?.code === "23505" ? "That social profile or post URL already exists." : error?.message;
-  return context.redirect(redirectWithMessage("/admin/highlights/", error ? "error" : "success", message ?? `${entity === "profile" ? "Social profile" : "Social post"} saved.`));
+  return redirect(error ? "error" : "success", message ?? `${entity === "profile" ? "Social profile" : "Social post"} saved.`);
 };
