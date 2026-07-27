@@ -9,6 +9,7 @@ interface Props {
   configured?: boolean;
   unavailableMessage?: string;
   required?: boolean;
+  maxSizeMb?: number;
 }
 const {
   name = "image",
@@ -18,8 +19,9 @@ const {
   hasCurrent = Boolean(currentUrl),
   removeName = "remove_image",
   configured = true,
-  unavailableMessage = "Image uploads are temporarily unavailable. You can still save the other changes.",
-  required = false
+  unavailableMessage = "Image upload is unavailable because the public media binding is not available in this environment. You can still save the other changes.",
+  required = false,
+  maxSizeMb = 10
 } = Astro.props;
 ---
 <div class="grid gap-3" data-image-upload>
@@ -29,6 +31,7 @@ const {
       <span class="label">{hasCurrent ? "Replace image" : label}</span>
       <input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name={name} type="file" accept="image/jpeg,image/png,image/webp,image/avif" required={required} data-image-input />
     </label>
+    <p class="text-xs leading-5 text-eagles-ink/60">JPEG, PNG, WebP or AVIF. Maximum {maxSizeMb} MB. On mobile, use the native picker to choose from your library or take a photo.</p>
     <div class="hidden grid-cols-[72px_1fr] items-center gap-3 border border-eagles-line bg-eagles-mist p-3" style="border-radius:8px" data-image-selection>
       <img class="h-16 w-16 object-cover" style="border-radius:6px" alt="Selected image preview" data-image-preview />
       <div class="min-w-0"><p class="truncate text-sm font-bold" data-image-filename></p><button class="mt-1 text-sm font-black text-red-700" type="button" data-image-clear>Clear selection</button></div>

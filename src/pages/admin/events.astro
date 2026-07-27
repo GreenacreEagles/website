@@ -80,7 +80,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
                 </form>
               </AdminDialog>
               <AdminDialog id={`image-${event.id}`} title={`Event image — ${event.title}`} actionLabel="Event image" tone="secondary">
-                <form class="grid gap-4" method="post" action="/api/admin/event-image" enctype="multipart/form-data"><input type="hidden" name="event_id" value={event.id}/><ImageUploadField name="image" label="Upload event image" currentUrl={getPublicMediaUrl(event.image_object_key,Astro)??getSafeExternalImageUrl(event.image_url)} currentAlt={event.title} hasCurrent={Boolean(event.image_object_key||event.image_url)} removeName="remove_image" configured={publicMediaConfigured}/><FormActions submitLabel="Save event image"/></form>
+                <form class="grid gap-4" method="post" action="/api/admin/event-image" enctype="multipart/form-data"><input type="hidden" name="event_id" value={event.id}/><ImageUploadField name="image" label="Upload event image" currentUrl={getPublicMediaUrl(event.image_object_key,Astro)??getSafeExternalImageUrl(event.image_url)} currentAlt={event.title} hasCurrent={Boolean(event.image_object_key||event.image_url)} removeName="remove_image" maxSizeMb={8} configured={publicMediaConfigured}/><FormActions submitLabel="Save event image"/></form>
               </AdminDialog>
               <AdminDialog id={`ticket-${event.id}`} title={`New ticket type — ${event.title}`} actionLabel="Manage tickets" tone="secondary">
                 <form class="grid gap-4" method="post" action="/api/admin/event-ticket-type"><input type="hidden" name="event_id" value={event.id}/>

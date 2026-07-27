@@ -48,7 +48,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
               <label><span class="label">Status</span><select class="field" name="workflow_status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             </div>
             <label><span class="label">Publish at</span><input class="field" name="publish_at" type="datetime-local" /></label>
-            <ImageUploadField name="image" label="Upload featured image" configured={imageUploadConfigured} />
+            <ImageUploadField name="image" label="Upload featured image" maxSizeMb={8} configured={imageUploadConfigured} />
             <label><span class="label">Tags</span><input class="field" name="tags" placeholder="juniors, match day" /></label>
             <FormActions submitLabel="Save article" />
           </form>

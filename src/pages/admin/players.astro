@@ -101,7 +101,7 @@ const { publicMediaConfigured } = getMediaCapabilities(Astro);
                 <AdminDialog id={`player-photo-${player.id}`} title="Manage public photo" actionLabel="Manage public photo" size="md" tone="secondary">
                   <form class="grid gap-4" method="post" action="/api/admin/player-public-photo" enctype="multipart/form-data">
                     <input type="hidden" name="player_id" value={player.id} />
-                    <ImageUploadField name="photo" label="Choose player photo" currentUrl={player.photo_consent?getPublicMediaUrl(player.photo_object_key,Astro):null} currentAlt={`Current approved photo for ${player.profiles?.preferred_name||player.profiles?.full_name||"player"}`} hasCurrent={Boolean(player.photo_object_key)} removeName="remove_photo" configured={publicMediaConfigured}/>
+                    <ImageUploadField name="photo" label="Choose player photo" currentUrl={player.photo_consent?getPublicMediaUrl(player.photo_object_key,Astro):null} currentAlt={`Current approved photo for ${player.profiles?.preferred_name||player.profiles?.full_name||"player"}`} hasCurrent={Boolean(player.photo_object_key)} removeName="remove_photo" maxSizeMb={8} configured={publicMediaConfigured}/>
                     <label class="flex min-h-11 items-start gap-3 text-sm font-bold"><input class="mt-1" type="checkbox" name="photo_consent" checked={player.photo_consent}/><span>Approved for display on the public team page</span></label>
                     <FormActions submitLabel="Save photo settings"/>
                   </form>

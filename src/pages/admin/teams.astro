@@ -85,7 +85,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
             <label><span class="label">Division</span><input class="field" name="division" /></label>
             <label><span class="label">Colour</span><input class="field" name="colour" placeholder="Green" /></label>
             <label><span class="label">Fixture link</span><input class="field" name="external_fixture_url" type="url" /></label>
-            <ImageUploadField name="image" label="Upload team image" configured={publicMediaConfigured} />
+            <ImageUploadField name="image" label="Upload team image" maxSizeMb={8} configured={publicMediaConfigured} />
             <label><span class="label">Status</span><select class="field" name="status">{["active", "inactive"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
             <FormActions submitLabel="Create team" />
           </form>
@@ -143,7 +143,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
               </a>
               <div class="flex shrink-0 items-center gap-2">
                 <StatusBadge label={team.status} tone={team.status === "active" ? "green" : "ink"} />
-                {canManage && <AdminDialog id={`team-image-${team.id}`} title={`Team image — ${team.name}`} actionLabel="Image" tone="secondary" size="md"><form class="grid gap-4" method="post" action="/api/admin/team-image" enctype="multipart/form-data"><input type="hidden" name="team_id" value={team.id}/><ImageUploadField name="image" label="Upload team image" currentUrl={getPublicMediaUrl(team.image_object_key,Astro)} currentAlt={team.name} hasCurrent={Boolean(team.image_object_key)} removeName="remove_image" configured={publicMediaConfigured}/><FormActions submitLabel="Save team image"/></form></AdminDialog>}
+                {canManage && <AdminDialog id={`team-image-${team.id}`} title={`Team image — ${team.name}`} actionLabel="Image" tone="secondary" size="md"><form class="grid gap-4" method="post" action="/api/admin/team-image" enctype="multipart/form-data"><input type="hidden" name="team_id" value={team.id}/><ImageUploadField name="image" label="Upload team image" currentUrl={getPublicMediaUrl(team.image_object_key,Astro)} currentAlt={team.name} hasCurrent={Boolean(team.image_object_key)} removeName="remove_image" maxSizeMb={8} configured={publicMediaConfigured}/><FormActions submitLabel="Save team image"/></form></AdminDialog>}
                 {canAssign && <AdminDialog id={"add-team-member-" + team.id} title={"Add person to " + team.name} actionLabel="+" size="lg">
                   <form class="grid gap-4" method="post" action="/api/admin/team-assignment">
                     <input type="hidden" name="team_id" value={team.id} />

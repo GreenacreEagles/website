@@ -6,14 +6,49 @@ interface Props {
   currentHref?: string | null;
   removeName?: string;
   configured?: boolean;
+  maxSizeMb?: number;
 }
-const { name="attachment", label="Upload attachment", hasCurrent=false, currentHref=null, removeName="remove_attachment", configured=true } = Astro.props;
+const { name="attachment", label="Upload attachment", hasCurrent=false, currentHref=null, removeName="remove_attachment", configured=true, maxSizeMb=15 } = Astro.props;
 ---
-<div class="grid gap-3">
+<div class="grid gap-3" data-file-upload>
   {hasCurrent && (currentHref ? <a class="font-black text-eagles-green underline" href={currentHref}>Download current attachment</a> : <p class="text-sm font-bold text-eagles-ink/70">A private attachment is stored.</p>)}
   {configured ? <>
-    <label><span class="label">{hasCurrent ? "Replace attachment" : label}</span><input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name={name} type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,image/avif" /></label>
-    <p class="text-xs leading-5 text-eagles-ink/60">PDF, DOCX, JPEG, PNG, WebP or AVIF. The selected file name appears in the browser control.</p>
+    <label><span class="label">{hasCurrent ? "Replace attachment" : label}</span><input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name={name} type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp,image/avif" data-file-input /></label>
+    <p class="text-xs leading-5 text-eagles-ink/60">PDF, DOCX, JPEG, PNG, WebP or AVIF. Maximum {maxSizeMb} MB.</p>
+    <div class="hidden items-center justify-between gap-3 border border-eagles-line bg-eagles-mist p-3" style="border-radius:8px" data-file-selection><p class="min-w-0 truncate text-sm font-bold" data-file-filename></p><button class="shrink-0 text-sm font-black text-red-700" type="button" data-file-clear>Clear selection</button></div>
     {hasCurrent && <label class="flex min-h-11 items-center gap-3"><input name={removeName} type="checkbox" /><span class="font-bold">Remove current attachment</span></label>}
-  </> : <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Private file uploads are unavailable. You can still save the resource or use an external link.</p>}
+  </> : <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Private file upload is unavailable because the private media binding is not available in this environment. You can still save the resource or use an external link.</p>}
 </div>
+
+<script is:inline>
+  (() => {
+    if (window.__greenacreFileUploadBound) return;
+    window.__greenacreFileUploadBound = true;
+    const reset = (root, input) => {
+      if (input) input.value = "";
+      const selection = root.querySelector("[data-file-selection]");
+      selection?.classList.add("hidden");
+      selection?.classList.remove("flex");
+      const filename = root.querySelector("[data-file-filename]");
+      if (filename) filename.textContent = "";
+    };
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-file-input]");
+      if (!input) return;
+      const root = input.closest("[data-file-upload]");
+      const file = input.files?.[0];
+      reset(root, null);
+      if (!file) return;
+      root.querySelector("[data-file-filename]").textContent = file.name;
+      const selection = root.querySelector("[data-file-selection]");
+      selection.classList.remove("hidden");
+      selection.classList.add("flex");
+    });
+    document.addEventListener("click", (event) => {
+      const clear = event.target.closest("[data-file-clear]");
+      if (!clear) return;
+      const root = clear.closest("[data-file-upload]");
+      reset(root, root.querySelector("[data-file-input]"));
+    });
+  })();
+</script>

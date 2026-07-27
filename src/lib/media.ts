@@ -72,7 +72,7 @@ export const getPublicMediaBaseUrl = (context: RuntimeContext): string | null =>
   }
   try {
     const url = new URL(configured);
-    if (url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1") throw new Error("Public media URL must use HTTPS.");
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost","127.0.0.1"].includes(url.hostname))) throw new Error("Public media URL must use HTTPS.");
     return url.toString().replace(/\/+$/, "");
   } catch (cause) {
     warnOnce("invalid-public-media-base", "PUBLIC_MEDIA_BASE_URL is invalid. Public media pages will use their no-image fallback.", { configured, cause });
