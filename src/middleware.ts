@@ -30,6 +30,36 @@ export const onRequest = defineMiddleware(async (context, next) => {
   recordServerTiming(context, "total", startedAt);
 
   const timings = formatServerTimings(context);
+  if (
+    isApiRequest &&
+    context.request.method === "GET" &&
+    context.request.headers.get("sec-fetch-mode") === "navigate" &&
+    response.status === 404
+  ) {
+    const fallback = pathname.startsWith("/api/admin/")
+      ? "/admin/"
+      : pathname.startsWith("/api/portal/")
+        ? "/portal/"
+        : pathname.startsWith("/api/auth/")
+          ? "/login/"
+          : "/";
+    let destination = fallback;
+    const referer = context.request.headers.get("referer");
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.origin === context.url.origin && !refererUrl.pathname.startsWith("/api/")) {
+          destination = refererUrl.pathname + refererUrl.search;
+        }
+      } catch {
+        // Ignore malformed Referer headers and use the section fallback.
+      }
+    }
+    return new Response(null, {
+      status: 303,
+      headers: { "Location": destination, "Cache-Control": "private, no-store" }
+    });
+  }
   if (isApiRequest && response.status >= 400 && response.headers.get("content-type")?.includes("text/html")) {
     response = Response.json(
       { error: "API request failed.", path: pathname, method: context.request.method, status: response.status },
