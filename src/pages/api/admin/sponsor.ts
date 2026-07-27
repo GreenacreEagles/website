@@ -18,6 +18,8 @@ const schema = z.object({
   status: z.enum(["active", "inactive"])
 });
 
+export const GET: APIRoute = (context) => context.redirect(back, 303);
+
 export const POST: APIRoute = async (context) => {
   const session = await requirePermission(context, ["sponsors.manage"]);
   if (!session) return context.redirect("/login/");
