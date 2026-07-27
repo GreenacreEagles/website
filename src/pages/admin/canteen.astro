@@ -19,7 +19,7 @@ const now = new Date().toISOString();
 const [{ data: categories }, { data: products }, { data: orders }, { count: voucherCount }] = await Promise.all([
   service.from("canteen_categories").select("id,name,is_active,display_order").order("display_order").order("name"),
   service.from("canteen_products").select("id,category_id,name,description,price_cents,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
-  service.from("canteen_orders").select("id,order_number,order_status,payment_status,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)").in("order_status", ["paid", "accepted", "preparing", "ready_for_pickup"]).eq("payment_status", "paid").order("created_at", { ascending: false }).limit(100),
+  service.from("canteen_orders").select("id,order_number,order_status,payment_status,payment_method,subtotal_cents,voucher_discount_cents,wallet_credit_cents,amount_due_cents,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)").in("order_status", ["awaiting_payment", "paid", "accepted", "preparing", "ready_for_pickup"]).order("created_at", { ascending: false }).limit(100),
   service.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active").is("claimed_at", null).gt("remaining_value_cents", 0).or(`expires_at.is.null,expires_at.gt.${now}`),
 ]);
 
@@ -164,8 +164,9 @@ const requestKey = crypto.randomUUID();
               <div class="flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
             </div>
             <div class="mt-3 grid gap-1">{(order.canteen_order_items ?? []).map((item: any) => <p class="text-sm"><strong>{item.quantity}×</strong> {item.product_name_snapshot}</p>)}</div>
+            <p class="mt-3 text-sm font-bold text-eagles-muted">{order.payment_method === "pay_at_club" ? `Pay at club · $${((order.amount_due_cents ?? 0) / 100).toFixed(2)} due` : "Paid with member benefits"}</p>
             {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold" style="border-radius:8px">{order.special_instructions}</p>}
-            {canManageOrders && <form class="mt-4" method="post" action="/api/admin/complete-canteen-order/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}
+            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="payment_status" value="paid" /><input type="hidden" name="order_status" value="accepted" /><input type="hidden" name="reason" value="Payment received at club" /><button class="bg-eagles-ink px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Mark payment received</button></form>}{order.payment_status === "paid" && <form method="post" action="/api/admin/complete-canteen-order/"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}</div>}
           </article>
         ))}
       </div>
