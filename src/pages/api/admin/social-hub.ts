@@ -5,6 +5,7 @@ import { redirectWithMessage } from "@lib/forms";
 import { deleteR2Object, getPublicMediaBucket, getUploadedFile, socialPostImageObjectKey, validatePublicImage } from "@lib/media";
 
 export const prerender=false;
+export const GET:APIRoute=(context)=>context.redirect(back,303);
 const back="/admin/highlights/";
 const platform=z.enum(["instagram","facebook","tiktok"]);
 const bool=z.preprocess((value)=>value==="on"||value==="true",z.boolean());

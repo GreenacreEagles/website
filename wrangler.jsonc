@@ -14,10 +14,23 @@
       "binding": "SESSION"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "PUBLIC_MEDIA_BUCKET",
+      "bucket_name": "greenacre-eagles-public-media"
+    },
+    {
+      "binding": "PRIVATE_MEDIA_BUCKET",
+      "bucket_name": "greenacre-eagles-private-media"
+    }
+  ],
   "vars": {
     "SITE_URL": "https://greenacre-eagles-website.a-saa.workers.dev",
     "PUBLIC_SUPABASE_URL": "https://qzqezldtklimtupajvxf.supabase.co",
-    "PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_oHngmVOaKbcev-wt-PWaYg_qk9zOunh"
+    "PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_oHngmVOaKbcev-wt-PWaYg_qk9zOunh",
+    "R2_PUBLIC_BUCKET_NAME": "greenacre-eagles-public-media",
+    "R2_PRIVATE_BUCKET_NAME": "greenacre-eagles-private-media",
+    "PUBLIC_MEDIA_BASE_URL": "https://media.greenacreeaglesfc.com"
   },
   "observability": {
     "enabled": true
