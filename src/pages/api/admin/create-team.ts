@@ -7,10 +7,7 @@ export const prerender = false;
 
 const schema = z.object({
   season_id: uuidSchema,
-  age_group_id: optionalUuidSchema,
   competition_id: optionalUuidSchema,
-  home_venue_id: optionalUuidSchema,
-  training_venue_id: optionalUuidSchema,
   name: z.string().trim().min(2).max(100),
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(120),
   summary: z.string().trim().max(500).optional(),
@@ -29,10 +26,7 @@ export const POST: APIRoute = async (context) => {
   if (!parsed.success) return context.redirect(redirectWithMessage("/admin/teams/", "error", parsed.error.issues[0]?.message ?? "Check the team details."));
   const { error } = await (session.supabase as any).from("teams").insert({
     season_id: parsed.data.season_id,
-    age_group_id: parsed.data.age_group_id ?? null,
     competition_id: parsed.data.competition_id ?? null,
-    home_venue_id: parsed.data.home_venue_id ?? null,
-    training_venue_id: parsed.data.training_venue_id ?? null,
     name: parsed.data.name,
     slug: parsed.data.slug,
     summary: parsed.data.summary || null,

@@ -24,6 +24,12 @@ export const POST: APIRoute = async (context) => {
   const session = await requirePermission(context, ["canteen.manage"]);
   if (!session) return context.redirect("/admin/");
   const form = await context.request.formData();
+  if (form.get("intent") === "delete") {
+    const productId = uuid.safeParse(form.get("product_id"));
+    if (!productId.success) return context.redirect(redirectWithMessage("/admin/canteen/", "error", "Invalid product."));
+    const { error } = await session.supabase.from("canteen_products" as any).delete().eq("id", productId.data);
+    return context.redirect(redirectWithMessage("/admin/canteen/", error ? "error" : "success", error?.message ?? "Product deleted."));
+  }
   const parsed = schema.safeParse(Object.fromEntries(form));
   if (!parsed.success) return context.redirect(redirectWithMessage("/admin/canteen/", "error", parsed.error.issues[0]?.message ?? "Check the product details."));
 

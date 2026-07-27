@@ -10,7 +10,6 @@ const normaliseCode = (value: string) => value.trim().replace(/^GEVOUCHER:/i, ""
 
 const schema = z.object({
   redemption_code: z.string().trim().min(4).max(80),
-    venue_id: optionalUuidSchema,
   amount: centsFromDollars,
   order_id: optionalUuidSchema,
   device_label: z.string().trim().max(120).optional(),
@@ -29,7 +28,7 @@ export const POST: APIRoute = async (context) => {
 
   const { data, error } = await (session.supabase as any).rpc("redeem_voucher", {
     redemption_token: normaliseCode(parsed.data.redemption_code),
-    redeem_venue_id: parsed.data.venue_id ?? null,
+    redeem_venue_id: null,
     redeem_amount_cents: parsed.data.amount,
     redeem_order_id: parsed.data.order_id ?? undefined,
     device_label: parsed.data.device_label || "Canteen device"

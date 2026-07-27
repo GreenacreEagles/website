@@ -21,7 +21,7 @@ let teams: any[] = [];
 if (canViewClubTeams || teamIds.length > 0) {
   let query = session.supabase
     .from("teams")
-    .select("id,name,division,colour,status,external_fixture_url,seasons(name,year,status),age_groups(name),competitions(name),venues:training_venue_id(name,suburb)")
+    .select("id,name,division,colour,status,external_fixture_url,seasons(name,year,status),competitions(name)")
     .order("name");
   if (!canViewClubTeams) query = query.in("id", teamIds);
   const { data } = await query;
@@ -31,7 +31,7 @@ if (canViewClubTeams || teamIds.length > 0) {
 const [{ data: training }, { data: recentPosts }] = await Promise.all([
   session.supabase
     .from("training_sessions")
-    .select("id,starts_at,ends_at,status,notes,teams(id,name),venues(name,suburb)")
+    .select("id,starts_at,ends_at,status,notes,teams(id,name),venue")
     .order("starts_at", { ascending: true })
     .limit(12),
   (session.supabase as any)
@@ -67,7 +67,7 @@ const postsByTeam = new Map<string, any[]>();
             <div class="grid gap-4 md:grid-cols-[96px_1fr_auto] md:items-start">
               <div class="flex h-24 w-24 items-center justify-center bg-eagles-green text-sm font-black text-white" style="border-radius:8px">GEFC</div>
               <div>
-                <p class="eyebrow">{team.seasons?.name ?? "Season"} {team.age_groups?.name ? `- ${team.age_groups.name}` : ""}</p>
+                <p class="eyebrow">{team.seasons?.name ?? "Season"}</p>
                 <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{team.name}</h2>
                 <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
                   {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""} - your access is through {statusLabel(relationship as string)}.
@@ -79,8 +79,7 @@ const postsByTeam = new Map<string, any[]>();
               </div>
             </div>
             <dl class="mt-5 grid gap-3 text-sm md:grid-cols-3">
-              <div><dt class="font-black">Training venue</dt><dd>{team.venues?.name ?? "To be confirmed"}</dd></div>
-              <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
+                  <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
               <div><dt class="font-black">Board</dt><dd><a class="font-black text-eagles-green hover:text-eagles-ink" href={`/portal/teams/${team.id}/`}>Open team page</a></dd></div>
             </dl>
             {teamPosts.length > 0 && (
@@ -106,7 +105,7 @@ const postsByTeam = new Map<string, any[]>();
         {(training ?? []).map((item: any) => (
           <div class="border-t border-eagles-line pt-3">
             <p class="font-black text-eagles-ink">{item.teams?.name ?? "Club session"}</p>
-            <p class="text-sm text-eagles-ink/70">{formatDateTime(item.starts_at)} at {item.venues?.name ?? "club venue"}</p>
+            <p class="text-sm text-eagles-ink/70">{formatDateTime(item.starts_at)} at {item.venue ?? "club venue"}</p>
           </div>
         ))}
       </div>

@@ -11,7 +11,7 @@ const slug = Astro.params.slug ?? "";
 const team = await getPublicTeam(createSupabaseServerClient(Astro), Astro, slug);
 if (!team) return new Response(null, { status: 404 });
 const description = team.summary ?? `Meet ${team.name}, one of the active Greenacre Eagles FC teams.`;
-const meta = [team.seasonName, team.ageGroup, team.division || team.competition].filter(Boolean);
+const meta = [team.seasonName, team.division || team.competition].filter(Boolean);
 ---
 <BaseLayout title={team.name} description={description} image={team.imageUrl ?? undefined}>
   <section class="section-pad bg-eagles-mist">

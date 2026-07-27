@@ -3,7 +3,7 @@ import type { Database } from "../types/database.types";
 import { getPublicMediaUrl } from "./media";
 
 export type PublicTeamSummary = {
-  id: string; slug: string; name: string; ageGroup: string | null; division: string | null;
+  id: string; slug: string; name: string; division: string | null;
   competition: string | null; seasonName: string | null; summary: string | null; imageUrl: string | null;
 };
 export type PublicPlayerCard = {
@@ -19,9 +19,9 @@ export type PublicTeamDetail = PublicTeamSummary & {
 type Context = { locals?: any };
 type Client = SupabaseClient<Database>;
 
-const teamSelect = "id,slug,name,division,summary,image_object_key,sort_order,seasons(name,year),age_groups(name,sort_order),competitions(name)";
+const teamSelect = "id,slug,name,division,summary,image_object_key,sort_order,seasons(name,year),competitions(name)";
 const mapTeam = (row: any, context: Context): PublicTeamSummary => ({
-  id: row.id, slug: row.slug, name: row.name, ageGroup: row.age_groups?.name ?? null,
+  id: row.id, slug: row.slug, name: row.name,
   division: row.division ?? null, competition: row.competitions?.name ?? null,
   seasonName: row.seasons?.name ?? null, summary: row.summary ?? null,
   imageUrl: getPublicMediaUrl(row.image_object_key, context)

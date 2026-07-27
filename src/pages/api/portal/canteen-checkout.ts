@@ -10,7 +10,6 @@ const schema = z.object({
   request_key: z.string().regex(/^[A-Za-z0-9_-]{16,120}$/),
   wallet_id: optionalUuid,
   wallet_cents: z.coerce.number().int().min(0).max(1_000_000),
-  venue_id: optionalUuid,
   notes: z.string().trim().max(500).optional(),
   voucher_ids: z.array(uuidSchema).max(50)
 });
@@ -21,14 +20,14 @@ export const POST: APIRoute = async (context) => {
   const form = await context.request.formData();
   const parsed = schema.safeParse({
     request_key: form.get("request_key"), wallet_id: form.get("wallet_id"),
-    wallet_cents: form.get("wallet_cents") ?? 0, venue_id: form.get("venue_id"),
+    wallet_cents: form.get("wallet_cents") ?? 0,
     notes: form.get("notes"), voucher_ids: form.getAll("voucher_ids")
   });
   if (!parsed.success) return context.redirect(redirectWithMessage("/portal/canteen/shop/checkout/", "error", "Review the checkout details and try again."));
   const { data, error } = await (session.supabase as any).rpc("checkout_canteen_cart", {
     request_key: parsed.data.request_key, target_wallet_id: parsed.data.wallet_id,
     target_wallet_cents: parsed.data.wallet_cents, target_voucher_ids: parsed.data.voucher_ids,
-    target_venue_id: parsed.data.venue_id, target_notes: parsed.data.notes || null
+    target_notes: parsed.data.notes || null
   });
   if (error) return context.redirect(redirectWithMessage("/portal/canteen/shop/cart/", "error", friendlyCanteenError(error.message)));
   const order = Array.isArray(data) ? data[0] : null;

@@ -8,7 +8,7 @@ The admin portal is separate from the member portal under `/admin/`. Members onl
 - `/admin/users/`: user search and profile review.
 - `/admin/users/[id]/`: user profile, role history, role assignment and revocation.
 - `/admin/roles/`: role and permission catalogue.
-- `/admin/teams/`: seasons, competitions, venues, teams, staff assignments, squad visibility, training scheduling and match report review.
+- `/admin/teams/`: seasons, competitions, teams, staff assignments, squad visibility, training scheduling and match report review.
 - `/admin/players/`: players and family administration foundation.
 - `/admin/volunteers/`: volunteer opportunities, shifts and assignments.
 - `/admin/canteen/`: catalogue, vouchers and order operations.
@@ -68,7 +68,7 @@ The `public.enqueue_admin_notification` RPC queues admin messages through the sa
 
 ## Canteen Operations
 
-Administrators manage canteen venues, categories, products, stock levels and fulfilment modes from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.
+Administrators manage canteen categories, products, stock levels and fulfilment modes for the single club canteen from `/admin/canteen/`. Products can be normal pickup orders or paid wallet-voucher items with a configurable validity window.
 
 Order state changes run through `public.update_canteen_order_state`, which enforces canteen order permissions, locks the order row, records status history and issues purchased voucher items only after the order is marked paid. Staff use `/portal/canteen-staff/` for the live preparation queue, pickup codes, payment marking, voucher scanning and permission-gated claim reversal. Canteen administrators can review voucher claims and reverse mistaken scans from `/admin/canteen/`.
 

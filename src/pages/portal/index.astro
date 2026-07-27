@@ -57,7 +57,7 @@ const [
     .limit(4),
   session.supabase
     .from("volunteer_assignments")
-    .select("id,status,volunteer_shifts(starts_at,ends_at,volunteer_opportunities(title),venues(name))")
+    .select("id,status,volunteer_shifts(starts_at,ends_at,volunteer_opportunities(title),venue)")
     .eq("user_id", session.user.id)
     .in("status", ["assigned", "confirmed"])
     .limit(4),
@@ -123,7 +123,7 @@ const attentionItems = [
   })),
   ...(volunteerAssignments ?? []).map((assignment: any) => ({
     title: assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Volunteer assignment",
-    text: `${statusLabel(assignment.status)} - ${formatDateTime(assignment.volunteer_shifts?.starts_at)} at ${assignment.volunteer_shifts?.venues?.name ?? "club venue"}`,
+    text: `${statusLabel(assignment.status)} - ${formatDateTime(assignment.volunteer_shifts?.starts_at)} at ${assignment.volunteer_shifts?.venue ?? "club venue"}`,
     href: "/portal/volunteers/",
     tone: "amber"
   }))

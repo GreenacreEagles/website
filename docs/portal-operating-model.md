@@ -51,3 +51,7 @@ The homepage, `/news/`, `/news/[slug]/` and `/sponsors/` now read published Supa
 ## Current Limits
 
 The commerce, club-operations and publishing phases add canteen catalogue management, stock-aware canteen ordering, staff order transitions, payment marking, pickup codes, automatic wallet voucher issuance for paid voucher products, voucher QR scanning and reversal, wallet account creation, manual top-up settlement, provider webhook settlement, controlled wallet adjustments, ledger reversal, merchandise catalogue management, stock-backed merchandise checkout, merchandise order operations, volunteer shift rostering, the coaching resource library, database-backed public articles, announcements and sponsors, notification preferences and a provider-neutral communication outbox. Full production completion still requires applying the latest migration, regenerating database types, configuring live payment provider credentials, connecting a real email/SMS delivery worker, R2 upload endpoints, event ticket QR scanning, public store checkout and broader automated coverage.
+
+## Location model
+
+Locations are simple text on events, fixtures, training sessions and volunteer shifts. Team records do not carry venue fields. The club canteen is a single fixed collection point and has no venue selector or venue record. Do not recreate shared venue tables unless the club later operates multiple independently managed sites.

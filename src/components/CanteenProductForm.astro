@@ -21,4 +21,5 @@ const { product, categories, dietaryOptions, allergenOptions } = Astro.props;
   </fieldset>
   <div class="flex flex-wrap gap-5"><label class="font-bold"><input type="checkbox" name="is_active" checked={product ? product.is_active : true} /> Active</label><label class="font-bold"><input type="checkbox" name="is_sold_out" checked={product?.is_sold_out} /> Sold out</label></div>
   <FormActions submitLabel={product ? "Save product" : "Create product"} />
+  {product && <button class="text-left text-sm font-black text-red-700" name="intent" value="delete" formnovalidate onclick="return confirm('Delete this canteen product? Existing order history will be retained.')">Delete product</button>}
 </form>

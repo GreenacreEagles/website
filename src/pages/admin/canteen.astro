@@ -125,7 +125,7 @@ const requestKey = crypto.randomUUID();
                   <input type="hidden" name="category_id" value={category.id} />
                   <label><span class="label">Name</span><input class="field" name="name" value={category.name} required /></label>
                   <label><span class="label">Position</span><select class="field" name="position">{(categories ?? []).map((_: any, optionIndex: number) => <option value={optionIndex + 1} selected={index === optionIndex}>{optionIndex + 1}</option>)}</select></label>
-                  <div class="flex items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active} /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Save</button></div>
+                  <div class="flex flex-wrap items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active} /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Save</button><button class="text-xs font-black text-red-700" name="intent" value="delete" formnovalidate onclick="return confirm('Delete this category? Products will become uncategorised.')">Delete</button></div>
                 </form>
               ))}
               <form class="grid gap-3 border-t border-eagles-line pt-5 md:grid-cols-[1fr_130px_auto]" method="post" action="/api/admin/canteen-category/">

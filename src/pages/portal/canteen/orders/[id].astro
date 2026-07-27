@@ -8,7 +8,7 @@ import { formatDateTime, formatMoney } from "@lib/format";
 import { canteenOrderLabel, canteenPaymentLabel } from "@lib/canteen-store";
 export const prerender = false;
 const session=await requireUser(Astro); if(!session)return Astro.redirect("/login/");
-const {data:order,error}=await (session.supabase as any).from("canteen_orders").select("id,order_number,order_status,payment_status,payment_method,subtotal_cents,discount_cents,voucher_discount_cents,wallet_credit_cents,amount_due_cents,total_cents,pickup_code,special_instructions,created_at,canteen_venues(name),canteen_order_items(product_name_snapshot,unit_price_cents_snapshot,quantity,allergen_snapshot,line_total_cents)").eq("id",Astro.params.id).maybeSingle();
+const {data:order,error}=await (session.supabase as any).from("canteen_orders").select("id,order_number,order_status,payment_status,payment_method,subtotal_cents,discount_cents,voucher_discount_cents,wallet_credit_cents,amount_due_cents,total_cents,pickup_code,special_instructions,created_at,canteen_order_items(product_name_snapshot,unit_price_cents_snapshot,quantity,allergen_snapshot,line_total_cents)").eq("id",Astro.params.id).maybeSingle();
 if(error)console.error(error); const qr=order?.pickup_code?await QRCode.toDataURL(order.pickup_code,{width:320,margin:2,errorCorrectionLevel:"M"}):null;
 ---
 <PortalLayout title={order?`Order ${order.order_number}`:"Order not found"} section="Canteen" session={session}>

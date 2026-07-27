@@ -36,13 +36,6 @@ const hashToken = async (token: string) => {
 const token = () => crypto.randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase();
 
 const schemas = {
-  venue: z.object({
-    name: z.string().trim().min(2).max(120),
-    address: nullableText(240),
-    suburb: nullableText(80),
-    postcode: nullableText(12),
-    notes: nullableText(500)
-  }),
   competition: z.object({
     name: z.string().trim().min(2).max(140),
     season_id: optionalUuidSchema,
@@ -52,7 +45,7 @@ const schemas = {
     season_id: uuidSchema,
     team_id: uuidSchema,
     competition_id: optionalUuidSchema,
-    venue_id: optionalUuidSchema,
+    venue: nullableText(240),
     opponent: z.string().trim().min(2).max(140),
     round: nullableText(80),
     starts_at: z.string().min(1),
@@ -62,7 +55,7 @@ const schemas = {
   }),
   training: z.object({
     team_id: optionalUuidSchema,
-    venue_id: optionalUuidSchema,
+    venue: nullableText(240),
     starts_at: z.string().min(1),
     ends_at: nullableDate,
     notes: nullableText(500),
@@ -85,16 +78,11 @@ const schemas = {
   }),
   volunteerShift: z.object({
     opportunity_id: uuidSchema,
-    venue_id: optionalUuidSchema,
+    venue: nullableText(240),
     starts_at: z.string().min(1),
     ends_at: nullableDate,
     capacity: z.coerce.number().int().min(1).max(200),
     status: z.enum(["open", "filled", "cancelled", "completed"])
-  }),
-  canteenVenue: z.object({
-    name: z.string().trim().min(2).max(120),
-    venue_id: optionalUuidSchema,
-    is_active: boolFromCheckbox
   }),
   canteenCategory: z.object({
     name: z.string().trim().min(2).max(80),
@@ -121,7 +109,6 @@ const schemas = {
     beneficiary_id: optionalUuidSchema,
     family_id: optionalUuidSchema,
     team_id: optionalUuidSchema,
-    venue_id: optionalUuidSchema,
     issue_reason: nullableText(300),
     voucher_type: z.enum(["fixed_amount", "specific_product", "category", "meal_deal", "declining_balance"]),
     value: centsFromDollars,
@@ -150,7 +137,7 @@ const schemas = {
     title: z.string().trim().min(2).max(160),
     slug: nullableText(120),
     description: nullableText(800),
-    venue_id: optionalUuidSchema,
+    venue: nullableText(240),
     starts_at: z.string().min(1),
     ends_at: nullableDate,
     capacity: optionalNumber,
@@ -218,14 +205,12 @@ const schemas = {
 };
 
 const actionConfig = {
-  venue: { permissions: ["club_structure.manage"], redirect: "/admin/teams/", success: "Venue created." },
   competition: { permissions: ["club_structure.manage"], redirect: "/admin/teams/", success: "Competition created." },
   fixture: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Fixture saved internally." },
   training: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Training session created." },
   teamStaff: { permissions: ["club_structure.manage", "team_memberships.manage", "teams.manage"], redirect: "/admin/teams/", success: "Team staff assignment saved." },
   volunteerOpportunity: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer opportunity created." },
   volunteerShift: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer shift created." },
-  canteenVenue: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen venue created." },
   canteenCategory: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen category created." },
   canteenProduct: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen product created." },
   voucher: { permissions: ["canteen.vouchers.manage"], redirect: "/admin/canteen/", success: "Voucher issued." },
@@ -260,9 +245,7 @@ export const POST: APIRoute = async (context) => {
   let error: { message: string } | null = null;
   let success: string = config.success;
 
-  if (action === "venue") {
-    ({ error } = await session.supabase.from("venues").insert(data));
-  } else if (action === "competition") {
+  if (action === "competition") {
     ({ error } = await session.supabase.from("competitions").insert(data));
   } else if (action === "fixture") {
     ({ error } = await session.supabase.from("fixtures").insert(data));
@@ -281,8 +264,6 @@ export const POST: APIRoute = async (context) => {
     ({ error } = await session.supabase.from("volunteer_opportunities").insert(data));
   } else if (action === "volunteerShift") {
     ({ error } = await session.supabase.from("volunteer_shifts").insert(data));
-  } else if (action === "canteenVenue") {
-    ({ error } = await session.supabase.from("canteen_venues").insert(data));
   } else if (action === "canteenCategory") {
     ({ error } = await session.supabase.from("canteen_categories").insert(data));
   } else if (action === "canteenProduct") {
@@ -310,7 +291,6 @@ export const POST: APIRoute = async (context) => {
       beneficiary_id: data.beneficiary_id ?? null,
       family_id: data.family_id ?? null,
       team_id: data.team_id ?? null,
-      venue_id: data.venue_id ?? null,
       issued_by: session.user.id,
       issue_reason: data.issue_reason ?? null,
       voucher_type: data.voucher_type,
@@ -349,10 +329,11 @@ export const POST: APIRoute = async (context) => {
       is_active: data.is_active
     }));
   } else if (action === "event") {
+    const { price, ...eventData } = data;
     ({ error } = await session.supabase.from("club_events").insert({
-      ...data,
+      ...eventData,
       slug: data.slug || slugify(data.title),
-      price_cents: data.price
+      price_cents: price
     }));
   } else if (action === "announcement") {
     ({ error } = await session.supabase.from("club_announcements").insert({ ...data, created_by: session.user.id }));

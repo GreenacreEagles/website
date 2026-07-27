@@ -16,11 +16,10 @@ if (!session) return Astro.redirect("/login/");
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: opportunities }, { data: shifts }, { data: assignments }, { data: venues }] = await Promise.all([
+const [{ data: opportunities }, { data: shifts }, { data: assignments }] = await Promise.all([
   session.supabase.from("volunteer_opportunities").select("id,title,description,opportunity_type,status").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venues(name),volunteer_assignments(id,status,user_id)").order("starts_at", { ascending: true }).limit(80),
-  session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("venues").select("id,name").order("name")
+  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venue,volunteer_assignments(id,status,user_id)").order("starts_at", { ascending: true }).limit(80),
+  session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80)
 ]);
 
 const activeAssignmentCount = (shift: any) =>
@@ -47,7 +46,7 @@ const activeAssignmentCount = (shift: any) =>
           <form class="grid gap-4" method="post" action="/api/admin/create-record/">
             <input type="hidden" name="action" value="volunteerShift" />
             <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
-            <label><span class="label">Venue</span><select class="field" name="venue_id"><option value="">Venue TBC</option>{(venues ?? []).map((venue) => <option value={venue.id}>{venue.name}</option>)}</select></label>
+            <label><span class="label">Location</span><input class="field" name="venue" maxlength="240" placeholder="e.g. Clubhouse" /></label>
             <div class="grid gap-3 md:grid-cols-2">
               <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
               <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>

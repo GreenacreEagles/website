@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      age_groups: {
-        Row: {
-          created_at: string
-          id: string
-          max_age: number | null
-          min_age: number | null
-          name: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          max_age?: number | null
-          min_age?: number | null
-          name: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          max_age?: number | null
-          min_age?: number | null
-          name?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       audit_logs: {
         Row: {
           action: string
@@ -196,7 +166,6 @@ export type Database = {
           subtotal_cents: number
           total_cents: number
           updated_at: string
-          venue_id: string | null
         }
         Insert: {
           created_at?: string
@@ -215,7 +184,6 @@ export type Database = {
           subtotal_cents?: number
           total_cents?: number
           updated_at?: string
-          venue_id?: string | null
         }
         Update: {
           created_at?: string
@@ -234,7 +202,6 @@ export type Database = {
           subtotal_cents?: number
           total_cents?: number
           updated_at?: string
-          venue_id?: string | null
         }
         Relationships: [
           {
@@ -249,13 +216,6 @@ export type Database = {
             columns: ["recipient_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "canteen_orders_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "canteen_venues"
             referencedColumns: ["id"]
           },
         ]
@@ -321,41 +281,6 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "canteen_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      canteen_venues: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-          venue_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-          venue_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-          venue_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "canteen_venues_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -426,7 +351,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
-          venue_id: string | null
+          venue: string | null
           visibility: string
         }
         Insert: {
@@ -444,7 +369,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
           visibility?: string
         }
         Update: {
@@ -462,17 +387,10 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
           visibility?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "club_events_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
-            referencedColumns: ["id"]
-          },
         ]
       }
       coaching_resources: {
@@ -915,7 +833,7 @@ export type Database = {
           status: string
           team_id: string
           updated_at: string
-          venue_id: string | null
+          venue: string | null
         }
         Insert: {
           competition_id?: string | null
@@ -930,7 +848,7 @@ export type Database = {
           status?: string
           team_id: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Update: {
           competition_id?: string | null
@@ -945,7 +863,7 @@ export type Database = {
           status?: string
           team_id?: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Relationships: [
           {
@@ -967,13 +885,6 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fixtures_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -2128,13 +2039,11 @@ export type Database = {
       }
       teams: {
         Row: {
-          age_group_id: string | null
           colour: string | null
           competition_id: string | null
           created_at: string
           division: string | null
           external_fixture_url: string | null
-          home_venue_id: string | null
           id: string
           name: string
           public: boolean
@@ -2144,17 +2053,14 @@ export type Database = {
           status: string
           summary: string | null
           image_object_key: string | null
-          training_venue_id: string | null
           updated_at: string
         }
         Insert: {
-          age_group_id?: string | null
           colour?: string | null
           competition_id?: string | null
           created_at?: string
           division?: string | null
           external_fixture_url?: string | null
-          home_venue_id?: string | null
           id?: string
           name: string
           public?: boolean
@@ -2164,17 +2070,14 @@ export type Database = {
           status?: string
           summary?: string | null
           image_object_key?: string | null
-          training_venue_id?: string | null
           updated_at?: string
         }
         Update: {
-          age_group_id?: string | null
           colour?: string | null
           competition_id?: string | null
           created_at?: string
           division?: string | null
           external_fixture_url?: string | null
-          home_venue_id?: string | null
           id?: string
           name?: string
           public?: boolean
@@ -2184,17 +2087,9 @@ export type Database = {
           status?: string
           summary?: string | null
           image_object_key?: string | null
-          training_venue_id?: string | null
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "teams_age_group_id_fkey"
-            columns: ["age_group_id"]
-            isOneToOne: false
-            referencedRelation: "age_groups"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "teams_competition_id_fkey"
             columns: ["competition_id"]
@@ -2203,24 +2098,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "teams_home_venue_id_fkey"
-            columns: ["home_venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "teams_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teams_training_venue_id_fkey"
-            columns: ["training_venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -2235,7 +2116,7 @@ export type Database = {
           status: string
           team_id: string | null
           updated_at: string
-          venue_id: string | null
+          venue: string | null
         }
         Insert: {
           created_at?: string
@@ -2246,7 +2127,7 @@ export type Database = {
           status?: string
           team_id?: string | null
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Update: {
           created_at?: string
@@ -2257,7 +2138,7 @@ export type Database = {
           status?: string
           team_id?: string | null
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Relationships: [
           {
@@ -2265,13 +2146,6 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "training_sessions_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -2377,42 +2251,6 @@ export type Database = {
           },
         ]
       }
-      venues: {
-        Row: {
-          address: string | null
-          created_at: string
-          id: string
-          name: string
-          notes: string | null
-          postcode: string | null
-          state: string
-          suburb: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          notes?: string | null
-          postcode?: string | null
-          state?: string
-          suburb?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          notes?: string | null
-          postcode?: string | null
-          state?: string
-          suburb?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       volunteer_assignments: {
         Row: {
           checked_in_at: string | null
@@ -2504,7 +2342,7 @@ export type Database = {
           starts_at: string
           status: string
           updated_at: string
-          venue_id: string | null
+          venue: string | null
         }
         Insert: {
           capacity?: number
@@ -2515,7 +2353,7 @@ export type Database = {
           starts_at: string
           status?: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Update: {
           capacity?: number
@@ -2526,7 +2364,7 @@ export type Database = {
           starts_at?: string
           status?: string
           updated_at?: string
-          venue_id?: string | null
+          venue?: string | null
         }
         Relationships: [
           {
@@ -2534,13 +2372,6 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "volunteer_opportunities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "volunteer_shifts_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -2570,7 +2401,6 @@ export type Database = {
           token_hash: string
           updated_at: string
           valid_from: string
-          venue_id: string | null
           voucher_type: string
         }
         Insert: {
@@ -2597,7 +2427,6 @@ export type Database = {
           token_hash: string
           updated_at?: string
           valid_from?: string
-          venue_id?: string | null
           voucher_type: string
         }
         Update: {
@@ -2624,7 +2453,6 @@ export type Database = {
           token_hash?: string
           updated_at?: string
           valid_from?: string
-          venue_id?: string | null
           voucher_type?: string
         }
         Relationships: [
@@ -2663,13 +2491,6 @@ export type Database = {
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "voucher_issuances_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "canteen_venues"
-            referencedColumns: ["id"]
-          },
         ]
       }
       voucher_redemptions: {
@@ -2681,7 +2502,6 @@ export type Database = {
           order_id: string | null
           redeemed_by: string
           status: string
-          venue_id: string | null
           voucher_id: string
         }
         Insert: {
@@ -2692,7 +2512,6 @@ export type Database = {
           order_id?: string | null
           redeemed_by: string
           status?: string
-          venue_id?: string | null
           voucher_id: string
         }
         Update: {
@@ -2703,7 +2522,6 @@ export type Database = {
           order_id?: string | null
           redeemed_by?: string
           status?: string
-          venue_id?: string | null
           voucher_id?: string
         }
         Relationships: [
@@ -2719,13 +2537,6 @@ export type Database = {
             columns: ["redeemed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "voucher_redemptions_venue_id_fkey"
-            columns: ["venue_id"]
-            isOneToOne: false
-            referencedRelation: "canteen_venues"
             referencedColumns: ["id"]
           },
           {
@@ -3009,7 +2820,7 @@ export type Database = {
           device_label?: string
           redeem_amount_cents: number
           redeem_order_id?: string
-          redeem_venue_id: string
+          redeem_venue_id: string | null
           redemption_token: string
         }
         Returns: {

@@ -7,7 +7,6 @@ export const prerender = false;
 
 const schema = z.object({
   product_id: uuidSchema,
-  venue_id: optionalUuidSchema,
   beneficiary_id: optionalUuidSchema,
   quantity: z.coerce.number().int().min(1).max(20),
   pickup_window_start: z.string().optional(),
@@ -23,7 +22,6 @@ export const POST: APIRoute = async (context) => {
 
   const { data, error } = await session.supabase.rpc("create_canteen_order" as any, {
     target_product_id: parsed.data.product_id,
-    target_venue_id: parsed.data.venue_id ?? null,
     target_beneficiary_id: parsed.data.beneficiary_id ?? null,
     order_quantity: parsed.data.quantity,
     target_pickup_window_start: parsed.data.pickup_window_start || null,

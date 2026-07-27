@@ -8,7 +8,7 @@ export const prerender=false;
 const session=await requireUser(Astro);
 if(!session)return Astro.redirect(`/login/?returnTo=${encodeURIComponent(Astro.url.pathname)}`);
 const slug=Astro.params.slug??"";
-const {data:event}=await (session.supabase as any).from("club_events").select("id,slug,title,description,image_object_key,image_url,starts_at,ends_at,status,visibility,capacity,registration_opens_at,registration_closes_at,instructions,cancellation_notes,venues(name,suburb),club_event_ticket_types(id,name,description,price_cents,currency,capacity,max_per_order,sales_open_at,sales_close_at,active,sort_order)").eq("slug",slug).maybeSingle();
+const {data:event}=await (session.supabase as any).from("club_events").select("id,slug,title,description,image_object_key,image_url,starts_at,ends_at,status,visibility,capacity,registration_opens_at,registration_closes_at,instructions,cancellation_notes,venue,club_event_ticket_types(id,name,description,price_cents,currency,capacity,max_per_order,sales_open_at,sales_close_at,active,sort_order)").eq("slug",slug).maybeSingle();
 if(!event)return Astro.redirect("/portal/events/?error=Event unavailable.");
 const {data:tickets}=await (session.supabase as any).from("club_event_tickets").select("id,ticket_code,status,issued_at,redeemed_at,club_event_ticket_types(name)").eq("owner_user_id",session.user.id).eq("event_id",event.id).order("issued_at",{ascending:false});
 const canBuy=event.status==="active"&&event.visibility!=="private"&&new Date(event.starts_at)>new Date();
@@ -19,7 +19,7 @@ const imageUrl=getPublicMediaUrl(event.image_object_key,Astro)??event.image_url;
   <section class="surface overflow-hidden">{imageUrl&&<img src={imageUrl} alt={`${event.title} event`} class="h-72 w-full object-cover"/>}<div class="p-6">
    <p class="eyebrow">{formatDateTime(event.starts_at)}</p><h1 class="mt-3 font-display text-5xl font-black uppercase">{event.title}</h1>
    {event.description&&<p class="mt-5 text-lg leading-8 text-eagles-ink/75">{event.description}</p>}
-   <div class="mt-5 flex flex-wrap gap-2"><StatusBadge label={event.venues?.name??"Venue TBC"} tone="ink"/><StatusBadge label={statusLabel(event.status)} tone={event.status==="active"?"green":"amber"}/></div>
+   <div class="mt-5 flex flex-wrap gap-2"><StatusBadge label={event.venue??"Venue TBC"} tone="ink"/><StatusBadge label={statusLabel(event.status)} tone={event.status==="active"?"green":"amber"}/></div>
    {event.instructions&&<div class="mt-6 border-t border-eagles-line pt-5"><h2 class="font-display text-2xl font-black uppercase">Event instructions</h2><p class="mt-2 whitespace-pre-line">{event.instructions}</p></div>}
    {event.status==="cancelled"&&<p class="mt-6 border border-red-200 bg-red-50 p-4 font-bold text-red-700">This event has been cancelled. {event.cancellation_notes}</p>}
   </div></section>
