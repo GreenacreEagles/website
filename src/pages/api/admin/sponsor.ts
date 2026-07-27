@@ -22,8 +22,10 @@ const schema = z.object({
 export const GET: APIRoute = (context) => context.redirect(back, 303);
 
 export const POST: APIRoute = async (context) => {
+  const correlationId = crypto.randomUUID();
   const redirect = (type: "success" | "error", message: string) =>
     context.redirect(redirectWithMessage(back, type, message), 303);
+  try {
   const session = await requirePermission(context, ["sponsors.manage"]);
   if (!session) return context.redirect("/login/", 303);
 
@@ -113,4 +115,8 @@ export const POST: APIRoute = async (context) => {
     after_state: record
   })));
   return redirect("success", before ? "Sponsor updated." : "Sponsor created.");
+  } catch (cause) {
+    console.error("unexpected sponsor failure", { cause, correlationId });
+    return redirect("error", `An unexpected error occurred. Reference ${correlationId}.`);
+  }
 };

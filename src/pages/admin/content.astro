@@ -37,8 +37,8 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
     <AdminPageHeader title="Content workspace" intro="Create public updates, member announcements and coaching resources without losing sight of the publishing queue.">
       <Fragment slot="actions">
         {canManageContent && <AdminDialog id="draft-article" title="Add news article" actionLabel="Add news article" intro="Prepare a club article, match report or public update." size="xl">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record">
-            <input type="hidden" name="action" value="article" />
+          <form class="grid gap-4" method="post" action="/api/admin/content-entry" enctype="multipart/form-data">
+            <input type="hidden" name="entity" value="article" />
             <label><span class="label">Title</span><input class="field" name="title" required /></label>
             <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
             <label><span class="label">Summary</span><textarea class="field min-h-20" name="summary"></textarea></label>
@@ -54,8 +54,8 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
           </form>
         </AdminDialog>}
         {canManageCoaching && <AdminDialog id="coaching-resource" title="Coaching resource" actionLabel="Add resource" intro="Add a drill, session plan, policy, video or shared coaching document." size="xl">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record">
-            <input type="hidden" name="action" value="coachingResource" />
+          <form class="grid gap-4" method="post" action="/api/admin/content-entry" enctype="multipart/form-data">
+            <input type="hidden" name="entity" value="coaching_resource" />
             <label><span class="label">Title</span><input class="field" name="title" required /></label>
             <label><span class="label">Slug</span><input class="field" name="slug" placeholder="Auto-generated if empty" /></label>
             <div class="grid gap-3 md:grid-cols-2">
