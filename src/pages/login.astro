@@ -4,6 +4,7 @@ import ButtonLink from "@components/ButtonLink.astro";
 import TurnstileWidget from "@components/TurnstileWidget.astro";
 import { getPortalSession } from "@lib/auth/session";
 import { safeAuthReturnPath } from "@lib/forms";
+import { getTurnstileSiteKey } from "@lib/security/turnstile";
 
 export const prerender = false;
 
@@ -13,7 +14,7 @@ if (session) return Astro.redirect(returnTo);
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const turnstileSiteKey = getTurnstileSiteKey();
 ---
 
 <BaseLayout title="Login" description="Sign in to the Greenacre Eagles FC portal.">

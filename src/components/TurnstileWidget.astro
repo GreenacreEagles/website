@@ -1,10 +1,12 @@
 ---
+import { getTurnstileSiteKey } from "@lib/security/turnstile";
+
 type Props = {
   action: string;
 };
 
 const { action } = Astro.props;
-const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const siteKey = getTurnstileSiteKey();
 ---
 
 {siteKey && (
@@ -13,5 +15,6 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     data-sitekey={siteKey}
     data-action={action}
     data-theme="light"
+    data-size="flexible"
   />
 )}

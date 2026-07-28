@@ -1,19 +1,10 @@
 import type { APIRoute } from "astro";
-import { z } from "zod";
 import { createSupabaseServerClient } from "@lib/supabase/server";
-import { redirectWithMessage, safeAuthReturnPath } from "@lib/forms";
+import { redirectWithMessage } from "@lib/forms";
+import { runSignInFlow } from "@lib/auth/signin-flow";
 import { verifyTurnstile } from "@lib/security/turnstile";
 
 export const prerender = false;
-
-const schema = z.object({
-  email: z.string().trim().min(3),
-  password: z.string().min(1),
-  returnTo: z.string().optional()
-});
-
-const usernameToEmail = (value: string) =>
-  value.includes("@") ? value : `${value.toLowerCase()}@children.greenacre-eagles.local`;
 
 const loginRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
   context.redirect(redirectWithMessage("/login/", type, message), 303);
@@ -31,20 +22,18 @@ export const POST: APIRoute = async (context) => {
       return loginRedirect(context, "error", "The sign-in form could not be read. Please try again.");
     }
 
-    const verification = await verifyTurnstile(context, formData, "signin");
-    if (!verification.success) return loginRedirect(context, "error", verification.error ?? "Verification failed.");
-
-    const parsed = schema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) return loginRedirect(context, "error", "Enter your email and password.");
-
-    const supabase = createSupabaseServerClient(context);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(parsed.data.email),
-      password: parsed.data.password
+    const outcome = await runSignInFlow(formData, {
+      verify: () => verifyTurnstile(context, formData, "signin"),
+      signIn: async (credentials) => {
+        const supabase = createSupabaseServerClient(context);
+        const { error } = await supabase.auth.signInWithPassword(credentials);
+        return { success: !error };
+      }
     });
-    if (error) return loginRedirect(context, "error", "Sign in failed. Check your details and try again.");
 
-    return context.redirect(safeAuthReturnPath(parsed.data.returnTo), 303);
+    return outcome.success
+      ? context.redirect(outcome.location, outcome.status)
+      : loginRedirect(context, "error", outcome.error);
   } catch (cause) {
     console.error("Unexpected sign-in failure", { cause, correlationId });
     return loginRedirect(context, "error", `Sign in is temporarily unavailable. Reference ${correlationId}.`);
