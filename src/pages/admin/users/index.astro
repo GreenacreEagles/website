@@ -40,7 +40,26 @@ const { data: users, count } = await query;
       <button class="self-end bg-eagles-green px-5 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Search</button>
     </form>
     <p class="mt-4 text-sm font-bold text-eagles-ink/60">{count ?? 0} matching users</p>
-    <div class="mt-6 overflow-x-auto">
+    <div class="mt-6 grid gap-3 md:hidden" aria-label="Matching users">
+      {(users ?? []).map((user) => (
+        <article class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
+          <div class="flex min-w-0 items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="break-words font-black">{user.preferred_name || user.full_name || "Unnamed member"}</h2>
+              <p class="mt-1 break-all text-sm text-eagles-ink/65">{user.email ?? "Not recorded"}</p>
+            </div>
+            <StatusBadge label={user.account_status} tone={user.account_status === "active" ? "green" : "amber"} />
+          </div>
+          <dl class="mt-4 grid gap-2 border-t border-eagles-line pt-4 text-sm">
+            <div class="flex justify-between gap-3"><dt class="font-black">Mobile</dt><dd class="text-right">{user.mobile ?? "Not recorded"}</dd></div>
+            <div class="flex justify-between gap-3"><dt class="font-black">Profile</dt><dd>{user.onboarding_completed_at ? "Complete" : "Incomplete"}</dd></div>
+            <div class="flex justify-between gap-3"><dt class="font-black">Joined</dt><dd>{formatDate(user.created_at)}</dd></div>
+          </dl>
+          <a class="focus-ring mt-4 inline-flex min-h-11 w-full items-center justify-center bg-eagles-pine px-4 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href={`/admin/users/${user.id}/`}>Open user</a>
+        </article>
+      ))}
+    </div>
+    <div class="mt-6 hidden overflow-x-auto md:block">
       <table class="w-full min-w-[760px] text-left text-sm">
         <thead class="border-b border-eagles-line text-xs uppercase text-eagles-ink/60">
           <tr><th class="py-3">Name</th><th>Email</th><th>Mobile</th><th>Status</th><th>Profile</th><th>Joined</th><th></th></tr>

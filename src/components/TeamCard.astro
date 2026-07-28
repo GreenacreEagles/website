@@ -6,13 +6,13 @@ const details = [team.seasonName, team.division || team.competition].filter(Bool
 ---
 <article class="surface group overflow-hidden">
   {team.imageUrl ? (
-    <img src={team.imageUrl} alt={`${team.name} team`} class="h-56 w-full object-cover" loading="lazy" />
+    <img src={team.imageUrl} alt={`${team.name} team`} class="aspect-[16/10] w-full object-cover" loading="lazy" />
   ) : (
-    <div class="flex h-56 items-center justify-center bg-eagles-green text-white">
+    <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green text-white">
       <span class="font-display text-5xl font-black uppercase" aria-hidden="true">GEFC</span>
     </div>
   )}
-  <div class="p-5">
+  <div class="p-4 sm:p-5">
     <h3 class="mt-3 font-display text-2xl font-black uppercase leading-none">{team.name}</h3>
     {details.length > 0 && <p class="mt-3 text-sm font-bold text-eagles-ink/60">{details.join(" · ")}</p>}
     {team.summary && <p class="mt-3 text-base leading-7 text-eagles-ink/70">{team.summary}</p>}

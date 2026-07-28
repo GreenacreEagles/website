@@ -13,9 +13,9 @@ const href = `/news/${article.slug}/`;
 
 <article class="surface overflow-hidden">
   <a href={href} class="block">
-    <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="h-56 w-full object-cover" loading="lazy" />
+    <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
   </a>
-  <div class="p-5">
+  <div class="p-4 sm:p-5">
     <div class="flex flex-wrap items-center gap-3 text-sm font-bold text-eagles-green">
       <span>{article.category}</span>
       <span class="inline-flex items-center gap-1 text-eagles-ink/60">

@@ -53,8 +53,8 @@ const currentPath = Astro.url.pathname;
       <span class="hidden" data-menu-close-icon><Icon name="x" class="h-5 w-5" /></span>
     </button>
   </div>
-  <nav class="hidden border-t border-eagles-line bg-white 2xl:hidden" data-mobile-menu aria-label="Mobile navigation">
-    <div class="section-shell grid gap-2 py-4">
+  <nav class="hidden max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain border-t border-eagles-line bg-white 2xl:hidden" data-mobile-menu aria-label="Mobile navigation">
+    <div class="section-shell grid gap-1 py-3">
       {
         navItems.map((item) => (
           <a
@@ -82,8 +82,19 @@ const currentPath = Astro.url.pathname;
   toggle?.addEventListener("click", () => {
     const isOpen = toggle.getAttribute("aria-expanded") === "true";
     toggle.setAttribute("aria-expanded", String(!isOpen));
+    toggle.setAttribute("aria-label", isOpen ? "Open navigation" : "Close navigation");
     menu?.classList.toggle("hidden", isOpen);
     openIcon?.classList.toggle("hidden", !isOpen);
     closeIcon?.classList.toggle("hidden", isOpen);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || toggle?.getAttribute("aria-expanded") !== "true") return;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open navigation");
+    menu?.classList.add("hidden");
+    openIcon?.classList.remove("hidden");
+    closeIcon?.classList.add("hidden");
+    toggle.focus();
   });
 </script>

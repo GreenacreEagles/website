@@ -19,7 +19,7 @@ export default {
         }
       },
       boxShadow: {
-        "match-card": "0 18px 50px rgba(2, 4, 3, 0.14)"
+        "match-card": "0 12px 32px rgba(2, 4, 3, 0.1)"
       },
       fontFamily: {
         sans: [

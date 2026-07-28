@@ -10,10 +10,10 @@ export const prerender = true;
 
 <BaseLayout title="About" description="Learn about Greenacre Eagles FC, a proud community football club in the Bankstown District Amateur Football Association.">
   <section class="bg-eagles-mist text-eagles-ink">
-    <div class="section-shell grid gap-10 py-16 md:py-24 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+    <div class="section-shell grid min-w-0 gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center lg:py-20">
       <div>
         <p class="text-sm font-black uppercase text-eagles-green">{site.location}</p>
-        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">About the Eagles</h1>
+        <h1 class="mt-4 break-words font-display text-4xl font-black uppercase leading-none sm:text-5xl md:text-6xl lg:text-7xl">About the Eagles</h1>
         <p class="mt-6 text-xl leading-9 text-eagles-ink/75">
           Greenacre Eagles FC is a community football club built around local pride, player development, family involvement, and competitive ambition.
         </p>

@@ -11,7 +11,7 @@ const nameClass = tone === "dark" ? "text-eagles-ink" : "text-white";
 const associationClass = tone === "dark" ? "text-eagles-pine" : "text-eagles-lime";
 ---
 
-<a href={href} class="focus-ring inline-flex min-w-0 max-w-full items-center gap-3" aria-label={`${site.name} home`}>
+<a href={href} class="focus-ring inline-flex min-w-0 max-w-full items-center gap-2.5 sm:gap-3" aria-label={`${site.name} home`}>
   <img
     src="/media/brand/greenacre-eagles-logo-112.webp"
     srcset="/media/brand/greenacre-eagles-logo-112.webp 112w, /media/brand/greenacre-eagles-logo-224.webp 224w"
@@ -19,11 +19,11 @@ const associationClass = tone === "dark" ? "text-eagles-pine" : "text-eagles-lim
     width="112"
     height="112"
     alt=""
-    class="h-14 w-14 shrink-0 rounded-full bg-white p-1 ring-1 ring-eagles-line"
+    class="h-12 w-12 shrink-0 rounded-full bg-white p-1 ring-1 ring-eagles-line sm:h-14 sm:w-14"
   />
   <span class="min-w-0 leading-none">
-    <span class={`block truncate font-display text-base font-black uppercase sm:hidden ${nameClass}`}>Greenacre Eagles</span>
-    <span class={`hidden truncate font-display text-xl font-black uppercase sm:block md:text-2xl ${nameClass}`}>{site.name}</span>
-    <span class={`mt-1 hidden truncate text-[0.7rem] font-black uppercase tracking-[.04em] sm:block ${associationClass}`}>{site.association}</span>
+    <span class={`block whitespace-nowrap font-display text-[clamp(.8rem,4vw,1rem)] font-black uppercase sm:hidden ${nameClass}`}>Greenacre Eagles</span>
+    <span class={`hidden whitespace-nowrap font-display text-xl font-black uppercase sm:block xl:text-2xl ${nameClass}`}>{site.name}</span>
+    <span class={`mt-1 hidden max-w-[25rem] text-[0.68rem] font-black uppercase leading-tight tracking-[.035em] sm:block ${associationClass}`}>{site.association}</span>
   </span>
 </a>

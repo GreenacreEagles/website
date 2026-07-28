@@ -14,10 +14,10 @@ const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
 ---
 <BaseLayout title="Teams" description="Meet the active junior, youth and senior teams representing Greenacre Eagles FC.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
-    <div class="section-shell grid min-w-0 gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
+    <div class="section-shell grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,21.25rem)] lg:items-end">
       <div class="min-w-0">
         <p class="eyebrow">Teams</p>
-        <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none sm:text-6xl md:text-7xl">Football for every stage</h1>
+        <h1 class="mt-4 break-words font-display text-4xl font-black uppercase leading-none sm:text-5xl md:text-6xl lg:text-7xl">Football for every stage</h1>
         <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">
           Greenacre Eagles supports players through junior, youth and senior football. Every squad has its own character and ambitions, while sharing the same commitment to teammates, families and the wider club.
         </p>
@@ -28,9 +28,8 @@ const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
 
   <section class="section-pad bg-white">
     <div class="section-shell">
-      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+      <div>
         <SectionHeading eyebrow="Our squads" title="Public teams" intro="Explore the Greenacre Eagles teams currently sharing their squad information with the community." />
-        <ButtonLink href="/join/" variant="secondary">Register interest</ButtonLink>
       </div>
       {teams.length ? <div class="mt-10 grid gap-5 lg:grid-cols-3">{teams.map((team) => <TeamCard team={team} />)}</div> :
         <div class="mt-10"><EmptyState title="Team profiles coming soon" text="Our active teams are being prepared for public display. Contact the club if you would like help finding the right team." /></div>}
