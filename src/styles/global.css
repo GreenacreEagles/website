@@ -25,14 +25,19 @@
     display: block;
   }
 
-  a {
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary {
     @apply transition-colors duration-200;
   }
 }
 
 @layer components {
   .section-shell {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
   .section-pad {
@@ -40,16 +45,16 @@
   }
 
   .eyebrow {
-    @apply text-sm font-bold uppercase text-eagles-green;
+    @apply text-sm font-bold uppercase text-eagles-pine;
   }
 
   .surface {
-    @apply border border-eagles-line bg-white shadow-match-card;
+    @apply min-w-0 border border-eagles-line bg-white shadow-match-card;
     border-radius: 8px;
   }
 
   .dark-surface {
-    @apply border border-eagles-green/20 bg-eagles-green text-white shadow-match-card;
+    @apply min-w-0 border border-eagles-green/25 bg-eagles-pine text-white shadow-match-card;
     border-radius: 8px;
   }
 
@@ -58,9 +63,18 @@
     border-radius: 8px;
   }
 
-  .field:focus {
+  .field:focus-visible {
     box-shadow: var(--field-shadow);
     @apply border-eagles-green;
+  }
+
+  .field::placeholder {
+    @apply text-eagles-ink/50;
+  }
+
+  .field:disabled,
+  .field[aria-disabled="true"] {
+    @apply cursor-not-allowed bg-eagles-mist text-eagles-ink/60;
   }
 
   .label {
@@ -68,15 +82,83 @@
   }
 
   .nav-link {
-    @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-eagles-ink/70 hover:text-eagles-green;
+    @apply inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-eagles-ink/70 hover:bg-eagles-mist hover:text-eagles-pine;
     border-radius: 8px;
   }
 
   .nav-link[aria-current="page"] {
-    @apply bg-eagles-green text-white;
+    @apply bg-eagles-pine text-white;
+  }
+
+  .nav-link[aria-current="page"]:hover {
+    @apply bg-eagles-ink text-white;
+  }
+
+  .portal-nav-link {
+    @apply inline-flex min-h-10 items-center whitespace-nowrap px-3 py-2 text-eagles-ink/75 hover:bg-eagles-mist hover:text-eagles-pine;
+    border-radius: 8px;
+  }
+
+  .portal-nav-link[aria-current="page"] {
+    @apply bg-eagles-pine text-white;
+  }
+
+  .portal-nav-link[aria-current="page"]:hover {
+    @apply bg-eagles-ink text-white;
   }
 
   .focus-ring {
-    @apply outline-none focus-visible:ring-4 focus-visible:ring-eagles-green/35;
+    @apply outline-none;
+  }
+}
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #004f43;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 5px #004f43;
+}
+
+:where(a, button).text-eagles-green {
+  @apply text-eagles-pine;
+}
+
+:where(a, button).text-eagles-green:hover {
+  @apply text-eagles-ink;
+}
+
+:where(a, button:not(:disabled)).bg-eagles-green {
+  @apply bg-eagles-pine text-white;
+}
+
+:where(a, button:not(:disabled)).bg-eagles-green:hover {
+  @apply bg-eagles-ink text-white;
+}
+
+:where(a, button).hover\:bg-eagles-green:hover {
+  @apply bg-eagles-pine text-white;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+[aria-busy="true"] {
+  cursor: wait;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
   }
 }

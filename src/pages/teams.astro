@@ -14,10 +14,10 @@ const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
 ---
 <BaseLayout title="Teams" description="Meet the active junior, youth and senior teams representing Greenacre Eagles FC.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
-    <div class="section-shell grid gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
-      <div>
+    <div class="section-shell grid min-w-0 gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
+      <div class="min-w-0">
         <p class="eyebrow">Teams</p>
-        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Football for every stage</h1>
+        <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none sm:text-6xl md:text-7xl">Football for every stage</h1>
         <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">
           Greenacre Eagles supports players through junior, youth and senior football. Every squad has its own character and ambitions, while sharing the same commitment to teammates, families and the wider club.
         </p>
@@ -36,12 +36,12 @@ const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
         <div class="mt-10"><EmptyState title="Team profiles coming soon" text="Our active teams are being prepared for public display. Contact the club if you would like help finding the right team." /></div>}
 
       <article class="mt-10 grid gap-6 border border-eagles-green bg-eagles-ink p-6 text-white md:grid-cols-[1fr_auto] md:items-center md:p-8" style="border-radius:12px">
-        <div>
+        <div class="min-w-0">
           <p class="eyebrow text-eagles-lime">Club portal</p>
           <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none">Looking for your team?</h2>
           <p class="mt-3 max-w-2xl leading-7 text-white/75">Log in to the Greenacre Eagles portal to view the teams you are connected to, team posts and club updates.</p>
         </div>
-        <ButtonLink href="/login/?returnTo=%2Fportal%2Fteams%2F">View my teams</ButtonLink>
+        <ButtonLink href="/login/?returnTo=%2Fportal%2Fteams%2F" variant="light">View my teams</ButtonLink>
       </article>
     </div>
   </section>

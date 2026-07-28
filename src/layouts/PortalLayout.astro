@@ -72,33 +72,33 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
     <ClientRouter />
   </head>
   <body class="bg-eagles-mist">
-    <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
-      <aside class="border-b border-eagles-line bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
+    <div class="min-h-screen min-w-0 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
+      <aside class="min-w-0 border-b border-eagles-line bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
         <div class="flex items-center justify-between gap-4 p-4 lg:block lg:p-6">
           <a href={session.isChildAccount ? "/portal/teams/" : "/portal/"} class="inline-flex"><LogoLockup /></a>
           <form method="post" action="/api/auth/signout" class="lg:hidden">
-            <button class="text-sm font-black text-eagles-green" type="submit">Sign out</button>
+            <button class="focus-ring whitespace-nowrap text-sm font-black text-eagles-pine hover:text-eagles-ink" type="submit">Sign out</button>
           </form>
         </div>
         {!inAdmin && (
           <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
             {visiblePortalNav.map((item) => (
-              <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", isActiveNav(item.href) && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+              <a class="portal-nav-link" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>
             ))}
           </nav>
         )}
         {showAdmin && (
           <div class="border-t border-eagles-line px-4 py-4 lg:px-6">
-            {!inAdmin && <a class="inline-flex w-full justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/admin/">Admin</a>}
+            {!inAdmin && <a class="focus-ring inline-flex min-h-11 w-full items-center justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-pine" style="border-radius:8px" href="/admin/">Admin</a>}
             {inAdmin && (
               <>
-                <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Administration</p>
+                <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-pine">Administration</p>
                 <nav class="mt-3 flex gap-2 overflow-x-auto text-sm font-black lg:grid" aria-label="Admin navigation">
                   {visibleAdminNav.map((item) => (
-                    <a class:list={["whitespace-nowrap px-3 py-2 hover:bg-eagles-mist", isActiveNav(item.href) && "bg-eagles-green text-white"]} style="border-radius:8px" href={item.href}>{item.label}</a>
+                    <a class="portal-nav-link" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>
                   ))}
                 </nav>
-                <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href="/portal/">Back to portal</a>
+                <a class="focus-ring mt-4 inline-flex text-sm font-black text-eagles-pine hover:text-eagles-ink" href="/portal/">Back to portal</a>
               </>
             )}
           </div>
@@ -108,17 +108,17 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
           <p class="mt-1 text-xs text-eagles-ink/60">{session.user.email}</p>
           <p class="mt-3 text-xs font-bold text-eagles-ink/60">{session.unreadNotifications} unread notifications</p>
           <form method="post" action="/api/auth/signout" class="mt-4">
-            <button class="text-sm font-black text-eagles-green hover:text-eagles-ink" type="submit">Sign out</button>
+            <button class="focus-ring text-sm font-black text-eagles-pine hover:text-eagles-ink" type="submit">Sign out</button>
           </form>
         </div>
       </aside>
 
-      <div>
-        <header class="border-b border-eagles-line bg-white px-4 py-5 md:px-8">
-          <p class="text-xs font-black uppercase tracking-[.18em] text-eagles-green">{section}</p>
-          <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">{title}</h1>
+      <div class="min-w-0">
+        <header class="min-w-0 border-b border-eagles-line bg-white px-4 py-5 md:px-8">
+          <p class="text-xs font-black uppercase tracking-[.18em] text-eagles-pine">{section}</p>
+          <h1 class="mt-2 break-words font-display text-2xl font-black uppercase leading-none text-eagles-ink sm:text-4xl md:text-5xl">{title}</h1>
         </header>
-        <main class="px-4 py-6 md:px-8">
+        <main class="min-w-0 px-4 py-6 md:px-8">
           <slot />
         </main>
       </div>

@@ -17,7 +17,7 @@ const panelSize =
       : "md:max-w-2xl";
 const buttonClass =
   tone === "primary"
-    ? "bg-eagles-green text-white hover:bg-eagles-ink"
+    ? "bg-eagles-pine text-white hover:bg-eagles-ink"
     : "border border-eagles-line bg-white text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist";
 ---
 
@@ -33,7 +33,7 @@ const buttonClass =
 <dialog
   id={id}
   class:list={[
-    "admin-dialog m-0 h-dvh max-h-dvh w-screen max-w-none bg-transparent p-0 backdrop:bg-eagles-ink/55 md:m-auto md:h-auto md:w-[calc(100vw-48px)]",
+    "admin-dialog m-0 h-dvh max-h-dvh w-screen max-w-none overflow-hidden bg-transparent p-0 backdrop:bg-eagles-ink/55 md:m-auto md:h-auto md:w-[calc(100vw-48px)]",
     panelSize
   ]}
   data-admin-dialog

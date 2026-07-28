@@ -10,19 +10,19 @@ interface Props {
 const { href, variant = "primary", external = false } = Astro.props;
 
 const classes = {
-  primary: "border border-eagles-green bg-eagles-green text-white hover:bg-eagles-ink",
+  primary: "border border-eagles-pine bg-eagles-pine text-white hover:border-eagles-ink hover:bg-eagles-ink",
   secondary: "border border-eagles-line bg-white text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist",
-  dark: "bg-eagles-ink text-white hover:bg-eagles-green",
-  light: "border border-white/20 bg-white/10 text-white hover:bg-white hover:text-eagles-ink"
+  dark: "border border-eagles-ink bg-eagles-ink text-white hover:border-eagles-pine hover:bg-eagles-pine",
+  light: "border border-white bg-white text-eagles-pine hover:border-eagles-ink hover:bg-eagles-ink hover:text-white"
 };
 ---
 
 <a
   href={href}
-  class={`focus-ring inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-black ${classes[variant]}`}
+  class={`focus-ring inline-flex min-h-11 max-w-full items-center justify-center gap-2 px-5 py-3 text-center text-sm font-black ${classes[variant]}`}
   style="border-radius:8px"
   target={external ? "_blank" : undefined}
-  rel={external ? "noreferrer" : undefined}
+  rel={external ? "noopener noreferrer" : undefined}
 >
   <slot />
   <Icon name={external ? "arrowUpRight" : "arrowRight"} class="h-4 w-4" />

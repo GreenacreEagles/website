@@ -12,7 +12,7 @@ const footerLinks = [
 ];
 ---
 
-<footer class="bg-eagles-green text-white">
+<footer class="bg-eagles-pine text-white">
   <div class="section-shell grid gap-10 py-14 lg:grid-cols-[1.2fr_.8fr_.8fr]">
     <div>
       <LogoLockup tone="light" />
@@ -45,9 +45,19 @@ const footerLinks = [
     </div>
   </div>
   <div class="border-t border-white/10">
-    <div class="section-shell flex flex-col gap-3 py-5 text-sm text-white/60 md:flex-row md:items-center md:justify-between">
+    <div class="section-shell flex flex-col gap-3 py-5 text-sm text-white/65 md:flex-row md:items-center md:justify-between">
       <p>&copy; {new Date().getFullYear()} {site.name}. All rights reserved.</p>
-      <p>Proudly representing Greenacre and the Bankstown football community.</p>
+      <div class="flex flex-col gap-2 md:items-end">
+        <p>Proudly representing Greenacre and the Bankstown football community.</p>
+        <a
+          class="focus-ring w-fit font-bold text-white/75 underline decoration-white/30 underline-offset-4 hover:text-white hover:decoration-white"
+          href="https://www.instagram.com/asaadelmusty/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Website by Asaad El Musty
+        </a>
+      </div>
     </div>
   </div>
 </footer>

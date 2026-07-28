@@ -1,4 +1,4 @@
-﻿---
+---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import SectionHeading from "@components/SectionHeading.astro";
@@ -15,10 +15,10 @@ export const prerender = false;
 
 <BaseLayout title="Club Sponsors" description="Meet the businesses and community partners supporting Greenacre Eagles Football Club.">
   <section class="section-pad bg-eagles-mist text-eagles-ink">
-    <div class="section-shell grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-      <div>
+    <div class="section-shell grid min-w-0 gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div class="min-w-0">
         <p class="text-sm font-black uppercase text-eagles-green">Sponsors</p>
-        <h1 class="mt-4 font-display text-6xl font-black uppercase leading-none md:text-7xl">Our club sponsors</h1>
+        <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none sm:text-6xl md:text-7xl">Our club sponsors</h1>
         <p class="mt-6 max-w-3xl text-xl leading-9 text-eagles-ink/75">Greenacre Eagles Football Club is proud to be supported by local businesses and community partners who help us provide football opportunities for players and families across the club.</p>
       </div>
       <ButtonLink href="/contact/?type=sponsorship" variant="primary">Ask about sponsorship</ButtonLink>

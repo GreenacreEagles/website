@@ -14,7 +14,7 @@ const percent = progressPercent(fundraiser.data.currentAmount, fundraiser.data.g
 
 <article class="grid overflow-hidden border border-eagles-green/20 bg-white shadow-match-card md:grid-cols-[.95fr_1.05fr]" style="border-radius:8px">
   <img src={fundraiser.data.image ?? "/media/placeholders/fundraiser-community.svg"} alt="" class="h-full min-h-72 w-full object-cover" loading="lazy" />
-  <div class="bg-eagles-green p-6 text-white md:p-8">
+  <div class="bg-eagles-pine p-6 text-white md:p-8">
     <p class="inline-flex items-center gap-2 text-sm font-black uppercase text-eagles-lime">
       <Icon name="heartHandshake" class="h-4 w-4" /> {fundraiser.data.status}
     </p>
@@ -30,7 +30,7 @@ const percent = progressPercent(fundraiser.data.currentAmount, fundraiser.data.g
       </div>
     </div>
     <div class="mt-7">
-      <ButtonLink href={fundraiser.data.ctaLink} variant="primary">{fundraiser.data.ctaText}</ButtonLink>
+      <ButtonLink href={fundraiser.data.ctaLink} variant="light">{fundraiser.data.ctaText}</ButtonLink>
     </div>
   </div>
 </article>
