@@ -18,8 +18,8 @@ const schema = z.object({
   path: ["confirmPassword"]
 });
 
-const loginRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
-  context.redirect(redirectWithMessage("/login/", type, message), 303);
+const signupRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
+  context.redirect(redirectWithMessage("/signup/", type, message), 303);
 
 export const POST: APIRoute = async (context) => {
   const correlationId = crypto.randomUUID();
@@ -29,14 +29,14 @@ export const POST: APIRoute = async (context) => {
       formData = await context.request.formData();
     } catch (cause) {
       console.error("Signup form parsing failed", { cause, correlationId });
-      return loginRedirect(context, "error", "The account form could not be read. Please try again.");
+      return signupRedirect(context, "error", "The account form could not be read. Please try again.");
     }
 
     const verification = await verifyTurnstile(context, formData, "signup");
-    if (!verification.success) return loginRedirect(context, "error", verification.error ?? "Verification failed.");
+    if (!verification.success) return signupRedirect(context, "error", verification.error ?? "Verification failed.");
 
     const parsed = schema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) return loginRedirect(context, "error", "Check your account details and try again.");
+    if (!parsed.success) return signupRedirect(context, "error", "Check your account details and try again.");
 
     const supabase = createSupabaseServerClient(context);
     const { error } = await supabase.auth.signUp({
@@ -52,10 +52,10 @@ export const POST: APIRoute = async (context) => {
       }
     });
 
-    if (error) return loginRedirect(context, "error", "Account creation failed. The email may already be registered.");
-    return loginRedirect(context, "success", "Account created. Check your email, then sign in.");
+    if (error) return signupRedirect(context, "error", "Account creation failed. The email may already be registered.");
+    return signupRedirect(context, "success", "Account created. Check your email, then sign in.");
   } catch (cause) {
     console.error("Unexpected signup failure", { cause, correlationId });
-    return loginRedirect(context, "error", `Account creation is temporarily unavailable. Reference ${correlationId}.`);
+    return signupRedirect(context, "error", `Account creation is temporarily unavailable. Reference ${correlationId}.`);
   }
 };

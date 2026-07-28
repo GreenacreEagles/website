@@ -75,7 +75,7 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
     <div class="min-h-screen min-w-0 lg:grid lg:grid-cols-[minmax(0,16.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)]">
       <aside class="min-w-0 border-b border-eagles-line bg-white lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <div class="flex items-center justify-between gap-3 p-3 sm:gap-4 sm:p-4 lg:block lg:p-5">
-          <div class="min-w-0 flex-1"><LogoLockup tone="dark" href={session.isChildAccount ? "/portal/teams/" : "/portal/"} /></div>
+          <div class="min-w-0 flex-1"><LogoLockup tone="dark" href="/" /></div>
           <form method="post" action="/api/auth/signout" class="lg:hidden">
             <button class="focus-ring whitespace-nowrap text-sm font-black text-eagles-pine hover:text-eagles-ink" type="submit">Sign out</button>
           </form>

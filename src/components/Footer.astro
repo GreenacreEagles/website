@@ -13,11 +13,11 @@ const footerLinks = [
 ---
 
 <footer class="bg-eagles-pine text-white">
-  <div class="section-shell grid gap-8 py-8 md:py-10 lg:grid-cols-[1.2fr_.8fr_.8fr]">
-    <div>
+  <div class="section-shell grid gap-6 py-8 sm:grid-cols-2 sm:gap-7 md:py-10 lg:grid-cols-[1.2fr_.8fr_.8fr]">
+    <div class="sm:col-span-2 lg:col-span-1">
       <LogoLockup tone="light" />
-      <p class="mt-5 max-w-xl text-base leading-7 text-white/70">{site.tagline}</p>
-      <div class="mt-6 grid gap-3 text-sm text-white/70">
+      <p class="mt-4 max-w-xl text-sm leading-6 text-white/70 sm:text-base sm:leading-7">{site.tagline}</p>
+      <div class="mt-5 grid gap-2.5 text-sm text-white/70">
         <span class="inline-flex items-center gap-2"><Icon name="mapPin" class="h-4 w-4 text-eagles-lime" /> {site.location}</span>
         <a class="inline-flex items-center gap-2 hover:text-white" href={`mailto:${site.contactEmail}`}>
           <Icon name="mail" class="h-4 w-4 text-eagles-lime" /> {site.contactEmail}
@@ -26,13 +26,13 @@ const footerLinks = [
     </div>
     <div>
       <h2 class="font-display text-lg font-black uppercase">Club</h2>
-      <div class="mt-4 grid gap-3">
+      <div class="mt-3 grid gap-2.5">
         {footerLinks.map((link) => <a class="text-sm font-bold text-white/70 hover:text-white" href={link.href}>{link.label}</a>)}
       </div>
     </div>
     <div>
       <h2 class="font-display text-lg font-black uppercase">Social</h2>
-      <div class="mt-4 grid gap-3">
+      <div class="mt-3 grid gap-2.5">
         {
           site.socials.map((social) => (
             <a class="inline-flex items-center gap-2 text-sm font-bold text-white/70 hover:text-white" href={social.href} target="_blank" rel="noopener noreferrer">
@@ -45,9 +45,9 @@ const footerLinks = [
     </div>
   </div>
   <div class="border-t border-white/10">
-    <div class="section-shell flex flex-col gap-3 py-5 text-sm text-white/65 md:flex-row md:items-center md:justify-between">
+    <div class="section-shell flex flex-col gap-2.5 py-4 text-sm text-white/65 sm:py-5 md:flex-row md:items-center md:justify-between">
       <p>&copy; {new Date().getFullYear()} {site.name}. All rights reserved.</p>
-      <div class="flex flex-col gap-2 md:items-end">
+      <div class="flex flex-col gap-1.5 md:items-end">
         <p>Proudly representing Greenacre and the Bankstown football community.</p>
         <a
           class="focus-ring w-fit font-bold text-white/75 underline decoration-white/30 underline-offset-4 hover:text-white hover:decoration-white"
@@ -55,7 +55,7 @@ const footerLinks = [
           target="_blank"
           rel="noopener noreferrer"
         >
-          Website by Asaad El Musty
+          Website by Asaad Elmustapha
         </a>
       </div>
     </div>
