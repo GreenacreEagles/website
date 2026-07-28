@@ -1,7 +1,7 @@
 import { defineConfig } from "astro/config";
 import cloudflare from "@astrojs/cloudflare";
 
-const site = process.env.SITE_URL || "https://greenacreeaglesfc.com.au";
+const site = process.env.SITE_URL || "https://greenacreeaglesfc.com";
 const toolbarDeps = new Set(["astro > aria-query", "astro > axobject-query"]);
 const removeToolbarOptimizerDeps = () => ({
   name: "remove-astro-toolbar-optimizer-deps",

@@ -17,8 +17,8 @@ const {
 } = Astro.props;
 
 const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://greenacreeaglesfc.com.au");
-const imageUrl = new URL(image, Astro.site ?? "https://greenacreeaglesfc.com.au");
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://greenacreeaglesfc.com");
+const imageUrl = new URL(image, Astro.site ?? "https://greenacreeaglesfc.com");
 ---
 
 <!doctype html>

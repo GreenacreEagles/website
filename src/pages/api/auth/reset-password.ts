@@ -3,25 +3,40 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@lib/supabase/server";
 import { redirectWithMessage } from "@lib/forms";
 import { verifyTurnstile } from "@lib/security/turnstile";
+import { getConfiguredSiteOrigin } from "@lib/site-url";
 
 export const prerender = false;
 
 const schema = z.object({ email: z.string().email() });
+const loginRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
+  context.redirect(redirectWithMessage("/login/", type, message), 303);
 
 export const POST: APIRoute = async (context) => {
-  const formData = await context.request.formData();
-  const verification = await verifyTurnstile(context, formData, "reset_password");
-  if (!verification.success) return context.redirect(redirectWithMessage("/login/", "error", verification.error ?? "Verification failed."));
+  const correlationId = crypto.randomUUID();
+  try {
+    let formData: FormData;
+    try {
+      formData = await context.request.formData();
+    } catch (cause) {
+      console.error("Password reset form parsing failed", { cause, correlationId });
+      return loginRedirect(context, "error", "The password reset form could not be read.");
+    }
 
-  const form = Object.fromEntries(formData);
-  const parsed = schema.safeParse(form);
-  if (!parsed.success) return context.redirect(redirectWithMessage("/login/", "error", "Enter a valid email address."));
+    const verification = await verifyTurnstile(context, formData, "reset_password");
+    if (!verification.success) return loginRedirect(context, "error", verification.error ?? "Verification failed.");
 
-  const supabase = createSupabaseServerClient(context);
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: new URL("/portal/account/", context.url.origin).toString()
-  });
+    const parsed = schema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) return loginRedirect(context, "error", "Enter a valid email address.");
 
-  if (error) return context.redirect(redirectWithMessage("/login/", "error", "Password reset could not be sent."));
-  return context.redirect(redirectWithMessage("/login/", "success", "Password reset email sent."));
+    const supabase = createSupabaseServerClient(context);
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo: `${getConfiguredSiteOrigin(context)}/portal/account/`
+    });
+
+    if (error) return loginRedirect(context, "error", "Password reset could not be sent.");
+    return loginRedirect(context, "success", "Password reset email sent.");
+  } catch (cause) {
+    console.error("Unexpected password reset failure", { cause, correlationId });
+    return loginRedirect(context, "error", `Password reset is temporarily unavailable. Reference ${correlationId}.`);
+  }
 };

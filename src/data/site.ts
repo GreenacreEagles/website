@@ -3,9 +3,9 @@ export const site = {
   shortName: "Eagles",
   association: "Bankstown District Amateur Football Association",
   location: "Greenacre, Western Sydney",
-  tagline: "Proud football for Greenacre families, players, and supporters.",
+  tagline: "Junior and senior football in Greenacre.",
   description:
-    "Greenacre Eagles FC is a community football club in Western Sydney, with junior teams, senior football, volunteers, sponsors, and families behind every match day.",
+    "Official website of Greenacre Eagles FC, competing in the Bankstown District Amateur Football Association.",
   registrationUrl: "/join/",
   volunteerUrl: "/volunteer/",
   contactEmail: "contact@greenacreeaglesfc.com.au",

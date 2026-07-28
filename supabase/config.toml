@@ -12,7 +12,7 @@ site_url = "http://localhost:4321"
 additional_redirect_urls = [
   "http://localhost:4321/auth/callback",
   "https://website-4h5.pages.dev/auth/callback",
-  "https://greenacreeaglesfc.com.au/auth/callback"
+  "https://greenacreeaglesfc.com/auth/callback"
 ]
 
 [db]

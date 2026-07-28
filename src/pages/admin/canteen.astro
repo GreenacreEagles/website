@@ -220,14 +220,27 @@ const requestKey = crypto.randomUUID();
       const selectedBox = form.querySelector("[data-selected-recipients]");
       const summary = form.querySelector("[data-benefit-summary]");
       const render = () => {
-        selectedBox.innerHTML = "";
-        if (!selected.size) selectedBox.innerHTML = '<span class="text-sm text-eagles-ink/60">None selected.</span>';
+        selectedBox.replaceChildren();
+        if (!selected.size) {
+          const emptyMessage = document.createElement("span");
+          emptyMessage.className = "text-sm text-eagles-ink/60";
+          emptyMessage.textContent = "None selected.";
+          selectedBox.appendChild(emptyMessage);
+        }
         selected.forEach((entry, key) => {
           const label = document.createElement("label");
           label.className = "inline-flex items-center gap-2 bg-white px-3 py-2 text-sm font-bold";
           label.style.borderRadius = "8px";
-          label.innerHTML = `<input type="checkbox" name="${entry.type}_ids" value="${entry.id}" checked> ${entry.label} <span aria-hidden="true">×</span>`;
-          label.querySelector("input").addEventListener("change", () => { selected.delete(key); render(); });
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.name = `${entry.type}_ids`;
+          checkbox.value = entry.id;
+          checkbox.checked = true;
+          checkbox.addEventListener("change", () => { selected.delete(key); render(); });
+          const removeIcon = document.createElement("span");
+          removeIcon.setAttribute("aria-hidden", "true");
+          removeIcon.textContent = "×";
+          label.append(checkbox, document.createTextNode(` ${entry.label} `), removeIcon);
           selectedBox.appendChild(label);
         });
         summary.textContent = selected.size ? `${selected.size} selected. You will confirm once more before issuing.` : "No recipients selected.";
@@ -246,7 +259,7 @@ const requestKey = crypto.randomUUID();
               const contentType = response.headers.get("content-type") || "";
               if (!response.ok || !contentType.includes("application/json")) throw new Error(`${requestPath} returned HTTP ${response.status} (${contentType || "unknown content type"})`);
               const payload = await response.json();
-              box.innerHTML = "";
+              box.replaceChildren();
               (payload.results || []).forEach(row => {
                 const button = document.createElement("button");
                 button.type = "button";

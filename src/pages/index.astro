@@ -1,42 +1,90 @@
-﻿---
+---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
-import EventCard from "@components/EventCard.astro";
-import FundraiserCard from "@components/FundraiserCard.astro";
 import Icon from "@components/Icon.astro";
 import NewsCard from "@components/NewsCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
 import { newestFirst, upcomingFirst } from "@lib/content";
+import { formatDateTime } from "@lib/format";
 import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, type PublicSponsor } from "@lib/public-content";
+import { getPublicEvents, type PublicEventSummary } from "@lib/public-events";
 import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
 import { getPublicSocial, type PublicSocialPost } from "@lib/public-social";
 
-const markdownNews = newestFirst(await getCollection("news")).map(markdownArticle);
+const [markdownNewsItems, markdownEventItems, markdownAnnouncementItems] = await Promise.all([
+  getCollection("news"),
+  getCollection("events"),
+  getCollection("announcements")
+]);
+const markdownNews = newestFirst(markdownNewsItems).map(markdownArticle);
 const dbNews = await fetchPublicArticles(3);
 const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
-let socialPosts: PublicSocialPost[] = [];
-try { socialPosts = (await getPublicSocial(createSupabaseServerClient(Astro), Astro)).posts.slice(0, 3); } catch {}
-const events = upcomingFirst(await getCollection("events")).slice(0, 3);
-const spotlightTeam = (await getPublicTeams(createSupabaseServerClient(Astro), Astro)).teams[0];
-let sponsors: PublicSponsor[] = [];
-try { sponsors = await fetchPublicSponsors(createSupabaseServerClient(Astro), Astro, 3); } catch {}
-const fundraiser = (await getCollection("fundraisers")).find((item) => item.data.status === "active");
-const markdownAnnouncementItem = (await getCollection("announcements"))
+
+const supabase = createSupabaseServerClient(Astro);
+const [socialResult, teamsResult, sponsorsResult, eventsResult] = await Promise.allSettled([
+  getPublicSocial(supabase, Astro),
+  getPublicTeams(supabase, Astro),
+  fetchPublicSponsors(supabase, Astro, 3),
+  getPublicEvents(supabase, Astro)
+]);
+
+const reportLoadFailure = (label: string, result: PromiseSettledResult<unknown>) => {
+  if (result.status === "rejected") console.error(`Unable to load homepage ${label}`, { cause: result.reason });
+};
+reportLoadFailure("social posts", socialResult);
+reportLoadFailure("teams", teamsResult);
+reportLoadFailure("sponsors", sponsorsResult);
+reportLoadFailure("events", eventsResult);
+
+const socialPosts: PublicSocialPost[] = socialResult.status === "fulfilled" ? socialResult.value.posts.slice(0, 3) : [];
+const spotlightTeam = teamsResult.status === "fulfilled" ? teamsResult.value.teams[0] : null;
+const sponsors: PublicSponsor[] = sponsorsResult.status === "fulfilled" ? sponsorsResult.value : [];
+const databaseEvents: PublicEventSummary[] = eventsResult.status === "fulfilled" ? eventsResult.value.slice(0, 3) : [];
+
+const registrationPrompt = /\b(join|register|registration|expression of interest|sign up|request a place)\b/i;
+const now = new Date();
+const fallbackEvents = upcomingFirst(markdownEventItems)
+  .filter((event) => event.data.dateTime >= now)
+  .filter((event) => !registrationPrompt.test([event.data.title, event.data.summary, event.data.ctaLink].filter(Boolean).join(" ")))
+  .slice(0, 3)
+  .map((event) => ({
+    title: event.data.title,
+    summary: event.data.summary,
+    startsAt: event.data.dateTime.toISOString(),
+    location: event.data.location,
+    href: event.data.ctaLink?.startsWith("/") && !event.data.ctaLink.startsWith("//") ? event.data.ctaLink : "/events/"
+  }));
+const events = databaseEvents.length > 0
+  ? databaseEvents.map((event) => ({
+      title: event.name,
+      summary: event.summary,
+      startsAt: event.startsAt,
+      location: event.venueName ?? "Venue to be confirmed",
+      href: `/events/${event.slug}/`
+    }))
+  : fallbackEvents;
+
+const markdownAnnouncementItem = markdownAnnouncementItems
   .filter((item) => item.data.active)
   .sort((a, b) => a.data.priority - b.data.priority)
   .map(markdownAnnouncement)[0];
-const announcement = (await fetchPublicAnnouncement()) ?? markdownAnnouncementItem;
+const announcementCandidate = (await fetchPublicAnnouncement()) ?? markdownAnnouncementItem;
+const announcement = announcementCandidate && !registrationPrompt.test([
+  announcementCandidate.title,
+  announcementCandidate.message,
+  announcementCandidate.linkUrl
+].filter(Boolean).join(" ")) ? announcementCandidate : null;
+const announcementHref = announcement?.linkUrl?.startsWith("/") && !announcement.linkUrl.startsWith("//")
+  ? announcement.linkUrl
+  : "/news/";
 
 const photos = {
   celebration: "/media/photos/470187271_18322350109095212_5760343773768933538_n.jpg",
-  cup: "/media/photos/470202517_18322349908095212_7819866471836709672_n.jpg",
-  field: "/media/photos/508338727_18345027943095212_4785406490655999984_n.jpg",
-  net: "/media/photos/508554586_18345027934095212_3422841738495448436_n.jpg",
-  champions: "/media/photos/542799832_18354096757095212_3870055734016167636_n.jpg"
+  team: "/media/photos/542799832_18354096757095212_3870055734016167636_n.jpg"
 };
 
 export const prerender = false;
@@ -45,11 +93,11 @@ export const prerender = false;
 <BaseLayout title={site.name} description={site.description}>
   <section class="relative isolate overflow-hidden bg-eagles-mist text-eagles-ink">
     <div class="absolute inset-x-0 top-0 -z-20 h-40 bg-white"></div>
-    <div class="absolute right-0 top-20 -z-10 hidden h-[34rem] w-[44vw] bg-eagles-green lg:block" style="clip-path:polygon(22% 0, 100% 0, 100% 100%, 0 100%)"></div>
-    <div class="section-shell grid min-h-[calc(100svh-5rem)] gap-10 py-10 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:py-16">
+    <div class="absolute right-0 top-20 -z-10 hidden h-[32rem] w-[44vw] bg-eagles-green lg:block" style="clip-path:polygon(22% 0, 100% 0, 100% 100%, 0 100%)"></div>
+    <div class="section-shell grid gap-10 py-12 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:py-16">
       <div class="max-w-3xl">
         {announcement && (
-          <a href={announcement.linkUrl ?? "/join/"} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
+          <a href={announcementHref} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
             <Icon name="megaphone" class="h-4 w-4 text-eagles-green" />
             {announcement.title}
           </a>
@@ -58,174 +106,114 @@ export const prerender = false;
         <h1 class="mt-4 font-display text-5xl font-black uppercase leading-none sm:text-6xl md:text-8xl">
           Greenacre Eagles <span class="text-eagles-green">FC</span>
         </h1>
-        <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-2xl md:leading-9">
-          Welcome to Greenacre Eagles Football Club, where local players, families, volunteers, and supporters come together every week.
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-xl">
+          Junior and senior football in Greenacre, competing in the Bankstown District Amateur Football Association.
         </p>
-        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/join/">Join or register</ButtonLink>
-          <ButtonLink href="/volunteer/" variant="secondary">Volunteer with us</ButtonLink>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <ButtonLink href="/news/">Latest club news</ButtonLink>
+          <ButtonLink href="/teams/" variant="secondary">View teams</ButtonLink>
+          <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-[1fr_.72fr]">
         <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-          <img src={photos.celebration} alt="" class="h-full min-h-[28rem] w-full object-cover" />
+          <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="h-full min-h-96 w-full object-cover" />
         </div>
-        <div class="grid gap-4">
-          <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-            <img src={photos.champions} alt="" class="h-64 w-full object-cover object-top" />
-          </div>
-          <div class="bg-eagles-green p-5 text-white shadow-match-card" style="border-radius:8px">
-            <p class="text-sm font-black uppercase text-eagles-lime">2025 Champions</p>
-            <p class="mt-2 font-display text-4xl font-black uppercase leading-none">Pride in the badge</p>
-            <p class="mt-3 text-sm leading-6 text-white/80">From junior football to senior match day, every win is shared across the club.</p>
-          </div>
+        <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
+          <img src={photos.team} alt="Greenacre Eagles team on match day" class="h-full min-h-72 w-full object-cover object-top" />
         </div>
       </div>
     </div>
-    <div class="section-shell pb-10">
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {
-          site.stats.map((stat) => (
-            <div class="border border-eagles-green/20 bg-white p-4 shadow-match-card" style="border-radius:8px">
-              <p class="font-display text-3xl font-black uppercase leading-none text-eagles-green">{stat.value}</p>
-              <p class="mt-2 text-sm font-bold text-eagles-ink/65">{stat.label}</p>
+  </section>
+
+  <section class="section-pad bg-white">
+    <div class="section-shell">
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <SectionHeading eyebrow="Club news" title="Latest from the club" />
+        <ButtonLink href="/news/" variant="secondary">All news</ButtonLink>
+      </div>
+      {news.length > 0
+        ? <div class="mt-8 grid gap-5 lg:grid-cols-3">{news.map((article) => <NewsCard article={article} />)}</div>
+        : <p class="surface mt-8 p-5">No club news has been published yet.</p>}
+    </div>
+  </section>
+
+  {socialPosts.length > 0 && (
+    <section class="section-pad bg-eagles-mist">
+      <div class="section-shell">
+        <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <SectionHeading eyebrow="Social Hub" title="Around the Eagles" />
+          <ButtonLink href="/social/" variant="secondary">More posts</ButtonLink>
+        </div>
+        <div class="mt-8 grid gap-5 lg:grid-cols-3">
+          {socialPosts.map((post) => <article class="surface overflow-hidden">
+            {post.imageUrl
+              ? <img src={post.imageUrl} alt={post.imageAltText ?? post.title ?? `Greenacre Eagles ${post.platform} post`} class="h-56 w-full object-cover" loading="lazy" />
+              : <div class="flex h-40 items-center justify-center bg-eagles-green font-display text-2xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
+            <div class="p-5">
+              {post.title && <h3 class="font-display text-2xl font-black uppercase">{post.title}</h3>}
+              {post.caption && <p class="mt-3 line-clamp-3 text-eagles-ink/70">{post.caption}</p>}
+              <a class="mt-4 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a>
             </div>
-          ))
-        }
+          </article>)}
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  )}
 
   <section class="section-pad bg-white">
-    <div class="section-shell grid gap-10 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-      <SectionHeading
-        eyebrow="Club identity"
-        title="Football, family, and Greenacre pride"
-        intro="The Eagles are a home for players learning the game, senior teams chasing results, and families who make match day feel local."
-      />
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div class="surface p-5">
-          <Icon name="trophy" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Senior football</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Our senior squad carries Greenacre into every fixture with discipline, effort, and belief.</p>
-        </div>
-        <div class="surface p-5">
-          <Icon name="users" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Juniors</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">MiniRoos, youth teams, and family support keep the next generation moving forward.</p>
-        </div>
-        <div class="surface p-5">
-          <Icon name="shield" class="h-8 w-8 text-eagles-green" />
-          <h3 class="mt-4 font-display text-2xl font-black uppercase leading-none">Volunteers</h3>
-          <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Coaches, managers, canteen helpers, and committee members keep the club running.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-pad bg-eagles-green text-white">
-    <div class="section-shell grid gap-8 lg:grid-cols-[.95fr_1.05fr] lg:items-center">
-      <div>
-        <p class="eyebrow text-eagles-lime">Matchday colour</p>
-        <h2 class="mt-3 font-display text-5xl font-black uppercase leading-none md:text-7xl">Bright kits. Big moments. Local pride.</h2>
-        <p class="mt-5 max-w-2xl text-lg leading-8 text-white/80">Greenacre match days are built on hard tackles, sideline support, junior smiles, and teammates who back each other.</p>
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <img src={photos.field} alt="" class="h-80 w-full object-cover shadow-match-card" style="border-radius:8px" loading="lazy" />
-        <img src={photos.net} alt="" class="mt-10 h-80 w-full object-cover shadow-match-card" style="border-radius:8px" loading="lazy" />
-      </div>
-    </div>
-  </section>
-
-  <section class="section-pad bg-white">
-    <div class="section-shell">
-      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <SectionHeading eyebrow="Club news" title="Latest from the Eagles" intro="Read the latest updates from training, match day, registrations, sponsors, and the people around the club." />
-        <ButtonLink href="/news/" variant="secondary">Read club news</ButtonLink>
-      </div>
-      <div class="mt-10 grid gap-5 lg:grid-cols-3">
-        {news.map((article) => <NewsCard article={article} />)}
-      </div>
-    </div>
-  </section>
-
-  <section class="section-pad bg-white">
-    <div class="section-shell">
-      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p class="eyebrow">From the socials</p>
-          <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-5xl">Seen around the club</h2>
-          <p class="mt-5 max-w-3xl text-lg leading-8 text-eagles-ink/70">Match photos, training moments, sponsor shout-outs, and community updates from the Eagles channels.</p>
-        </div>
-        <ButtonLink href="/social/" variant="secondary">Follow the Eagles</ButtonLink>
-      </div>
-      <div class="mt-10 grid gap-5 lg:grid-cols-3">
-        {socialPosts.map((post) => <article class="surface overflow-hidden">
-          {post.imageUrl ? <img src={post.imageUrl} alt={post.imageAltText ?? ""} class="h-56 w-full object-cover" loading="lazy" /> : <div class="flex h-56 items-center justify-center bg-eagles-green font-display text-3xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
-          <div class="p-5">{post.title && <h3 class="font-display text-2xl font-black uppercase">{post.title}</h3>}{post.caption && <p class="mt-3 line-clamp-3 text-eagles-ink/70">{post.caption}</p>}<a class="mt-4 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a></div>
-        </article>)}
-      </div>
-    </div>
-  </section>
-
-  <section class="section-pad bg-eagles-mist">
     <div class="section-shell grid gap-10 lg:grid-cols-[1.1fr_.9fr]">
       <div>
-        <SectionHeading eyebrow="Upcoming" title="Events and matchday moments" intro="Key dates for families, players, volunteers, sponsors, and supporters around the club." />
-        <div class="mt-8 grid gap-5">
-          {events.map((event) => <EventCard event={event} />)}
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <SectionHeading eyebrow="Calendar" title="Upcoming events" />
+          <ButtonLink href="/events/" variant="secondary">All events</ButtonLink>
         </div>
+        {events.length > 0
+          ? <div class="mt-8 grid gap-4">{events.map((event) => <article class="surface p-5">
+              <p class="eyebrow">{formatDateTime(event.startsAt)}</p>
+              <h3 class="mt-2 font-display text-2xl font-black uppercase">{event.title}</h3>
+              <p class="mt-2 text-sm font-bold text-eagles-ink/65">{event.location}</p>
+              {event.summary && <p class="mt-3 line-clamp-2 text-eagles-ink/70">{event.summary}</p>}
+              <a class="mt-4 inline-flex font-black text-eagles-green" href={event.href}>View event</a>
+            </article>)}</div>
+          : <p class="surface mt-8 p-5">No upcoming events are listed.</p>}
       </div>
+
       {spotlightTeam && (
-        <article class="dark-surface overflow-hidden">
-          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="h-80 w-full object-cover" loading="lazy" />
+        <article class="dark-surface h-fit overflow-hidden">
+          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="h-72 w-full object-cover" loading="lazy" />
           <div class="p-6">
             <p class="text-sm font-black uppercase text-eagles-lime">Team spotlight</p>
             <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{spotlightTeam.name}</h3>
-            <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.summary ?? "Meet one of the active Greenacre Eagles squads representing our club this season."}</p>
-            <div class="mt-6">
-              <ButtonLink href="/teams/" variant="primary">View teams</ButtonLink>
-            </div>
+            <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.summary ?? "View the current squad and team information."}</p>
+            <div class="mt-6"><ButtonLink href="/teams/" variant="primary">View teams</ButtonLink></div>
           </div>
         </article>
       )}
     </div>
   </section>
 
-  {fundraiser && (
-    <section class="section-pad bg-white">
+  {sponsors.length > 0 && (
+    <section class="section-pad bg-eagles-mist">
       <div class="section-shell">
-        <SectionHeading eyebrow="Community support" title="Backing the teams that wear green" intro="Fundraising helps provide equipment, training support, match day resources, and better football experiences for our players." />
-        <div class="mt-10">
-          <FundraiserCard fundraiser={fundraiser} />
+        <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <SectionHeading eyebrow="Club partners" title="Our sponsors" />
+          <ButtonLink href="/sponsors/" variant="secondary">View sponsors</ButtonLink>
         </div>
+        <div class="mt-8"><SponsorStrip sponsors={sponsors} /></div>
       </div>
     </section>
   )}
 
-  <section class="section-pad bg-eagles-mist">
-    <div class="section-shell">
-      <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <SectionHeading eyebrow="Partners" title="Proudly supported locally" intro="Our club is backed by local businesses who help keep football strong in Greenacre." />
-        <ButtonLink href="/sponsors/" variant="secondary">Meet our sponsors</ButtonLink>
-      </div>
-      <div class="mt-10">
-        <SponsorStrip sponsors={sponsors} />
-      </div>
-    </div>
-  </section>
-
   <section class="bg-eagles-green py-14 text-white">
-    <div class="section-shell grid gap-6 md:grid-cols-[1fr_auto_auto] md:items-center">
+    <div class="section-shell flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
       <div>
-        <p class="eyebrow text-white/75">Get involved</p>
-        <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Players, families, volunteers, sponsors</h2>
-        <p class="mt-4 max-w-3xl text-base leading-7 text-white/80">There is a place at Greenacre Eagles for anyone ready to support local football.</p>
+        <p class="eyebrow text-white/75">Contact</p>
+        <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Contact the club</h2>
+        <p class="mt-4 max-w-2xl text-base leading-7 text-white/80">Questions about teams, fixtures, volunteering or sponsorship?</p>
       </div>
-      <ButtonLink href="/join/" variant="light">Join the club</ButtonLink>
-      <ButtonLink href="/contact/" variant="light">Contact us</ButtonLink>
+      <ButtonLink href="/contact/" variant="light">Get in touch</ButtonLink>
     </div>
   </section>
 </BaseLayout>
-

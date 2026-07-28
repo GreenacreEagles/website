@@ -3,12 +3,12 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
 import TurnstileWidget from "@components/TurnstileWidget.astro";
 import { getPortalSession } from "@lib/auth/session";
+import { safeAuthReturnPath } from "@lib/forms";
 
 export const prerender = false;
 
 const session = await getPortalSession(Astro);
-const requestedReturnTo = Astro.url.searchParams.get("returnTo") ?? "/portal/";
-const returnTo = requestedReturnTo.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/portal/";
+const returnTo = safeAuthReturnPath(Astro.url.searchParams.get("returnTo"));
 if (session) return Astro.redirect(returnTo);
 
 const success = Astro.url.searchParams.get("success");
