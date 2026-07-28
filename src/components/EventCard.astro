@@ -10,13 +10,13 @@ interface Props {
 const { event } = Astro.props;
 ---
 
-<article class="surface p-5">
+<article class="surface p-4 sm:p-5">
   <p class="text-sm font-black uppercase text-eagles-green">{event.data.eventType}</p>
-  <h3 class="mt-2 font-display text-2xl font-black uppercase leading-none">{event.data.title}</h3>
-  <div class="mt-4 grid gap-2 text-sm font-bold text-eagles-ink/65">
-    <span class="inline-flex items-center gap-2"><Icon name="calendar" class="h-4 w-4 text-eagles-green" /> {formatDateTime(event.data.dateTime)}</span>
-    <span class="inline-flex items-center gap-2"><Icon name="mapPin" class="h-4 w-4 text-eagles-green" /> {event.data.location}</span>
+  <h3 class="card-title mt-2 text-eagles-ink">{event.data.title}</h3>
+  <div class="mt-3 grid gap-2 text-sm font-bold text-eagles-ink/65">
+    <span class="inline-flex min-w-0 items-center gap-2"><Icon name="calendar" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{formatDateTime(event.data.dateTime)}</span></span>
+    <span class="inline-flex min-w-0 items-center gap-2"><Icon name="mapPin" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{event.data.location}</span></span>
   </div>
-  <p class="mt-4 text-base leading-7 text-eagles-ink/70">{event.data.summary}</p>
-  {event.data.ctaLink && <a class="mt-5 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href={event.data.ctaLink}>View details</a>}
+  <p class="mt-3 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{event.data.summary}</p>
+  {event.data.ctaLink && <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href={event.data.ctaLink}>View details</a>}
 </article>

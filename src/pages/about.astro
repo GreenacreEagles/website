@@ -10,19 +10,19 @@ export const prerender = true;
 
 <BaseLayout title="About" description="Learn about Greenacre Eagles FC, a proud community football club in the Bankstown District Amateur Football Association.">
   <section class="bg-eagles-mist text-eagles-ink">
-    <div class="section-shell grid min-w-0 gap-10 py-12 md:py-16 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center lg:py-20">
-      <div>
+    <div class="section-shell grid min-w-0 gap-8 py-10 md:py-12 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center lg:py-14">
+      <div class="min-w-0">
         <p class="text-sm font-black uppercase text-eagles-green">{site.location}</p>
-        <h1 class="mt-4 break-words font-display text-4xl font-black uppercase leading-none sm:text-5xl md:text-6xl lg:text-7xl">About the Eagles</h1>
-        <p class="mt-6 text-xl leading-9 text-eagles-ink/75">
+        <h1 class="mt-3 page-title">About the Eagles</h1>
+        <p class="mt-4 text-base leading-7 text-eagles-ink/75 sm:text-lg sm:leading-8">
           Greenacre Eagles FC is a community football club built around local pride, player development, family involvement, and competitive ambition.
         </p>
-        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/teams/">View teams</ButtonLink>
           <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
-      <img src="/media/photos/542281190_18354096280095212_5121379521009928220_n.jpg" alt="" class="h-full min-h-96 w-full object-cover shadow-match-card" style="border-radius:8px" />
+      <img src="/media/photos/542281190_18354096280095212_5121379521009928220_n.jpg" alt="" class="aspect-[4/3] max-h-[28rem] w-full object-cover shadow-match-card lg:aspect-auto lg:h-full lg:min-h-0" style="border-radius:8px" />
     </div>
   </section>
 
@@ -44,10 +44,10 @@ export const prerender = true;
     <div class="section-shell">
       <SectionHeading eyebrow="Values" title="What the club stands for" intro="The Eagles are built on effort, respect, family support, and pride in the local area." />
       <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <article class="surface p-5"><Icon name="trophy" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Ambition</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Compete with standards and prepare players for bigger moments.</p></article>
-        <article class="surface p-5"><Icon name="users" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Belonging</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Make families and players feel welcome across every age group.</p></article>
-        <article class="surface p-5"><Icon name="heartHandshake" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Service</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Celebrate the volunteers and sponsors who keep the club moving.</p></article>
-        <article class="surface p-5"><Icon name="shield" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 font-display text-2xl font-black uppercase leading-none">Pride</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Represent Greenacre with respect, effort, and connection.</p></article>
+        <article class="surface p-5"><Icon name="trophy" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 card-title">Ambition</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Compete with standards and prepare players for bigger moments.</p></article>
+        <article class="surface p-5"><Icon name="users" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 card-title">Belonging</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Make families and players feel welcome across every age group.</p></article>
+        <article class="surface p-5"><Icon name="heartHandshake" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 card-title">Service</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Celebrate the volunteers and sponsors who keep the club moving.</p></article>
+        <article class="surface p-5"><Icon name="shield" class="h-8 w-8 text-eagles-green" /><h2 class="mt-4 card-title">Pride</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Represent Greenacre with respect, effort, and connection.</p></article>
       </div>
     </div>
   </section>

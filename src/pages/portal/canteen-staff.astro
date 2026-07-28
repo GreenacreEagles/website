@@ -49,11 +49,11 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
 
-      <article class="surface p-5 md:p-7">
+      <article class="surface p-4 sm:p-5 md:p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="eyebrow">Live queue</p>
-            <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">Orders to prepare</h2>
+            <h2 class="mt-2 panel-title">Orders to prepare</h2>
           </div>
           <p class="text-sm font-bold text-eagles-ink/70">{staffOrders.length} open orders</p>
         </div>
@@ -112,7 +112,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
       {canRedeemVouchers && (
         <form class="surface grid gap-4 p-5" method="post" action="/api/admin/redeem-voucher">
           <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Claim voucher</h2>
+          <h2 class="card-title">Claim voucher</h2>
           <label>
             <span class="label">Scan or enter code</span>
             <input id="voucher-code" class="field font-mono text-lg font-black uppercase tracking-[.12em]" name="redemption_code" autocomplete="off" placeholder="GEVOUCHER:ABC123" required />
@@ -131,7 +131,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
       )}
 
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Recent claims</h2>
+        <h2 class="card-title">Recent claims</h2>
         <div class="mt-4 grid gap-3">
           {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear here after staff scan a wallet QR code.</p>}
           {(redemptions ?? []).map((redemption: any) => (

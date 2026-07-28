@@ -60,7 +60,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
   </div>
   <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Events</h2>
+      <h2 class="panel-title">Events</h2>
       <div class="mt-5 grid gap-3">
         {(events ?? []).length === 0 && <EmptyState title="No events" text="Club events and registration windows will appear here." />}
         {(events ?? []).map((event: any) => (
@@ -106,7 +106,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
     </section>
     <aside class="grid gap-5 content-start">
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Registrations</h2>
+        <h2 class="card-title">Registrations</h2>
         <div class="mt-4 grid gap-3">
           {(registrations ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No event registrations yet.</p>}
           {(registrations ?? []).map((registration: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{registration.profiles?.full_name ?? registration.profiles?.email ?? "Attendee"}</strong><br />{registration.club_events?.title ?? "Event"} - {statusLabel(registration.status)}</p>)}

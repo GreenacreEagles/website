@@ -67,7 +67,7 @@ const productPrice = (product: any) => {
     <header class="surface flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
       <div>
         <p class="eyebrow">Greenacre Eagles</p>
-        <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">Club Store</h1>
+        <h1 class="mt-2 page-title">Club Store</h1>
         <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Shop Greenacre Eagles merchandise and collect your order from the club.</p>
       </div>
       <a class="inline-flex min-h-12 items-center justify-center gap-3 bg-eagles-ink px-5 py-3 font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
@@ -114,13 +114,13 @@ const productPrice = (product: any) => {
           <article class="surface flex h-full flex-col overflow-hidden">
             {image
               ? <img src={image} alt={product.name} class="aspect-[4/3] w-full object-cover" width="800" height="600" loading="lazy" />
-              : <div class="flex aspect-[4/3] items-center justify-center bg-eagles-mist p-6 text-center font-display text-3xl font-black uppercase text-eagles-ink/35" role="img" aria-label={`${product.name} image unavailable`}>Greenacre Eagles</div>}
+              : <div class="flex aspect-[4/3] items-center justify-center bg-eagles-mist p-6 text-center panel-title text-eagles-ink/35" role="img" aria-label={`${product.name} image unavailable`}>Greenacre Eagles</div>}
             <div class="flex flex-1 flex-col p-5">
               <div class="flex items-start justify-between gap-3">
                 <p class="eyebrow">{product.category ?? "Club merchandise"}</p>
                 {soldOut && <StatusBadge label="Sold out" tone="red" />}
               </div>
-              <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">{product.name}</h2>
+              <h2 class="mt-2 panel-title">{product.name}</h2>
               <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{product.description ?? "Greenacre Eagles club merchandise."}</p>
               <p class="mt-4 text-xl font-black text-eagles-green">{productPrice(product) ?? "Unavailable"}</p>
 

@@ -85,18 +85,18 @@ const walletCards = await Promise.all(
           <p class="mt-1 break-all font-mono text-sm font-black text-eagles-ink">{wallet.id}</p>
           {wallet.qrCode && (
             <div class="mt-4 border-t border-eagles-line pt-4">
-              <img class="h-[220px] w-[220px] border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" />
+              <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" />
               <p class="mt-3 text-sm font-bold text-eagles-ink/70">Show this QR code to authorised canteen staff for wallet purchases.</p>
               <p class="mt-2 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{wallet.displayCode}</p>
             </div>
           )}
         </article>
       ))}
-      {(wallets ?? []).length === 0 && <article class="surface p-5"><h2 class="font-display text-2xl font-black uppercase">Wallet unavailable</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your member wallet is created automatically with your account. Please contact the club if it is not visible here.</p></article>}
+      {(wallets ?? []).length === 0 && <article class="surface p-5"><h2 class="card-title">Wallet unavailable</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your member wallet is created automatically with your account. Please contact the club if it is not visible here.</p></article>}
       {(wallets ?? []).length > 0 && (
         <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-top-up">
           <input type="hidden" name="return_to" value="/portal/vouchers/" />
-          <h2 class="font-display text-2xl font-black uppercase leading-none">Top up wallet</h2>
+          <h2 class="card-title">Top up wallet</h2>
           <label><span class="label">Wallet</span><select class="field" name="wallet_id">{(wallets ?? []).map((wallet: any) => <option value={wallet.id}>{statusLabel(wallet.account_type)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
           <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="1" max="1000" step="0.01" placeholder="25.00" required /></label>
           <label><span class="label">Payment method</span><select class="field" name="provider"><option value="manual">Manual settlement</option></select></label>
@@ -104,7 +104,7 @@ const walletCards = await Promise.all(
         </form>
       )}
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Top-up requests</h2>
+        <h2 class="card-title">Top-up requests</h2>
         <div class="mt-4 grid gap-3">
           {(payments ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Top-up requests will appear here.</p>}
           {(payments ?? []).map((payment: any) => (
@@ -117,19 +117,19 @@ const walletCards = await Promise.all(
       </article>
     </aside>
     <section class="grid gap-5">
-      <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Event tickets</h2>
+      <article class="surface p-4 sm:p-5 md:p-6">
+        <h2 class="panel-title">Event tickets</h2>
         <div class="mt-5 grid gap-4">
           {eventTicketCards.length===0&&<p class="text-sm leading-6 text-eagles-ink/70">Your event tickets will appear here after a successful claim or purchase.</p>}
           {eventTicketCards.map((ticket:any)=><article class="border border-eagles-line p-4" style="border-radius:8px">
             <div class="flex flex-wrap justify-between gap-3"><div><p class="font-black">{ticket.club_events?.title??"Event ticket"}</p><p class="text-sm text-eagles-ink/70">{ticket.club_event_ticket_types?.name} · {formatDateTime(ticket.club_events?.starts_at)}</p><p class="text-sm">{ticket.club_events?.venue??"Venue TBC"}</p></div><StatusBadge label={statusLabel(ticket.status)} tone={ticket.status==="valid"?"green":"amber"}/></div>
-            {ticket.qrCode&&<div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center"><img class="h-[220px] w-[220px] border border-eagles-line bg-white p-2" src={ticket.qrCode} alt={`Entry QR code for ${ticket.club_events?.title??"event ticket"}`}/><div><p class="font-bold">Show this QR code to authorised event staff at entry.</p><p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em]">{ticket.ticket_code}</p></div></div>}
+            {ticket.qrCode&&<div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center"><img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" src={ticket.qrCode} alt={`Entry QR code for ${ticket.club_events?.title??"event ticket"}`}/><div><p class="font-bold">Show this QR code to authorised event staff at entry.</p><p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em]">{ticket.ticket_code}</p></div></div>}
             {ticket.redeemed_at&&<p class="mt-3 text-sm">Redeemed {formatDateTime(ticket.redeemed_at)}</p>}
           </article>)}
         </div>
       </article>
-      <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Vouchers</h2>
+      <article class="surface p-4 sm:p-5 md:p-6">
+        <h2 class="panel-title">Vouchers</h2>
         <div class="mt-5 grid gap-3">
           {voucherCards.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No active vouchers are linked to your account.</p>}
           {voucherCards.map((voucher: any) => (
@@ -148,7 +148,7 @@ const walletCards = await Promise.all(
               </div>
               {voucher.qrCode && (
                 <div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center">
-                  <img class="h-[220px] w-[220px] border border-eagles-line bg-white p-2" style="border-radius:8px" src={voucher.qrCode} alt={`QR code for ${statusLabel(voucher.voucher_type)} voucher`} />
+                  <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={voucher.qrCode} alt={`QR code for ${statusLabel(voucher.voucher_type)} voucher`} />
                   <div>
                     <p class="text-sm font-bold text-eagles-ink/70">Show this QR code at the canteen. Staff scan it or enter the code below to claim the voucher.</p>
                     <p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{voucher.redemption_code}</p>
@@ -162,8 +162,8 @@ const walletCards = await Promise.all(
           ))}
         </div>
       </article>
-      <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Wallet activity</h2>
+      <article class="surface p-4 sm:p-5 md:p-6">
+        <h2 class="panel-title">Wallet activity</h2>
         <div class="mt-5 grid gap-3">
           {(ledger ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Wallet activity will appear here.</p>}
           {(ledger ?? []).map((entry) => (

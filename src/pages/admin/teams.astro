@@ -96,7 +96,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
     <section class="surface p-5 md:p-7">
       <div>
         <p class="text-xs font-black uppercase tracking-[0.18em] text-eagles-green">Filter teams</p>
-        <h2 class="mt-1 font-display text-3xl font-black uppercase leading-none">Seasons</h2>
+        <h2 class="mt-1 panel-title">Seasons</h2>
       </div>
       {seasonList.length === 0 ? (
         <p class="mt-5 text-sm text-eagles-ink/70">No seasons have been created yet.</p>
@@ -127,7 +127,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
       <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p class="text-xs font-black uppercase tracking-[0.18em] text-eagles-green">{selectedSeason?.name ?? "Select a season"}</p>
-          <h2 class="mt-1 font-display text-3xl font-black uppercase leading-none">Teams</h2>
+          <h2 class="mt-1 panel-title">Teams</h2>
         </div>
         <p class="text-sm text-eagles-ink/60">{filteredTeams.length} {filteredTeams.length === 1 ? "team" : "teams"}</p>
       </div>
@@ -171,7 +171,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
         <>
           <div>
             <p class="text-xs font-black uppercase tracking-[0.18em] text-eagles-green">{selectedSeason?.name}</p>
-            <h2 class="mt-1 font-display text-3xl font-black uppercase leading-none">{selectedTeam.name}</h2>
+            <h2 class="mt-1 panel-title">{selectedTeam.name}</h2>
             <p class="mt-2 text-sm text-eagles-ink/65">Only this team’s players and staff are shown below.</p>
           </div>
           <div class="mt-6 grid gap-6 xl:grid-cols-2">
@@ -199,7 +199,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
         </>
       ) : (
         <div class="py-6 text-center">
-          <h2 class="font-display text-3xl font-black uppercase leading-none">Squad and staff</h2>
+          <h2 class="panel-title">Squad and staff</h2>
           <p class="mt-3 text-sm text-eagles-ink/65">Select a team above to view only the players and staff attached to it.</p>
         </div>
       )}

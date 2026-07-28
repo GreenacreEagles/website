@@ -52,7 +52,7 @@ const bodyText = (resource: any) => (typeof resource.body?.text === "string" ? r
       >
         <article>
           <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
-          <h2 class="mt-2 font-display text-2xl font-black uppercase leading-none text-eagles-ink group-hover:text-eagles-green">{resource.title}</h2>
+          <h2 class="mt-2 card-title text-eagles-ink group-hover:text-eagles-green">{resource.title}</h2>
           <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{resource.summary ?? "Football resource for Greenacre Eagles coaching staff."}</p>
           {bodyText(resource) && <p class="mt-3 text-sm leading-6 text-eagles-ink/80">{bodyText(resource).slice(0, 260)}{bodyText(resource).length > 260 ? "..." : ""}</p>}
           <div class="mt-4 flex flex-wrap gap-2">

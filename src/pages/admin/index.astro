@@ -40,17 +40,17 @@ const actions = [
 
 <PortalLayout title="Admin Overview" section="Administration" session={session}>
   {summaryError && <p class="mb-5 border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">Dashboard totals are temporarily unavailable.</p>}
-  <section class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+  <section class="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-4">
     {cards.map(([label, value]) => (
-      <article class="surface p-5">
-        <p class="text-sm font-black uppercase tracking-[.14em] text-eagles-green">{label}</p>
-        <p class="mt-3 text-4xl font-black text-eagles-ink">{value}</p>
+      <article class="surface p-4 sm:p-5">
+        <p class="text-xs font-black uppercase tracking-[.12em] text-eagles-green sm:text-sm sm:tracking-[.14em]">{label}</p>
+        <p class="mt-2 text-3xl font-black text-eagles-ink">{value}</p>
       </article>
     ))}
   </section>
-  <section class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+  <section class="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
     {actions.filter(([, , permissions]) => hasAnyPermission(session.permissions, permissions)).map(([label, href]) => (
-      <a class="surface p-5 font-black text-eagles-green hover:border-eagles-green hover:text-eagles-ink" href={href}>{label}</a>
+      <a class="surface p-4 font-black text-eagles-green hover:border-eagles-green hover:text-eagles-ink sm:p-5" href={href}>{label}</a>
     ))}
   </section>
 </PortalLayout>

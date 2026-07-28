@@ -92,36 +92,38 @@ export const prerender = false;
 
 <BaseLayout title={site.name} description={site.description}>
   <section class="relative isolate overflow-hidden bg-eagles-mist text-eagles-ink">
-    <div class="absolute inset-x-0 top-0 -z-20 h-40 bg-white"></div>
-    <div class="section-shell grid min-w-0 gap-10 py-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,.92fr)] lg:items-center lg:gap-8 lg:py-14 xl:gap-12">
-      <div class="relative z-10 min-w-0 max-w-3xl lg:max-w-none">
+    <div class="absolute inset-x-0 top-0 -z-20 h-32 bg-white sm:h-40"></div>
+    <div class="section-shell grid min-w-0 gap-8 py-8 md:py-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] xl:items-center xl:gap-8 xl:py-12 2xl:gap-10">
+      <div class="relative z-10 min-w-0 max-w-2xl xl:max-w-none">
         {announcement && (
-          <a href={announcementHref} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
-            <Icon name="megaphone" class="h-4 w-4 text-eagles-green" />
-            {announcement.title}
+          <a href={announcementHref} class="focus-ring mb-5 inline-flex max-w-full items-center gap-3 border border-eagles-green/25 bg-white px-3 py-2.5 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green sm:mb-6 sm:px-4 sm:py-3" style="border-radius:8px">
+            <Icon name="megaphone" class="h-4 w-4 shrink-0 text-eagles-green" />
+            <span class="min-w-0">{announcement.title}</span>
           </a>
         )}
-        <p class="text-base font-black uppercase text-eagles-green">{site.association}</p>
-        <h1 class="mt-4 break-words font-display text-4xl font-black uppercase leading-[.92] sm:text-6xl md:text-7xl xl:text-[5.25rem] 2xl:text-8xl">
-          Greenacre Eagles <span class="text-eagles-green">FC</span>
+        <p class="text-sm font-black uppercase leading-snug text-eagles-green sm:text-base">{site.association}</p>
+        <h1 class="hero-title mt-3 sm:mt-4">
+          Greenacre Eagles <span class="whitespace-nowrap text-eagles-green">FC</span>
         </h1>
-        <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-xl">
+        <p class="mt-4 max-w-xl text-base leading-7 text-eagles-ink/75 sm:mt-5 sm:text-lg sm:leading-8">
           Junior and senior football in Greenacre, competing in the Bankstown District Amateur Football Association.
         </p>
-        <div class="mt-8 flex flex-wrap gap-3">
+        <div class="mt-6 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:flex-wrap sm:gap-3 [&_a]:w-full sm:[&_a]:w-auto">
           <ButtonLink href="/news/">Latest club news</ButtonLink>
           <ButtonLink href="/teams/" variant="secondary">View teams</ButtonLink>
           <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
 
-      <div class="relative isolate grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,.72fr)]">
-        <div class="pointer-events-none absolute -inset-y-5 -inset-x-5 -z-10 hidden bg-eagles-green lg:block" style="clip-path:polygon(12% 0, 100% 0, 100% 100%, 0 100%)" aria-hidden="true"></div>
-        <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-          <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="aspect-[4/5] h-full max-h-[31rem] min-h-80 w-full object-cover" />
-        </div>
-        <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-          <img src={photos.team} alt="Greenacre Eagles team on match day" class="aspect-[4/5] h-full max-h-[31rem] min-h-72 w-full object-cover object-top" />
+      <div class="relative isolate min-w-0 overflow-hidden xl:overflow-visible">
+        <div class="pointer-events-none absolute inset-y-0 -right-2 left-[10%] -z-10 hidden bg-eagles-green xl:block" style="clip-path:polygon(10% 0, 100% 0, 100% 100%, 0 100%)" aria-hidden="true"></div>
+        <div class="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,.72fr)]">
+          <div class="min-w-0 overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
+            <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="aspect-[4/5] max-h-[20rem] w-full object-cover sm:max-h-[22rem] xl:max-h-[26rem] 2xl:max-h-[28rem]" />
+          </div>
+          <div class="min-w-0 overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
+            <img src={photos.team} alt="Greenacre Eagles team on match day" class="aspect-[4/5] max-h-[20rem] w-full object-cover object-top sm:max-h-[22rem] xl:max-h-[26rem] 2xl:max-h-[28rem]" />
+          </div>
         </div>
       </div>
     </div>
@@ -146,15 +148,15 @@ export const prerender = false;
           <SectionHeading eyebrow="Social Hub" title="Around the Eagles" />
           <ButtonLink href="/social/" variant="secondary">More posts</ButtonLink>
         </div>
-        <div class="mt-8 grid gap-5 lg:grid-cols-3">
+        <div class="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-3">
           {socialPosts.map((post) => <article class="surface overflow-hidden">
             {post.imageUrl
-              ? <img src={post.imageUrl} alt={post.imageAltText ?? post.title ?? `Greenacre Eagles ${post.platform} post`} class="h-56 w-full object-cover" loading="lazy" />
-              : <div class="flex h-40 items-center justify-center bg-eagles-green font-display text-2xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
-            <div class="p-5">
-              {post.title && <h3 class="font-display text-2xl font-black uppercase">{post.title}</h3>}
-              {post.caption && <p class="mt-3 line-clamp-3 text-eagles-ink/70">{post.caption}</p>}
-              <a class="mt-4 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a>
+              ? <img src={post.imageUrl} alt={post.imageAltText ?? post.title ?? `Greenacre Eagles ${post.platform} post`} class="aspect-[16/10] w-full object-cover" loading="lazy" />
+              : <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green font-display text-xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
+            <div class="p-4">
+              {post.title && <h3 class="card-title">{post.title}</h3>}
+              {post.caption && <p class="mt-2.5 line-clamp-3 text-sm leading-6 text-eagles-ink/70">{post.caption}</p>}
+              <a class="mt-3 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a>
             </div>
           </article>)}
         </div>
@@ -163,31 +165,31 @@ export const prerender = false;
   )}
 
   <section class="section-pad bg-white">
-    <div class="section-shell grid gap-10 lg:grid-cols-[1.1fr_.9fr]">
-      <div>
-        <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div class="section-shell grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,.9fr)] lg:gap-10">
+      <div class="min-w-0">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
           <SectionHeading eyebrow="Calendar" title="Upcoming events" />
           <ButtonLink href="/events/" variant="secondary">All events</ButtonLink>
         </div>
         {events.length > 0
-          ? <div class="mt-8 grid gap-4">{events.map((event) => <article class="surface p-5">
+          ? <div class="mt-6 grid gap-3 sm:mt-8 sm:gap-4">{events.map((event) => <article class="surface p-4 sm:p-5">
               <p class="eyebrow">{formatDateTime(event.startsAt)}</p>
-              <h3 class="mt-2 font-display text-2xl font-black uppercase">{event.title}</h3>
+              <h3 class="card-title mt-2">{event.title}</h3>
               <p class="mt-2 text-sm font-bold text-eagles-ink/65">{event.location}</p>
-              {event.summary && <p class="mt-3 line-clamp-2 text-eagles-ink/70">{event.summary}</p>}
-              <a class="mt-4 inline-flex font-black text-eagles-green" href={event.href}>View event</a>
+              {event.summary && <p class="mt-2.5 line-clamp-2 text-sm leading-6 text-eagles-ink/70">{event.summary}</p>}
+              <a class="mt-3 inline-flex font-black text-eagles-green" href={event.href}>View event</a>
             </article>)}</div>
           : <p class="surface mt-8 p-5">No upcoming events are listed.</p>}
       </div>
 
       {spotlightTeam && (
-        <article class="dark-surface h-fit overflow-hidden">
-          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="h-72 w-full object-cover" loading="lazy" />
-          <div class="p-6">
+        <article class="dark-surface h-fit min-w-0 overflow-hidden">
+          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="aspect-[16/10] max-h-64 w-full object-cover" loading="lazy" />
+          <div class="p-5 sm:p-6">
             <p class="text-sm font-black uppercase text-eagles-lime">Team spotlight</p>
-            <h3 class="mt-3 font-display text-4xl font-black uppercase leading-none">{spotlightTeam.name}</h3>
-            <p class="mt-4 text-base leading-7 text-white/70">{spotlightTeam.summary ?? "View the current squad and team information."}</p>
-            <div class="mt-6"><ButtonLink href="/teams/" variant="light">View teams</ButtonLink></div>
+            <h3 class="panel-title mt-2 text-white">{spotlightTeam.name}</h3>
+            <p class="mt-3 text-sm leading-6 text-white/70 sm:mt-4 sm:text-base sm:leading-7">{spotlightTeam.summary ?? "View the current squad and team information."}</p>
+            <div class="mt-5"><ButtonLink href="/teams/" variant="light">View teams</ButtonLink></div>
           </div>
         </article>
       )}
@@ -206,12 +208,12 @@ export const prerender = false;
     </section>
   )}
 
-  <section class="bg-eagles-pine py-14 text-white">
-    <div class="section-shell flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-      <div>
+  <section class="bg-eagles-pine py-10 text-white md:py-12">
+    <div class="section-shell flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-6">
+      <div class="min-w-0">
         <p class="eyebrow text-white/75">Contact</p>
-        <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Contact the club</h2>
-        <p class="mt-4 max-w-2xl text-base leading-7 text-white/80">Questions about teams, fixtures, club operations or sponsorship?</p>
+        <h2 class="section-title mt-2 text-white">Contact the club</h2>
+        <p class="mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base sm:leading-7">Questions about teams, fixtures, club operations or sponsorship?</p>
       </div>
       <ButtonLink href="/contact/" variant="light">Get in touch</ButtonLink>
     </div>

@@ -109,7 +109,7 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
   <div class="grid gap-6">
     <section class="grid gap-5">
       <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Products</h2>
+        <h2 class="panel-title">Products</h2>
         <div class="mt-5 grid gap-3">
           {productSummaries.length === 0 && <EmptyState title="No merchandise products" text="Club shop products and stock levels will appear here." />}
           {productSummaries.map((product: any) => (
@@ -136,7 +136,7 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
         </div>
       </article>
       <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Orders</h2>
+        <h2 class="panel-title">Orders</h2>
         <div class="mt-5 grid gap-3">
           {merchOrders.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No merchandise orders yet.</p>}
           {merchOrders.map((order: any) => (

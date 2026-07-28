@@ -97,7 +97,7 @@ const ledgerWalletName = (entry: any) => {
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p class="eyebrow">Finance queue</p>
-            <h2 class="mt-2 font-display text-3xl font-black uppercase leading-none text-eagles-ink">Top-up requests</h2>
+            <h2 class="mt-2 panel-title">Top-up requests</h2>
           </div>
           <p class="text-sm font-bold text-eagles-ink/70">{pendingPayments.length} pending</p>
         </div>
@@ -131,7 +131,7 @@ const ledgerWalletName = (entry: any) => {
       </article>
 
       <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Recent ledger</h2>
+        <h2 class="panel-title">Recent ledger</h2>
         <div class="mt-5 grid gap-3">
           {(ledger ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Wallet ledger entries will appear after top-ups, adjustments or reversals.</p>}
           {(ledger ?? []).map((entry: any) => (
@@ -160,7 +160,7 @@ const ledgerWalletName = (entry: any) => {
 
     <aside class="grid gap-5 content-start">
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Wallets</h2>
+        <h2 class="card-title">Wallets</h2>
         <div class="mt-4 grid gap-3">
           {walletList.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No wallet accounts found.</p>}
           {walletList.map((wallet) => (
@@ -173,7 +173,7 @@ const ledgerWalletName = (entry: any) => {
       </article>
 
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Settled top-ups</h2>
+        <h2 class="card-title">Settled top-ups</h2>
         <div class="mt-4 grid gap-3">
           {settledPayments.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Settled, failed or cancelled top-ups will appear here.</p>}
           {settledPayments.map((payment: any) => (
@@ -186,7 +186,7 @@ const ledgerWalletName = (entry: any) => {
       </article>
 
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Payment providers</h2>
+        <h2 class="card-title">Payment providers</h2>
         <div class="mt-4 grid gap-3">
           {((providers ?? []) as any[]).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Provider records will appear after the payment migration is applied.</p>}
           {((providers ?? []) as any[]).map((provider: any) => (
@@ -204,7 +204,7 @@ const ledgerWalletName = (entry: any) => {
       </article>
 
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Webhook events</h2>
+        <h2 class="card-title">Webhook events</h2>
         <div class="mt-4 grid gap-3">
           {((webhooks ?? []) as any[]).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Provider webhook deliveries will appear here after payment processors call the webhook endpoint.</p>}
           {((webhooks ?? []) as any[]).map((webhook: any) => (

@@ -89,7 +89,7 @@ const { publicMediaConfigured } = getMediaCapabilities(Astro);
   <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
     <section class="grid gap-5">
       <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Player records</h2>
+        <h2 class="panel-title">Player records</h2>
         <div class="mt-5 grid gap-3">
           {(players ?? []).length === 0 && <EmptyState title="No player records" text="Player registrations will appear here once the registrar connects them." />}
           {(players ?? []).map((player: any) => (
@@ -113,7 +113,7 @@ const { publicMediaConfigured } = getMediaCapabilities(Astro);
       </article>
 
       <article class="surface p-5 md:p-7">
-        <h2 class="font-display text-3xl font-black uppercase leading-none">Families</h2>
+        <h2 class="panel-title">Families</h2>
         <div class="mt-5 grid gap-3">
           {(families ?? []).length === 0 && <EmptyState title="No family groups" text="Create a family group, then link guardians and children." />}
           {(families ?? []).map((family: any) => (
@@ -136,7 +136,7 @@ const { publicMediaConfigured } = getMediaCapabilities(Astro);
 
     <aside class="grid gap-5 content-start">
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Team links</h2>
+        <h2 class="card-title">Team links</h2>
         <div class="mt-4 grid gap-3">
           {(teamPlayers ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No player team links yet.</p>}
           {(teamPlayers ?? []).map((link: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{link.player_records?.profiles?.full_name ?? "Player"}</strong><br />{link.teams?.name ?? "Team"} - {statusLabel(link.status)}</p>)}

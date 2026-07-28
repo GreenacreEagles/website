@@ -26,7 +26,7 @@ const totals = merchandiseCartTotals(cart.items);
     <header class="surface flex flex-col gap-4 p-6 md:flex-row md:items-end md:justify-between md:p-8">
       <div>
         <p class="eyebrow">Club Store</p>
-        <h1 class="mt-2 font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">Your cart</h1>
+        <h1 class="mt-2 page-title">Your cart</h1>
         <p class="mt-3 text-eagles-ink/70">{totals.quantity} {totals.quantity === 1 ? "item" : "items"} ready to review.</p>
       </div>
       <a class="font-black text-eagles-green hover:text-eagles-ink" href="/portal/shop/">← Continue shopping</a>
@@ -35,7 +35,7 @@ const totals = merchandiseCartTotals(cart.items);
     {cart.items.length === 0 ? (
       <EmptyState title="Your cart is empty" text="Browse the club store and add merchandise before checking out." href="/portal/shop/" action="Continue shopping" />
     ) : (
-      <div class="grid gap-6 xl:grid-cols-[1fr_360px]">
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
         <section class="grid gap-4" aria-label="Cart items">
           {cart.items.map((item) => {
             const image = getPublicMediaUrl(item.image_object_key, Astro) ?? getSafeExternalImageUrl(item.image_url);
@@ -48,7 +48,7 @@ const totals = merchandiseCartTotals(cart.items);
                   <p class="eyebrow">{item.category}</p>
                   <div class="mt-2 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h2 class="font-display text-2xl font-black uppercase leading-none text-eagles-ink">{item.product_name}</h2>
+                      <h2 class="card-title text-eagles-ink">{item.product_name}</h2>
                       <p class="mt-2 text-sm font-bold text-eagles-ink/65">{item.variant_label ?? "Standard option"}</p>
                     </div>
                     <p class="text-lg font-black text-eagles-green">{formatMoney(item.unit_price_cents * item.quantity)}</p>
@@ -101,7 +101,7 @@ const totals = merchandiseCartTotals(cart.items);
         </section>
 
         <aside class="surface h-fit p-5 xl:sticky xl:top-24">
-          <h2 class="font-display text-3xl font-black uppercase text-eagles-ink">Order summary</h2>
+          <h2 class="panel-title text-eagles-ink">Order summary</h2>
           <dl class="mt-5 grid gap-3">
             <div class="flex justify-between gap-4"><dt>Items</dt><dd class="font-bold">{totals.quantity}</dd></div>
             <div class="flex justify-between gap-4 border-t border-eagles-line pt-3 text-lg"><dt class="font-black">Total</dt><dd class="font-black">{formatMoney(totals.totalCents)}</dd></div>

@@ -48,9 +48,9 @@ const bodyText = typeof resource.body?.text === "string"
       <span aria-hidden="true">←</span>&nbsp; Back to coaching resources
     </a>
 
-    <article class="surface p-6 md:p-8">
+    <article class="surface p-4 sm:p-5 md:p-6">
       <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
-      <h1 class="mt-3 max-w-4xl font-display text-4xl font-black uppercase leading-none text-eagles-ink md:text-6xl">{resource.title}</h1>
+      <h1 class="mt-3 max-w-4xl page-title">{resource.title}</h1>
 
       <div class="mt-5 flex flex-wrap gap-2">
         <StatusBadge label={statusLabel(resource.visibility)} tone="ink" />
@@ -62,14 +62,14 @@ const bodyText = typeof resource.body?.text === "string"
 
       {bodyText && (
         <section class="mt-8 border-t border-eagles-line pt-7">
-          <h2 class="font-display text-3xl font-black uppercase text-eagles-ink">Resource details</h2>
+          <h2 class="panel-title text-eagles-ink">Resource details</h2>
           <p class="mt-4 max-w-4xl whitespace-pre-line text-base leading-8 text-eagles-ink/80">{bodyText}</p>
         </section>
       )}
 
       <div class="mt-8 grid gap-5 border-t border-eagles-line pt-7 md:grid-cols-2">
         <section>
-          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Suitable for</h2>
+          <h2 class="card-title text-eagles-ink">Suitable for</h2>
           {(resource.age_group_tags?.length || resource.skill_level_tags?.length) ? (
             <div class="mt-3 flex flex-wrap gap-2">
               {(resource.age_group_tags ?? []).map((tag: string) => <StatusBadge label={tag} tone="green" />)}
@@ -79,7 +79,7 @@ const bodyText = typeof resource.body?.text === "string"
         </section>
 
         <section>
-          <h2 class="font-display text-2xl font-black uppercase text-eagles-ink">Equipment</h2>
+          <h2 class="card-title text-eagles-ink">Equipment</h2>
           {resource.equipment_required?.length > 0
             ? <ul class="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-eagles-ink/75">{resource.equipment_required.map((item: string) => <li>{item}</li>)}</ul>
             : <p class="mt-3 text-sm text-eagles-ink/65">No equipment requirements listed.</p>}

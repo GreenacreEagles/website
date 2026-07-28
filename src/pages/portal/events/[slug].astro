@@ -17,14 +17,14 @@ const imageUrl=getPublicMediaUrl(event.image_object_key,Astro)??getSafeExternalI
 <PortalLayout title={event.title} section="Events" session={session}>
  <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
   <section class="surface overflow-hidden">{imageUrl&&<img src={imageUrl} alt={`${event.title} event`} class="h-72 w-full object-cover"/>}<div class="p-6">
-   <p class="eyebrow">{formatDateTime(event.starts_at)}</p><h1 class="mt-3 font-display text-5xl font-black uppercase">{event.title}</h1>
+   <p class="eyebrow">{formatDateTime(event.starts_at)}</p><h1 class="mt-3 page-title">{event.title}</h1>
    {event.description&&<p class="mt-5 text-lg leading-8 text-eagles-ink/75">{event.description}</p>}
    <div class="mt-5 flex flex-wrap gap-2"><StatusBadge label={event.venue??"Venue TBC"} tone="ink"/><StatusBadge label={statusLabel(event.status)} tone={event.status==="active"?"green":"amber"}/></div>
-   {event.instructions&&<div class="mt-6 border-t border-eagles-line pt-5"><h2 class="font-display text-2xl font-black uppercase">Event instructions</h2><p class="mt-2 whitespace-pre-line">{event.instructions}</p></div>}
+   {event.instructions&&<div class="mt-6 border-t border-eagles-line pt-5"><h2 class="card-title">Event instructions</h2><p class="mt-2 whitespace-pre-line">{event.instructions}</p></div>}
    {event.status==="cancelled"&&<p class="mt-6 border border-red-200 bg-red-50 p-4 font-bold text-red-700">This event has been cancelled. {event.cancellation_notes}</p>}
   </div></section>
   <aside class="grid content-start gap-5">
-   <section class="surface p-5"><h2 class="font-display text-3xl font-black uppercase">Tickets</h2>
+   <section class="surface p-5"><h2 class="panel-title">Tickets</h2>
     {!canBuy?<p class="mt-4">Tickets are not currently available for this event.</p>:
     (event.club_event_ticket_types??[]).filter((t:any)=>t.active).length===0?<p class="mt-4">No tickets are currently available for this event.</p>:
     <div class="mt-4 grid gap-4">{(event.club_event_ticket_types??[]).filter((t:any)=>t.active).sort((a:any,b:any)=>a.sort_order-b.sort_order).map((type:any)=><form class="border-t border-eagles-line pt-4" method="post" action="/api/portal/event-ticket-order">
@@ -34,7 +34,7 @@ const imageUrl=getPublicMediaUrl(event.image_object_key,Astro)??getSafeExternalI
       <button class="mt-3 w-full bg-eagles-green px-4 py-3 font-black text-white" style="border-radius:8px" type="submit">{type.price_cents===0?"Claim tickets":"Continue to payment"}</button>
     </form>)}</div>}
    </section>
-   <section class="surface p-5"><h2 class="font-display text-2xl font-black uppercase">My tickets</h2><div class="mt-4 grid gap-3">{(tickets??[]).length===0?<p>No tickets for this event yet.</p>:(tickets??[]).map((ticket:any)=><div class="border-t border-eagles-line pt-3"><p class="font-black">{ticket.club_event_ticket_types?.name??"Event ticket"}</p><StatusBadge label={statusLabel(ticket.status)} tone={ticket.status==="valid"?"green":"amber"}/></div>)}</div>{(tickets??[]).length>0&&<a class="mt-4 inline-flex font-black text-eagles-green" href="/portal/vouchers/">Open wallet</a>}</section>
+   <section class="surface p-5"><h2 class="card-title">My tickets</h2><div class="mt-4 grid gap-3">{(tickets??[]).length===0?<p>No tickets for this event yet.</p>:(tickets??[]).map((ticket:any)=><div class="border-t border-eagles-line pt-3"><p class="font-black">{ticket.club_event_ticket_types?.name??"Event ticket"}</p><StatusBadge label={statusLabel(ticket.status)} tone={ticket.status==="valid"?"green":"amber"}/></div>)}</div>{(tickets??[]).length>0&&<a class="mt-4 inline-flex font-black text-eagles-green" href="/portal/vouchers/">Open wallet</a>}</section>
   </aside>
  </div>
 </PortalLayout>

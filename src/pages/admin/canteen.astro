@@ -59,14 +59,14 @@ const requestKey = crypto.randomUUID();
               <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/complete-canteen-order">
                 <input type="hidden" name="order_id" value="" />
                 <input type="hidden" name="source" value="qr" />
-                <h4 class="font-display text-2xl font-black uppercase">Order collection</h4>
+                <h4 class="card-title">Order collection</h4>
                 <label><span class="label">Order QR or code</span><input class="field" name="order_code" data-scan-code data-code-type="order" placeholder="GEORDER:..." required /></label>
                 <FormActions submitLabel="Confirm collection" />
               </form>
               <div class="grid gap-4 lg:grid-cols-2">
                 <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/wallet-qr-purchase">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
-                  <h4 class="font-display text-2xl font-black uppercase">Wallet purchase</h4>
+                  <h4 class="card-title">Wallet purchase</h4>
                   <label><span class="label">Wallet code</span><input class="field" name="code" data-scan-code data-code-type="wallet" placeholder="GEWALLET:..." required /></label>
                   <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
                   <input type="hidden" name="description" value="Canteen purchase" />
@@ -75,7 +75,7 @@ const requestKey = crypto.randomUUID();
                 <form class="grid gap-4 border border-eagles-line p-4" style="border-radius:8px" method="post" action="/api/admin/redeem-voucher">
                   <input type="hidden" name="return_to" value="/admin/canteen/" />
                   <input type="hidden" name="device_label" value="Admin canteen scanner" />
-                  <h4 class="font-display text-2xl font-black uppercase">Voucher claim</h4>
+                  <h4 class="card-title">Voucher claim</h4>
                   <label><span class="label">Voucher code</span><input class="field" name="redemption_code" data-scan-code data-code-type="voucher" placeholder="GEVOUCHER:..." required /></label>
                   <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" required /></label>
                   <FormActions submitLabel="Confirm voucher claim" />
@@ -152,7 +152,7 @@ const requestKey = crypto.randomUUID();
     </section>
 
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase">Orders</h2>
+      <h2 class="panel-title">Orders</h2>
       <p class="mt-1 text-sm text-eagles-ink/65">Only orders that still need action are shown.</p>
       <div class="mt-5 grid gap-3">
         {(orders ?? []).length === 0 && <EmptyState title="No active orders" text="New paid canteen orders will appear here." />}
@@ -175,7 +175,7 @@ const requestKey = crypto.randomUUID();
     </section>
 
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase">Products</h2>
+      <h2 class="panel-title">Products</h2>
       <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {(products ?? []).map((product: any) => (
           <article class="border border-eagles-line p-4" style="border-radius:8px">

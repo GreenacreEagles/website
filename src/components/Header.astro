@@ -19,9 +19,9 @@ const currentPath = Astro.url.pathname;
 ---
 
 <header class="sticky top-0 z-50 border-b border-eagles-line/80 bg-white/95 shadow-sm backdrop-blur">
-  <div class="section-shell flex min-h-20 items-center justify-between gap-4">
+  <div class="header-shell min-h-[4.5rem]">
     <LogoLockup tone="dark" />
-    <nav class="hidden items-center gap-1 2xl:flex" aria-label="Primary navigation">
+    <nav class="hidden min-w-0 flex-1 items-center justify-end gap-0.5 2xl:flex" aria-label="Primary navigation">
       {
         navItems.map((item) => (
           <a
@@ -33,16 +33,16 @@ const currentPath = Astro.url.pathname;
           </a>
         ))
       }
+      <a
+        href="/portal/"
+        class="focus-ring ml-2 inline-flex shrink-0 items-center gap-2 whitespace-nowrap bg-eagles-pine px-3.5 py-2.5 text-sm font-black text-white hover:bg-eagles-ink"
+        style="border-radius:8px"
+      >
+        Portal
+      </a>
     </nav>
-    <a
-      href="/portal/"
-      class="focus-ring hidden items-center gap-2 bg-eagles-pine px-4 py-3 text-sm font-black text-white hover:bg-eagles-ink 2xl:inline-flex"
-      style="border-radius:8px"
-    >
-      Portal
-    </a>
     <button
-      class="focus-ring inline-flex h-11 w-11 items-center justify-center border border-eagles-line text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist 2xl:hidden"
+      class="focus-ring inline-flex h-11 w-11 shrink-0 items-center justify-center border border-eagles-line text-eagles-ink hover:border-eagles-green hover:bg-eagles-mist 2xl:hidden"
       style="border-radius:8px"
       type="button"
       aria-label="Open navigation"
@@ -53,12 +53,12 @@ const currentPath = Astro.url.pathname;
       <span class="hidden" data-menu-close-icon><Icon name="x" class="h-5 w-5" /></span>
     </button>
   </div>
-  <nav class="hidden max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain border-t border-eagles-line bg-white 2xl:hidden" data-mobile-menu aria-label="Mobile navigation">
+  <nav class="hidden max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-t border-eagles-line bg-white 2xl:hidden" data-mobile-menu aria-label="Mobile navigation">
     <div class="section-shell grid gap-1 py-3">
       {
         navItems.map((item) => (
           <a
-            class="nav-link justify-between"
+            class="nav-link justify-between whitespace-normal"
             href={item.href}
             aria-current={currentPath === item.href ? "page" : undefined}
           >
@@ -74,7 +74,7 @@ const currentPath = Astro.url.pathname;
 </header>
 
 <script>
-  const toggle = document.querySelector("[data-menu-toggle]");
+  const toggle = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
   const menu = document.querySelector("[data-mobile-menu]");
   const openIcon = document.querySelector("[data-menu-open-icon]");
   const closeIcon = document.querySelector("[data-menu-close-icon]");

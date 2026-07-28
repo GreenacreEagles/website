@@ -9,8 +9,8 @@ interface Props {
 const { eyebrow, title, intro, align = "left" } = Astro.props;
 ---
 
-<div class:list={["max-w-3xl", align === "center" && "mx-auto text-center"]}>
+<div class:list={["max-w-3xl min-w-0", align === "center" && "mx-auto text-center"]}>
   {eyebrow && <p class="eyebrow">{eyebrow}</p>}
-  <h2 class="mt-3 break-words font-display text-3xl font-black uppercase leading-none text-eagles-ink sm:text-4xl lg:text-5xl">{title}</h2>
-  {intro && <p class="mt-4 text-base leading-7 text-eagles-ink/70 md:text-lg md:leading-8">{intro}</p>}
+  <h2 class="section-title mt-3 text-eagles-ink">{title}</h2>
+  {intro && <p class="mt-3 text-base leading-7 text-eagles-ink/70 md:mt-4 md:text-lg md:leading-8">{intro}</p>}
 </div>

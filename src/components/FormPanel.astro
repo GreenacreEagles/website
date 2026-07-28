@@ -19,7 +19,7 @@ const selectedType = categories.some(([value]) => value === enquiryType) ? enqui
 
 <form class="surface grid min-w-0 gap-5 p-5 md:p-7" method="post" action={`mailto:${site.contactEmail}?subject=${encodeURIComponent(intent)}`} enctype="text/plain">
   <div>
-    <h2 class="font-display text-3xl font-black uppercase leading-none">{title}</h2>
+    <h2 class="panel-title">{title}</h2>
     <p class="mt-3 text-base leading-7 text-eagles-ink/70">{intro}</p>
   </div>
   <div class="grid gap-4 md:grid-cols-2">

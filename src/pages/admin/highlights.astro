@@ -26,7 +26,7 @@ const platforms = ["instagram","facebook","tiktok"];
     <AdminFeedback success={Astro.url.searchParams.get("success")} error={Astro.url.searchParams.get("error")} />
     <AdminPageHeader title="Social Hub" intro="Manage the club’s official profiles and selected public social posts." />
     <section class="surface p-5 md:p-7">
-      <div class="flex items-center justify-between gap-4"><h2 class="font-display text-3xl font-black uppercase">Social profiles</h2>
+      <div class="flex items-center justify-between gap-4"><h2 class="panel-title">Social profiles</h2>
         {canProfiles && <AdminDialog id="new-profile" title="New social profile" actionLabel="New social profile" intro="Add another official club account. More than one account can use the same platform."><form class="grid gap-4" method="post" action="/api/admin/social-hub">
           <input type="hidden" name="entity" value="profile" />
           <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p}>{p}</option>)}</select></label>
@@ -50,7 +50,7 @@ const platforms = ["instagram","facebook","tiktok"];
       </div>
     </section>
     <section class="surface p-5 md:p-7">
-      <div class="flex items-center justify-between gap-4"><h2 class="font-display text-3xl font-black uppercase">Social posts</h2>
+      <div class="flex items-center justify-between gap-4"><h2 class="panel-title">Social posts</h2>
         {canPosts && <AdminDialog id="new-post" title="New social post" actionLabel="New social post" size="lg"><form class="grid gap-4" method="post" action="/api/admin/social-hub" enctype="multipart/form-data"><input type="hidden" name="entity" value="post"/>
           <label><span class="label">Platform</span><select class="field" name="platform">{platforms.map(p=><option value={p}>{p}</option>)}</select></label><label><span class="label">Post URL</span><input class="field" name="post_url" type="url" required/></label>
           <label><span class="label">Title</span><input class="field" name="title" maxlength="180"/></label><label><span class="label">Caption</span><textarea class="field min-h-28" name="caption" maxlength="2000"></textarea></label>

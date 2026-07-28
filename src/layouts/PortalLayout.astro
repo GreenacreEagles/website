@@ -72,19 +72,19 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
     <ClientRouter />
   </head>
   <body class="bg-eagles-mist">
-    <div class="min-h-screen min-w-0 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
+    <div class="min-h-screen min-w-0 lg:grid lg:grid-cols-[minmax(0,16.5rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)]">
       <aside class="min-w-0 border-b border-eagles-line bg-white lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r">
-        <div class="flex items-center justify-between gap-4 p-4 lg:block lg:p-6">
+        <div class="flex items-center justify-between gap-3 p-3 sm:gap-4 sm:p-4 lg:block lg:p-5">
           <div class="min-w-0 flex-1"><LogoLockup tone="dark" href={session.isChildAccount ? "/portal/teams/" : "/portal/"} /></div>
           <form method="post" action="/api/auth/signout" class="lg:hidden">
             <button class="focus-ring whitespace-nowrap text-sm font-black text-eagles-pine hover:text-eagles-ink" type="submit">Sign out</button>
           </form>
         </div>
-        <details class="mx-4 mb-4 border border-eagles-line bg-eagles-mist lg:hidden" style="border-radius:8px">
-          <summary class="focus-ring flex min-h-11 cursor-pointer items-center justify-between px-4 py-3 text-sm font-black text-eagles-ink">
-            <span>{inAdmin ? "Administration menu" : "Portal menu"}</span><span aria-hidden="true">☰</span>
+        <details class="mx-3 mb-3 border border-eagles-line bg-eagles-mist sm:mx-4 sm:mb-4 lg:hidden" style="border-radius:8px">
+          <summary class="focus-ring flex min-h-11 cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-black text-eagles-ink">
+            <span class="min-w-0">{inAdmin ? "Administration menu" : "Portal menu"}</span><span aria-hidden="true">☰</span>
           </summary>
-          <div class="max-h-[min(70dvh,32rem)] overflow-y-auto border-t border-eagles-line bg-white p-3">
+          <div class="max-h-[min(70dvh,32rem)] overflow-y-auto overscroll-contain border-t border-eagles-line bg-white p-3">
             {!inAdmin && <nav class="grid gap-1 text-sm font-black" aria-label="Mobile portal navigation">{visiblePortalNav.map((item) => <a class="portal-nav-link whitespace-normal" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>)}</nav>}
             {showAdmin && !inAdmin && <a class="focus-ring mt-3 inline-flex min-h-11 w-full items-center justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-pine" style="border-radius:8px" href="/admin/">Open administration</a>}
             {showAdmin && inAdmin && <><nav class="grid gap-1 text-sm font-black" aria-label="Mobile admin navigation">{visibleAdminNav.map((item) => <a class="portal-nav-link whitespace-normal" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>)}</nav><a class="focus-ring mt-3 inline-flex min-h-11 items-center text-sm font-black text-eagles-pine" href="/portal/">Back to portal</a></>}
@@ -124,11 +124,11 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
       </aside>
 
       <div class="min-w-0">
-        <header class="min-w-0 border-b border-eagles-line bg-white px-4 py-5 md:px-8">
-          <p class="text-xs font-black uppercase tracking-[.18em] text-eagles-pine">{section}</p>
-          <h1 class="mt-2 break-words font-display text-2xl font-black uppercase leading-none text-eagles-ink sm:text-4xl md:text-5xl">{title}</h1>
+        <header class="min-w-0 border-b border-eagles-line bg-white px-4 py-4 sm:px-6 sm:py-5 md:px-8">
+          <p class="text-xs font-black uppercase tracking-[.14em] text-eagles-pine">{section}</p>
+          <h1 class="page-title mt-2">{title}</h1>
         </header>
-        <main class="min-w-0 px-4 py-6 md:px-8">
+        <main class="min-w-0 px-4 py-5 sm:px-6 sm:py-6 md:px-8">
           <slot />
         </main>
       </div>

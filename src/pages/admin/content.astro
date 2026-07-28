@@ -99,7 +99,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
   </div>
   <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Articles</h2>
+      <h2 class="panel-title">Articles</h2>
       <div class="mt-5 grid gap-3">
         {(articles ?? []).length === 0 && <EmptyState title="No articles" text="Club articles, match reports and public updates will appear here once publishing is enabled." />}
         {(articles ?? []).map((article: any) => (
@@ -113,7 +113,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
     </section>
     <aside class="grid gap-5 content-start">
       <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Coaching resources</h2>
+        <h2 class="card-title">Coaching resources</h2>
         <div class="mt-4 grid gap-3">
           {(coachingResources ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No coaching resources yet.</p>}
           {(coachingResources ?? []).map((resource: any) => (
@@ -125,7 +125,7 @@ const [{ data: articles }, { data: announcements }, { data: coachingResources }]
         </div>
       </article>
       {canManageContent && <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Announcements</h2>
+        <h2 class="card-title">Announcements</h2>
         <div class="mt-4 grid gap-3">
           {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No announcements yet.</p>}
           {(announcements ?? []).map((notice) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{notice.title}</strong><br />{statusLabel(notice.status)} - priority {notice.priority}</p>)}

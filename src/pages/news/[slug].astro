@@ -49,7 +49,7 @@ export const prerender = false;
           </p>
 
           <h1
-            class="mt-4 break-words font-display text-4xl font-black uppercase leading-none sm:text-5xl md:text-6xl lg:text-7xl"
+            class="mt-4 page-title"
           >
             {article.title}
           </h1>
@@ -62,7 +62,7 @@ export const prerender = false;
         <img
           src={article.image ?? "/media/placeholders/matchday-card.svg"}
           alt={article.image ? article.title : ""}
-          class="h-96 w-full object-cover shadow-match-card"
+          class="aspect-[16/10] max-h-80 w-full object-cover shadow-match-card"
           style="border-radius: 8px"
         />
       </div>

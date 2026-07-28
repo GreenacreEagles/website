@@ -2,8 +2,8 @@
 interface Props { total: number; label?: string; }
 const { total, label = "Active teams across the club" } = Astro.props;
 ---
-<div class="surface border-l-8 border-eagles-green p-6 md:p-8">
-  <p class="font-display text-6xl font-black leading-none text-eagles-green md:text-7xl">
+<div class="surface border-l-8 border-eagles-green p-5 md:p-6">
+  <p class="font-display text-5xl font-black leading-none text-eagles-green md:text-6xl">
     <span data-team-count data-total={total} aria-hidden="true">{total}</span>
     <span class="sr-only">{total}</span>
   </p>
