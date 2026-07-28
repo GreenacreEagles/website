@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { deleteR2Object, getPublicMediaBucket, getUploadedFile, socialPostImageObjectKey, validatePublicImage } from "@lib/media";
+import { deleteR2Object, getPublicMediaBucket, getUploadedFile, socialPostImageObjectKey, validatePublicImage, putPublicMediaObject } from "@lib/media";
 
 export const prerender=false;
 export const GET:APIRoute=(context)=>context.redirect(back,303);
@@ -69,7 +69,7 @@ export const POST:APIRoute=async(context)=>{
         const validation=await validatePublicImage(file,context,{maxBytes:8_388_608,maxWidth:2560,maxHeight:2560});
         if(!validation.ok)return redirect("error",validation.error);
         uploadedKey=socialPostImageObjectKey(id,file.type);
-        try{await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:file.type,cacheControl:"public, max-age=31536000, immutable"}});}catch(cause){console.error("social-hub image upload failed",{cause,correlationId,binding:"PUBLIC_MEDIA_BUCKET"});return redirect("error","The image could not be uploaded. No Social Hub record was created.");}
+        try{await putPublicMediaObject(bucket,uploadedKey,validation.bytes,file.type);}catch(cause){console.error("social-hub image upload failed",{cause,correlationId,binding:"PUBLIC_MEDIA_BUCKET"});return redirect("error","The image could not be uploaded. No Social Hub record was created.");}
         values.image_object_key=uploadedKey;
       }else if(removeImage)values.image_object_key=null;
     }

@@ -93,16 +93,16 @@ The Pages project build command must remain exactly `npm run build`. Do not
 restore the former inline source rewrite or duplicate Worker-copy shell chain:
 the checked-in `postbuild` script is the single assembly path.
 
-## Enabling R2 media later
+## R2 media bindings
 
 R2 is deliberately optional. The app presents a friendly unavailable state
 when the bindings are absent.
 
 1. Enable R2 Standard in the Cloudflare account.
 2. Create separate buckets for editable public and private media.
-3. Add Pages production and preview R2 bindings named
-   `PUBLIC_MEDIA_BUCKET` and `PRIVATE_MEDIA_BUCKET`. If different names are
-   required, set `R2_PUBLIC_BUCKET_BINDING` and `R2_PRIVATE_BUCKET_BINDING`.
+3. Add Pages production and preview R2 bindings named exactly
+   `PUBLIC_MEDIA_BUCKET` and `PRIVATE_MEDIA_BUCKET`. These are native R2
+   bindings, not text environment variables.
 4. Attach a production custom domain to the public bucket and set
    `PUBLIC_MEDIA_BASE_URL` to its HTTPS origin. Do not use an `r2.dev` URL as
    the permanent origin.

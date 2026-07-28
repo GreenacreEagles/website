@@ -4,7 +4,7 @@ import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
 import { writeAdminAudit } from "@lib/audit";
-import { articleImageObjectKey, coachingAttachmentObjectKey, deleteR2Object, getManagedPublicObjectKey, getPrivateMediaBucket, getPublicMediaBucket, getPublicMediaUrl, getRuntimeEnv, getUploadedFile, validatePrivateFile, validatePublicImage } from "@lib/media";
+import { articleImageObjectKey, coachingAttachmentObjectKey, deleteR2Object, getManagedPublicObjectKey, getPrivateMediaBucket, getPublicMediaBucket, getPublicMediaUrl, getRuntimeEnv, getUploadedFile, validatePrivateFile, validatePublicImage, putPublicMediaObject } from "@lib/media";
 
 export const prerender=false;
 const nullable=(max:number)=>z.preprocess((value)=>value===""?null:value,z.string().trim().max(max).nullable());
@@ -83,7 +83,7 @@ export const POST:APIRoute=async(context)=>{
         const validation=await validatePublicImage(image,context,{maxBytes:8_388_608,maxWidth:2560,maxHeight:2560});
         if(!validation.ok)return redirect("error",validation.error);
         uploadedPublicKey=articleImageObjectKey(id,image.type);
-        try{await bucket.put(uploadedPublicKey,validation.bytes,{httpMetadata:{contentType:image.type,cacheControl:"public, max-age=31536000, immutable"}});}catch(cause){console.error("article image upload failed",{cause,correlationId});return redirect("error","The article image could not be uploaded.");}
+        try{await putPublicMediaObject(bucket,uploadedPublicKey,validation.bytes,image.type);}catch(cause){console.error("article image upload failed",{cause,correlationId});return redirect("error","The article image could not be uploaded.");}
         featuredImageUrl=getPublicMediaUrl(uploadedPublicKey,context);
       }else if(formData.get("remove_image")==="on")featuredImageUrl=null;
       values={id,title:data.title,slug:data.slug||slugify(data.title),summary:data.summary,body:{type:"plain_text",text:data.body},category:data.category,workflow_status:data.workflow_status,publish_at:data.publish_at,featured_image_url:featuredImageUrl,tags:splitList(data.tags),author_id:session.user.id};

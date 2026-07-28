@@ -3,7 +3,7 @@ import{z}from"zod";
 import{requirePermission}from"@lib/auth/guards";
 import{redirectWithMessage}from"@lib/forms";
 import{writeAdminAudit}from"@lib/audit";
-import{deleteR2Object,getPublicMediaBucket,getUploadedFile,merchandiseImageObjectKey,validatePublicImage}from"@lib/media";
+import {deleteR2Object,getPublicMediaBucket,getUploadedFile,merchandiseImageObjectKey,validatePublicImage, putPublicMediaObject } from "@lib/media";
 export const prerender=false;
 const back="/admin/merchandise/";
 const nullable=(max:number)=>z.preprocess((value)=>value===""?null:value,z.string().trim().max(max).nullable());
@@ -34,7 +34,7 @@ export const POST:APIRoute=async(context)=>{
    const{price,sale_price,...data}=parsed.data as z.infer<typeof variantSchema>;values={...data,price_cents:price,sale_price_cents:sale_price};
   }else{
    const data=parsed.data as z.infer<typeof productSchema>;oldKey=current?.image_object_key??null;let imageObjectKey=oldKey;let imageUrl=current?.image_url??null;const image=getUploadedFile(formData.get("image"));
-   if(image){if(!bucket)return redirect("error","Public image storage is unavailable. Save the product without replacing its image.");const validation=await validatePublicImage(image,context,{maxBytes:8_388_608,maxWidth:2560,maxHeight:2560});if(!validation.ok)return redirect("error",validation.error);uploadedKey=merchandiseImageObjectKey(id,image.type);try{await bucket.put(uploadedKey,validation.bytes,{httpMetadata:{contentType:image.type,cacheControl:"public, max-age=31536000, immutable"}});}catch(cause){console.error("merchandise image upload failed",{cause,correlationId});return redirect("error","The product image could not be uploaded.");}imageObjectKey=uploadedKey;imageUrl=null;}else if(formData.get("remove_image")==="on"){imageObjectKey=null;imageUrl=null;}
+   if(image){if(!bucket)return redirect("error","Public image storage is unavailable. Save the product without replacing its image.");const validation=await validatePublicImage(image,context,{maxBytes:8_388_608,maxWidth:2560,maxHeight:2560});if(!validation.ok)return redirect("error",validation.error);uploadedKey=merchandiseImageObjectKey(id,image.type);try{await putPublicMediaObject(bucket,uploadedKey,validation.bytes,image.type);}catch(cause){console.error("merchandise image upload failed",{cause,correlationId});return redirect("error","The product image could not be uploaded.");}imageObjectKey=uploadedKey;imageUrl=null;}else if(formData.get("remove_image")==="on"){imageObjectKey=null;imageUrl=null;}
    values={...data,id,image_url:imageUrl,image_object_key:imageObjectKey};
   }
   const result=idResult.success?await service.from(table).update(values).eq("id",id):await service.from(table).insert(values);

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
-import { deleteR2Object, getPublicMediaBucket, getUploadedFile, sponsorLogoObjectKey, validatePublicImage } from "@lib/media";
+import { deleteR2Object, getPublicMediaBucket, getUploadedFile, sponsorLogoObjectKey, validatePublicImage, putPublicMediaObject } from "@lib/media";
 import { writeAdminAudit } from "@lib/audit";
 
 export const prerender = false;
@@ -71,7 +71,7 @@ export const POST: APIRoute = async (context) => {
     if (!validation.ok) return redirect("error", validation.error);
     uploadedKey = sponsorLogoObjectKey(id, file.type);
     try {
-      await bucket.put(uploadedKey, validation.bytes, { httpMetadata: { contentType: file.type, cacheControl: "public, max-age=31536000, immutable" } });
+      await putPublicMediaObject(bucket,uploadedKey,validation.bytes,file.type);
     } catch (cause) {
       console.error("sponsor logo upload failed", { cause, operation: "r2.put", binding: "PUBLIC_MEDIA_BUCKET", id });
       return redirect("error", "The logo could not be uploaded. No sponsor record was created.");

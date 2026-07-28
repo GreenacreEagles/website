@@ -1,23 +1,20 @@
-export type R2ObjectBody = {
-  body: ReadableStream;
-  httpMetadata?: { contentType?: string };
-  writeHttpMetadata?(headers: Headers): void;
-};
+import { env } from "cloudflare:workers";
+import {
+  buildPublicMediaUrl,
+  normaliseObjectKey,
+  resolveMediaBindings,
+  validatePublicImageInput,
+  type R2Bucket,
+  type UploadedFile
+} from "./media-core";
 
-export type R2Bucket = {
-  put(key: string, value: ArrayBuffer | ArrayBufferView | Blob | ReadableStream, options?: unknown): Promise<unknown>;
-  get?(key: string): Promise<R2ObjectBody | null>;
-  delete(key: string | string[]): Promise<void>;
-};
+export { getUploadedFile, putPublicMediaObject, type R2Bucket, type UploadedFile } from "./media-core";
 
-export type UploadedFile = {
-  name?: string;
-  size: number;
-  type: string;
-  arrayBuffer(): Promise<ArrayBuffer>;
+type RuntimeContext = {
+  locals?: unknown;
+  request?: Request;
+  url?: URL;
 };
-
-type RuntimeContext = { locals?: any };
 type ImageValidationOptions = { maxBytes?: number; maxWidth?: number; maxHeight?: number };
 
 const warned = new Set<string>();
@@ -35,34 +32,37 @@ const buildEnv = () => {
   }
 };
 
-export const getRuntimeEnv = (context: RuntimeContext, key: string) => {
-  try {
-    const runtimeEnv = context?.locals?.runtime?.env;
-    if (runtimeEnv && runtimeEnv[key] !== undefined) return runtimeEnv[key];
-  } catch (cause) {
-    warnOnce(`runtime-env:${key}`, "Cloudflare runtime environment could not be read; build-time configuration will be used when available.", { key, cause });
-  }
+export const getRuntimeEnv = (_context: RuntimeContext, key: string) => {
+  const runtimeValue = (env as Record<string, unknown>)[key];
+  if (runtimeValue !== undefined) return runtimeValue;
   return buildEnv()[key];
 };
 
-const getBucket = (context: RuntimeContext, defaultBinding: "PUBLIC_MEDIA_BUCKET" | "PRIVATE_MEDIA_BUCKET", overrideKey: string) => {
+const bindingState = (context: RuntimeContext) => {
+  const bindings = resolveMediaBindings(env as Record<string, unknown>);
+  let requestHostname = "unknown";
+  let routeName = "unknown";
   try {
-    const env = context?.locals?.runtime?.env;
-    const bindingName = String(getRuntimeEnv(context, overrideKey) ?? defaultBinding).trim() || defaultBinding;
-    const bucket = env?.[bindingName] ?? env?.[defaultBinding];
-    if (bucket && typeof (bucket as R2Bucket).put === "function" && typeof (bucket as R2Bucket).delete === "function") return bucket as R2Bucket;
-    warnOnce(`missing-binding:${defaultBinding}`, `Cloudflare R2 binding ${defaultBinding} is unavailable. Media pages will remain usable, but uploads requiring this binding are disabled.`, { bindingName });
-  } catch (cause) {
-    warnOnce(`binding-error:${defaultBinding}`, `Cloudflare R2 binding ${defaultBinding} could not be inspected. Media pages will remain usable.`, { cause });
+    const url = context.request ? new URL(context.request.url) : context.url;
+    requestHostname = url?.hostname ?? requestHostname;
+    routeName = url?.pathname ?? routeName;
+  } catch {
+    // The binding result remains useful even if request metadata is malformed.
   }
-  return null;
+  console.info("Cloudflare media binding state", {
+    routeName,
+    requestHostname,
+    publicBindingPresent: Boolean(bindings.publicBucket),
+    privateBindingPresent: Boolean(bindings.privateBucket)
+  });
+  return bindings;
 };
 
 export const getPublicMediaBucket = (context: RuntimeContext): R2Bucket | null =>
-  getBucket(context, "PUBLIC_MEDIA_BUCKET", "R2_PUBLIC_BUCKET_BINDING");
+  bindingState(context).publicBucket;
 
 export const getPrivateMediaBucket = (context: RuntimeContext): R2Bucket | null =>
-  getBucket(context, "PRIVATE_MEDIA_BUCKET", "R2_PRIVATE_BUCKET_BINDING");
+  bindingState(context).privateBucket;
 
 export const getPublicMediaBaseUrl = (context: RuntimeContext): string | null => {
   const configured = String(getRuntimeEnv(context, "PUBLIC_MEDIA_BASE_URL") ?? "").trim().replace(/\/+$/, "");
@@ -81,8 +81,7 @@ export const getPublicMediaBaseUrl = (context: RuntimeContext): string | null =>
 };
 
 export const getMediaCapabilities = (context: RuntimeContext) => {
-  const publicBucket = getPublicMediaBucket(context);
-  const privateBucket = getPrivateMediaBucket(context);
+  const { publicBucket, privateBucket } = bindingState(context);
   const publicBaseUrl = getPublicMediaBaseUrl(context);
   return {
     publicBucket,
@@ -94,19 +93,10 @@ export const getMediaCapabilities = (context: RuntimeContext) => {
   };
 };
 
-const normaliseObjectKey = (value: string | null | undefined) => {
-  const key = String(value ?? "").trim();
-  if (!key || key.length > 900 || key.startsWith("/") || key.includes("\\") || key.includes("\0")) return null;
-  const segments = key.split("/");
-  if (segments.some((segment) => !segment || segment === "." || segment === "..")) return null;
-  return segments.join("/");
-};
 
 export const getPublicMediaUrl = (objectKey: string | null | undefined, context: RuntimeContext): string | null => {
-  const key = normaliseObjectKey(objectKey);
-  if (!key) return null;
   const base = getPublicMediaBaseUrl(context);
-  return base ? `${base}/${key.split("/").map(encodeURIComponent).join("/")}` : null;
+  return base ? buildPublicMediaUrl(base, objectKey) : null;
 };
 
 export const getSafeExternalImageUrl = (value: string | null | undefined) => {
@@ -134,13 +124,6 @@ export const getManagedPublicObjectKey = (value: string | null | undefined, cont
   }
 };
 
-export const getUploadedFile = (value: FormDataEntryValue | null): UploadedFile | null => {
-  if (!value || typeof value !== "object") return null;
-  const candidate = value as Partial<UploadedFile>;
-  if (typeof candidate.size !== "number" || candidate.size <= 0) return null;
-  if (typeof candidate.type !== "string" || typeof candidate.arrayBuffer !== "function") return null;
-  return candidate as UploadedFile;
-};
 
 export const PLAYER_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const IMAGE_EXTENSIONS: Record<string, string[]> = {
@@ -206,10 +189,9 @@ const matchesMagicBytes = (bytes: Uint8Array, mimeType: string) => {
 };
 
 export const validatePublicImage = async (file: UploadedFile, context: RuntimeContext, options: ImageValidationOptions = {}) => {
-  if (!PLAYER_PHOTO_TYPES.has(file.type)) return { ok:false as const, error:"Choose a JPEG, PNG, WebP or AVIF image." };
-  if (!extensionMatches(file, IMAGE_EXTENSIONS)) return { ok:false as const, error:"The file extension does not match the selected image type." };
   const maxBytes = options.maxBytes ?? playerPhotoMaxBytes(context);
-  if (file.size <= 0 || file.size > maxBytes) return { ok:false as const, error:`Choose an image smaller than ${Math.floor(maxBytes / 1_048_576)} MB.` };
+  const inputValidation = validatePublicImageInput(file, maxBytes);
+  if (!inputValidation.ok) return inputValidation;
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.byteLength !== file.size || !matchesMagicBytes(bytes,file.type)) return { ok:false as const, error:"The file content does not match its image type." };
   const dimensions = imageDimensions(bytes,file.type);
