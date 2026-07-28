@@ -4,7 +4,7 @@ do $$
 declare role_count int; missing_general int; duplicate_general int; obsolete_active int; worker_refs int; staff_extra int;
 begin
  select count(*) into role_count from public.roles where is_active and role_kind='global';
- if role_count<>8 then raise exception 'Expected 8 active global roles, found %',role_count; end if;
+ if role_count<>9 then raise exception 'Expected 9 active global roles, found %',role_count; end if;
  select count(*) into obsolete_active from public.roles where is_active and key in('player','coach','assistant_coach','team_manager','canteen_worker','volunteer_coordinator');
  if obsolete_active<>0 then raise exception 'Obsolete roles remain active'; end if;
  select count(*) into worker_refs from public.user_role_assignments ura join public.roles r on r.id=ura.role_id where r.key='canteen_worker' and ura.status='active' and ura.revoked_at is null;

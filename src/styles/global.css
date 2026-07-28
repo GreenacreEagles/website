@@ -20,6 +20,11 @@
     @apply bg-eagles-green text-white;
   }
 
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
   img,
   svg {
     display: block;

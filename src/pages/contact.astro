@@ -9,12 +9,12 @@ export const prerender = false;
 const enquiryType = Astro.url.searchParams.get("type") ?? "";
 ---
 
-<BaseLayout title="Contact Greenacre Eagles" description="Contact Greenacre Eagles Football Club about registrations, teams, volunteering, sponsorship and club activities at Allum Park.">
+<BaseLayout title="Contact Greenacre Eagles" description="Contact Greenacre Eagles Football Club about registrations, teams, sponsorship and club activities at Allum Park.">
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell grid min-w-0 gap-10 lg:grid-cols-[.9fr_1.1fr]">
       <div class="min-w-0">
         <SectionHeading eyebrow="Contact" title="Visit Greenacre Eagles at Allum Park" intro="Allum Park is the home of Greenacre Eagles Football Club and where our teams train, play and come together throughout the season." />
-        <p class="mt-5 leading-7 text-eagles-ink/70">Whether you have a question about registrations, teams, volunteering, sponsorship, the canteen or club merchandise, send us a message and the right person from the club will get back to you.</p>
+        <p class="mt-5 leading-7 text-eagles-ink/70">Whether you have a question about registrations, teams, sponsorship, the canteen or club merchandise, send us a message and the right person from the club will get back to you.</p>
         <div class="mt-8 grid gap-4">
           <a class="surface flex items-center gap-4 p-5 hover:border-eagles-green" href={`mailto:${site.contactEmail}`}>
             <Icon name="mail" class="h-6 w-6 text-eagles-green" />

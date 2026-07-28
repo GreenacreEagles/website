@@ -7,7 +7,7 @@ export const site = {
   description:
     "Official website of Greenacre Eagles FC, competing in the Bankstown District Amateur Football Association.",
   registrationUrl: "/join/",
-  volunteerUrl: "/volunteer/",
+
   contactEmail: "contact@greenacreeaglesfc.com.au",
   phone: "Contact by email",
   homeGround: "Allum Park",

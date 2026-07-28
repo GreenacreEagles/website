@@ -2,6 +2,7 @@ export const GLOBAL_ROLE_KEYS = [
   "general_user",
   "club_admin",
   "registrar",
+  "volunteer",
   "content_editor",
   "event_manager",
   "merchandise_manager",

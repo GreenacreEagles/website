@@ -1,23 +1,28 @@
 ---
-import PortalLayout from "@layouts/PortalLayout.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import FileUploadField from "@components/FileUploadField.astro";
 import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
 import { requireUser } from "@lib/auth/guards";
-import { formatDateTime, statusLabel } from "@lib/format";
+import { formatDate, formatDateTime, statusLabel } from "@lib/format";
+import { getMediaCapabilities } from "@lib/media";
+import { wwccDisplayStatus, wwccStatusLabel } from "@lib/wwcc";
 
 export const prerender = false;
 const session = await requireUser(Astro);
 if (!session) return Astro.redirect("/login/");
 if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
-const [{ data: assignments }, { data: staff }, { data: playerRecords }, { data: complianceData }] = await Promise.all([
+await (session.supabase as any).rpc("refresh_wwcc_status", { target_user_id: session.user.id });
+
+const [{ data: assignments }, { data: staff }, { data: playerRecords }, { data: submissions }] = await Promise.all([
   session.supabase.from("user_role_assignments").select("id,status,starts_at,ends_at,reason,revoked_at,roles(id,key,name,description)").eq("user_id", session.user.id).is("team_id", null).is("season_id", null).order("created_at", { ascending: false }),
   session.supabase.from("team_staff").select("id,staff_role,status,starts_on,ends_on,teams(id,name,seasons(name))").eq("user_id", session.user.id).order("created_at", { ascending: false }),
   session.supabase.from("player_records").select("id,registration_status,seasons(name),team_players(id,status,starts_on,ends_on,teams(id,name))").eq("user_id", session.user.id),
-  session.supabase.from("member_compliance").select("volunteer_status,wwcc_status,wwcc_expiry_date").eq("user_id", session.user.id).maybeSingle()
+  (session.supabase as any).from("wwcc_submissions").select("id,status,legal_name,wwcc_number,expiry_date,notes,submitted_at,reviewed_at,review_reason,document_file_id").eq("user_id", session.user.id).order("submitted_at", { ascending: false })
 ]);
 
 type RoleAssignment = NonNullable<typeof assignments>[number];
-const compliance = complianceData;
 const now = Date.now();
 const assignmentState = (assignment: RoleAssignment) => {
   if (assignment.status === "revoked") return ["Revoked", "red"] as const;
@@ -26,39 +31,101 @@ const assignmentState = (assignment: RoleAssignment) => {
   return [statusLabel(assignment.status), assignment.status === "active" ? "green" : "ink"] as const;
 };
 const teamAssignments = [
-  ...(staff ?? []).map((item) => ({ id: item.id, position: item.staff_role === "team_manager" ? "Team Manager" : "Coach", status: item.status, starts: item.starts_on, ends: item.ends_on, team: item.teams?.name, season: item.teams?.seasons?.name })),
-  ...(playerRecords ?? []).flatMap((record) => (record.team_players ?? []).map((item) => ({ id: item.id, position: "Player", status: item.status, starts: item.starts_on, ends: item.ends_on, team: item.teams?.name, season: record.seasons?.name })))
+  ...(staff ?? []).map((item) => ({ id: item.id, position: item.staff_role === "team_manager" ? "Team Manager" : "Coach", status: item.status, team: item.teams?.name, season: item.teams?.seasons?.name })),
+  ...(playerRecords ?? []).flatMap((record) => (record.team_players ?? []).map((item) => ({ id: item.id, position: "Player", status: item.status, team: item.teams?.name, season: record.seasons?.name })))
 ];
+const volunteerAssignment = (assignments ?? []).find((item) => item.roles?.key === "volunteer" && !item.revoked_at);
+const latestSubmission = (submissions ?? [])[0] ?? null;
+const displayStatus = wwccDisplayStatus(latestSubmission);
+const canSubmit = Boolean(volunteerAssignment) && displayStatus !== "pending" && displayStatus !== "approved";
+const profileName = session.profile.full_name || session.profile.preferred_name || "";
+const media = getMediaCapabilities(Astro);
+const success = Astro.url.searchParams.get("success");
+const error = Astro.url.searchParams.get("error");
+const badgeTone = displayStatus === "approved" ? "green" : displayStatus === "rejected" || displayStatus === "expired" ? "red" : "amber";
 ---
 
 <PortalLayout title="My roles" section="Access" session={session}>
-  <div class="grid gap-6">
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Global club roles</h2>
-      <p class="mt-3 max-w-3xl text-base leading-7 text-eagles-ink/70">This page is read-only. Club administrators assign global roles; team positions are managed separately. You cannot request roles or team access.</p>
-      <div class="mt-6 grid gap-4">
-        {(assignments ?? []).map((assignment) => { const [label, tone] = assignmentState(assignment); return (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <div class="flex items-start justify-between gap-3"><div><h3 class="font-display text-2xl font-black uppercase leading-none">{assignment.roles?.name ?? "Club role"}</h3><p class="mt-2 text-sm leading-6 text-eagles-ink/70">{assignment.roles?.description}</p></div><StatusBadge label={label} tone={tone} /></div>
-            <dl class="mt-4 grid gap-3 text-sm md:grid-cols-2"><div><dt class="font-black">Starts</dt><dd>{formatDateTime(assignment.starts_at)}</dd></div><div><dt class="font-black">Expires</dt><dd>{formatDateTime(assignment.ends_at)}</dd></div></dl>
-          </article>
-        ); })}
+  <div class="grid min-w-0 gap-6">
+    <AdminFeedback success={success} error={error} />
+
+    <section class="surface min-w-0 p-5 md:p-7">
+      <h2 class="break-words font-display text-3xl font-black uppercase leading-none">Global club roles</h2>
+      <p class="mt-3 max-w-3xl text-base leading-7 text-eagles-ink/70">Club administrators assign global roles and team positions. Roles cannot be requested from this page.</p>
+      <div class="mt-6 grid min-w-0 gap-4">
+        {(assignments ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No global club roles are assigned.</p>}
+        {(assignments ?? []).map((assignment) => {
+          const [defaultLabel, defaultTone] = assignmentState(assignment);
+          const isVolunteer = assignment.roles?.key === "volunteer";
+          const label = isVolunteer ? wwccStatusLabel(displayStatus) : defaultLabel;
+          const tone = isVolunteer ? badgeTone : defaultTone;
+          return (
+            <article class="min-w-0 border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0"><h3 class="break-words font-display text-2xl font-black uppercase leading-none">{assignment.roles?.name ?? "Club role"}</h3><p class="mt-2 text-sm leading-6 text-eagles-ink/70">{assignment.roles?.description}</p></div>
+                <StatusBadge label={label} tone={tone} />
+              </div>
+              <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="font-black">Starts</dt><dd>{formatDateTime(assignment.starts_at)}</dd></div><div><dt class="font-black">Expires</dt><dd>{formatDateTime(assignment.ends_at)}</dd></div></dl>
+            </article>
+          );
+        })}
       </div>
     </section>
 
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Team positions</h2>
-      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Player, Coach and Team Manager are scoped to a team and season; they are not global roles.</p>
-      <div class="mt-5 grid gap-3 md:grid-cols-2">
+    <section id="wwcc" class="surface min-w-0 scroll-mt-4 p-5 md:p-7">
+      <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <h2 class="break-words font-display text-3xl font-black uppercase leading-none">Volunteer WWCC</h2>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-eagles-ink/70">Only people assigned the Volunteer role by the club can submit a Working With Children Check. Documents remain private and are available only to you and authorised reviewers.</p>
+        </div>
+        <StatusBadge label={wwccStatusLabel(displayStatus)} tone={badgeTone} />
+      </div>
+
+      {!volunteerAssignment && <p class="mt-5 border border-eagles-line bg-eagles-mist p-4 text-sm font-bold leading-6" style="border-radius:8px">You do not currently have a club-assigned Volunteer role. Contact a club administrator if an assignment is expected.</p>}
+
+      {latestSubmission && (
+        <dl class="mt-5 grid min-w-0 gap-4 border-t border-eagles-line pt-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div><dt class="font-black">WWCC number</dt><dd class="break-all">{latestSubmission.wwcc_number}</dd></div>
+          <div><dt class="font-black">Expiry date</dt><dd>{formatDate(latestSubmission.expiry_date)}</dd></div>
+          <div><dt class="font-black">Submitted</dt><dd>{formatDateTime(latestSubmission.submitted_at)}</dd></div>
+          <div><dt class="font-black">Document</dt><dd><a class="font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${latestSubmission.id}`}>Private download</a></dd></div>
+          {latestSubmission.review_reason && <div class="sm:col-span-2 lg:col-span-4"><dt class="font-black">Review note</dt><dd class="mt-1 leading-6">{latestSubmission.review_reason}</dd></div>}
+        </dl>
+      )}
+
+      {displayStatus === "pending" && <p class="mt-5 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Your submission is waiting for an authorised club reviewer. You will be notified when a decision is recorded.</p>}
+
+      {canSubmit && (
+        <form class="mt-6 grid min-w-0 gap-4 border-t border-eagles-line pt-6" method="post" action="/api/portal/wwcc-submission" enctype="multipart/form-data">
+          <input type="hidden" name="assignment_id" value={volunteerAssignment!.id} />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label><span class="label">Legal name on WWCC</span><input class="field" name="legal_name" value={latestSubmission?.legal_name ?? profileName} minlength="2" maxlength="160" required /></label>
+            <label><span class="label">WWCC number</span><input class="field" name="wwcc_number" value={latestSubmission?.wwcc_number ?? ""} minlength="5" maxlength="80" required /></label>
+          </div>
+          <label><span class="label">Expiry date</span><input class="field" type="date" name="expiry_date" min={new Date().toISOString().slice(0, 10)} value={latestSubmission?.expiry_date ?? ""} required /></label>
+          <FileUploadField name="document" label="Supporting WWCC document" configured={media.privateMediaConfigured} maxSizeMb={15} />
+          <label><span class="label">Notes for the reviewer (optional)</span><textarea class="field min-h-24" name="notes" maxlength="1000"></textarea></label>
+          <button class="focus-ring inline-flex min-h-11 w-full items-center justify-center bg-eagles-pine px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink sm:w-fit" type="submit" style="border-radius:8px">Submit WWCC for review</button>
+        </form>
+      )}
+
+      {(submissions ?? []).length > 1 && (
+        <details class="mt-6 border-t border-eagles-line pt-5">
+          <summary class="focus-ring min-h-11 cursor-pointer py-3 font-black text-eagles-pine">View submission history</summary>
+          <div class="mt-3 grid gap-3">
+            {(submissions ?? []).map((item: any) => <article class="min-w-0 border border-eagles-line p-4 text-sm" style="border-radius:8px"><div class="flex flex-wrap justify-between gap-2"><strong>{formatDateTime(item.submitted_at)}</strong><StatusBadge label={statusLabel(item.status)} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"} /></div><p class="mt-2">Expiry: {formatDate(item.expiry_date)}</p><a class="mt-2 inline-flex min-h-11 items-center font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${item.id}`}>Private document</a></article>)}
+          </div>
+        </details>
+      )}
+    </section>
+
+    <section class="surface min-w-0 p-5 md:p-7">
+      <h2 class="break-words font-display text-3xl font-black uppercase leading-none">Team positions</h2>
+      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Player, Coach and Team Manager positions are scoped to a team and season.</p>
+      <div class="mt-5 grid min-w-0 gap-3 md:grid-cols-2">
         {teamAssignments.length === 0 && <p class="text-sm text-eagles-ink/70">No team positions are assigned.</p>}
-        {teamAssignments.map((item) => <article class="border border-eagles-line p-4" style="border-radius:8px"><div class="flex justify-between gap-3"><h3 class="font-black">{item.position}</h3><StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "ink"} /></div><p class="mt-2 text-sm">{item.team ?? "Team"} · {item.season ?? "Season"}</p></article>)}
+        {teamAssignments.map((item) => <article class="min-w-0 border border-eagles-line p-4" style="border-radius:8px"><div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:justify-between"><h3 class="break-words font-black">{item.position}</h3><StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "ink"} /></div><p class="mt-2 break-words text-sm">{item.team ?? "Team"} · {item.season ?? "Season"}</p></article>)}
       </div>
-    </section>
-
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Volunteer & compliance status</h2>
-      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Volunteer approval and Working With Children Check verification are eligibility statuses, not roles. Sensitive WWCC details are only visible to authorised administrators.</p>
-      <dl class="mt-5 grid gap-4 md:grid-cols-3"><div><dt class="text-xs font-black uppercase text-eagles-ink/60">Volunteer</dt><dd class="mt-1 font-black">{statusLabel(compliance?.volunteer_status ?? "pending")}</dd></div><div><dt class="text-xs font-black uppercase text-eagles-ink/60">WWCC</dt><dd class="mt-1 font-black">{statusLabel(compliance?.wwcc_status ?? "not_supplied")}</dd></div><div><dt class="text-xs font-black uppercase text-eagles-ink/60">WWCC expiry</dt><dd class="mt-1 font-black">{compliance?.wwcc_expiry_date ?? "Not recorded"}</dd></div></dl>
     </section>
   </div>
 </PortalLayout>

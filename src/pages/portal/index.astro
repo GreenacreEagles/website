@@ -19,7 +19,6 @@ const [
   { data: orders },
   { data: vouchers },
   { data: registrations },
-  { data: volunteerAssignments },
   { data: teamPosts },
   { data: wallets }
 ] = await Promise.all([
@@ -55,12 +54,6 @@ const [
     .or(`registered_by.eq.${session.user.id},attendee_id.eq.${session.user.id}`)
     .order("created_at", { ascending: false })
     .limit(4),
-  session.supabase
-    .from("volunteer_assignments")
-    .select("id,status,volunteer_shifts(starts_at,ends_at,volunteer_opportunities(title),venue)")
-    .eq("user_id", session.user.id)
-    .in("status", ["assigned", "confirmed"])
-    .limit(4),
   (session.supabase as any)
     .from("team_posts")
     .select("id,team_id,title,post_type,published_at,teams(name)")
@@ -79,7 +72,7 @@ const actionUrl = (notification: any) => {
   if (notification.related_entity_type === "canteen_order") return "/portal/canteen/";
   if (notification.related_entity_type === "voucher") return "/portal/vouchers/";
   if (notification.related_entity_type === "event_registration") return "/portal/events/";
-  if (notification.related_entity_type === "volunteer_assignment") return "/portal/volunteers/";
+  if (notification.related_entity_type === "wwcc_submission") return "/portal/roles/#wwcc";
   if (notification.related_entity_type === "team_post") return notification.related_entity_id ? `/portal/teams/${notification.related_entity_id}/` : "/portal/teams/";
   return "/portal/";
 };
@@ -120,12 +113,6 @@ const attentionItems = [
     text: `${statusLabel(registration.status)} - ${formatDateTime(registration.club_events?.starts_at)}`,
     href: "/portal/events/",
     tone: "ink"
-  })),
-  ...(volunteerAssignments ?? []).map((assignment: any) => ({
-    title: assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Volunteer assignment",
-    text: `${statusLabel(assignment.status)} - ${formatDateTime(assignment.volunteer_shifts?.starts_at)} at ${assignment.volunteer_shifts?.venue ?? "club venue"}`,
-    href: "/portal/volunteers/",
-    tone: "amber"
   }))
 ].slice(0, 8);
 ---
@@ -139,7 +126,7 @@ const attentionItems = [
           {session.profile.preferred_name || session.profile.full_name || "Greenacre Eagles member"}
         </h2>
         <p class="mt-3 text-base leading-7 text-eagles-ink/70">
-          Your match-day portal brings team posts, family actions, wallet items, canteen orders, event tickets and volunteer duties into one place.
+          Your match-day portal brings team posts, family actions, wallet items, canteen orders, event tickets and role updates into one place.
         </p>
         <div class="mt-5 grid gap-3 sm:grid-cols-3">
           <div class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">
@@ -172,7 +159,7 @@ const attentionItems = [
       <section class="surface p-5 md:p-7">
         <h2 class="font-display text-3xl font-black uppercase leading-none">Needs attention</h2>
         <div class="mt-5 grid gap-3">
-          {attentionItems.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No canteen, voucher, event or volunteer actions need attention right now.</p>}
+          {attentionItems.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No canteen, voucher or event actions need attention right now.</p>}
           {attentionItems.map((item) => (
             <a class="flex flex-col gap-2 border border-eagles-line bg-white p-4 hover:border-eagles-green md:flex-row md:items-center md:justify-between" style="border-radius:8px" href={item.href}>
               <span>

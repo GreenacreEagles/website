@@ -10,8 +10,8 @@ interface Props {
 
 const { title, intro, intent = "Club enquiry", enquiryType = "" } = Astro.props;
 const categories = [
-  ["registrations", "Registrations"], ["teams", "Teams"], ["volunteering", "Volunteering"],
-  ["sponsorship", "Sponsorship"], ["canteen-volunteer", "Canteen"], ["merchandise", "Club merchandise"],
+  ["registrations", "Registrations"], ["teams", "Teams"],
+  ["sponsorship", "Sponsorship"], ["canteen", "Canteen"], ["merchandise", "Club merchandise"],
   ["general", "General enquiry"]
 ];
 const selectedType = categories.some(([value]) => value === enquiryType) ? enquiryType : "general";

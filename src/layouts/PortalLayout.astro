@@ -73,22 +73,32 @@ const isActiveNav = (href: string) => activePath === href || (href !== "/admin/"
   </head>
   <body class="bg-eagles-mist">
     <div class="min-h-screen min-w-0 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
-      <aside class="min-w-0 border-b border-eagles-line bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
+      <aside class="min-w-0 border-b border-eagles-line bg-white lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r">
         <div class="flex items-center justify-between gap-4 p-4 lg:block lg:p-6">
-          <a href={session.isChildAccount ? "/portal/teams/" : "/portal/"} class="inline-flex"><LogoLockup /></a>
+          <div class="min-w-0 flex-1"><LogoLockup tone="dark" href={session.isChildAccount ? "/portal/teams/" : "/portal/"} /></div>
           <form method="post" action="/api/auth/signout" class="lg:hidden">
             <button class="focus-ring whitespace-nowrap text-sm font-black text-eagles-pine hover:text-eagles-ink" type="submit">Sign out</button>
           </form>
         </div>
+        <details class="mx-4 mb-4 border border-eagles-line bg-eagles-mist lg:hidden" style="border-radius:8px">
+          <summary class="focus-ring flex min-h-11 cursor-pointer items-center justify-between px-4 py-3 text-sm font-black text-eagles-ink">
+            <span>{inAdmin ? "Administration menu" : "Portal menu"}</span><span aria-hidden="true">☰</span>
+          </summary>
+          <div class="max-h-[min(70dvh,32rem)] overflow-y-auto border-t border-eagles-line bg-white p-3">
+            {!inAdmin && <nav class="grid gap-1 text-sm font-black" aria-label="Mobile portal navigation">{visiblePortalNav.map((item) => <a class="portal-nav-link whitespace-normal" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>)}</nav>}
+            {showAdmin && !inAdmin && <a class="focus-ring mt-3 inline-flex min-h-11 w-full items-center justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-pine" style="border-radius:8px" href="/admin/">Open administration</a>}
+            {showAdmin && inAdmin && <><nav class="grid gap-1 text-sm font-black" aria-label="Mobile admin navigation">{visibleAdminNav.map((item) => <a class="portal-nav-link whitespace-normal" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>)}</nav><a class="focus-ring mt-3 inline-flex min-h-11 items-center text-sm font-black text-eagles-pine" href="/portal/">Back to portal</a></>}
+          </div>
+        </details>
         {!inAdmin && (
-          <nav class="flex gap-2 overflow-x-auto px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
+          <nav class="hidden gap-2 px-4 pb-4 text-sm font-black lg:grid lg:px-6" aria-label="Portal navigation">
             {visiblePortalNav.map((item) => (
               <a class="portal-nav-link" href={item.href} aria-current={isActiveNav(item.href) ? "page" : undefined}>{item.label}</a>
             ))}
           </nav>
         )}
         {showAdmin && (
-          <div class="border-t border-eagles-line px-4 py-4 lg:px-6">
+          <div class="hidden border-t border-eagles-line px-4 py-4 lg:block lg:px-6">
             {!inAdmin && <a class="focus-ring inline-flex min-h-11 w-full items-center justify-center bg-eagles-ink px-4 py-3 text-sm font-black text-white hover:bg-eagles-pine" style="border-radius:8px" href="/admin/">Admin</a>}
             {inAdmin && (
               <>

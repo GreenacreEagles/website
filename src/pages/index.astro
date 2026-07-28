@@ -93,9 +93,8 @@ export const prerender = false;
 <BaseLayout title={site.name} description={site.description}>
   <section class="relative isolate overflow-hidden bg-eagles-mist text-eagles-ink">
     <div class="absolute inset-x-0 top-0 -z-20 h-40 bg-white"></div>
-    <div class="absolute right-0 top-20 -z-10 hidden h-[32rem] w-[44vw] bg-eagles-green lg:block" style="clip-path:polygon(22% 0, 100% 0, 100% 100%, 0 100%)"></div>
-    <div class="section-shell grid min-w-0 gap-10 py-12 lg:grid-cols-[.92fr_1.08fr] lg:items-center lg:py-16">
-      <div class="min-w-0 max-w-3xl">
+    <div class="section-shell grid min-w-0 gap-10 py-12 lg:grid-cols-[minmax(0,1.16fr)_minmax(0,.84fr)] lg:items-center lg:gap-12 lg:py-16">
+      <div class="relative z-10 min-w-0 max-w-3xl lg:max-w-none">
         {announcement && (
           <a href={announcementHref} class="focus-ring mb-7 inline-flex items-center gap-3 border border-eagles-green/25 bg-white px-4 py-3 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green" style="border-radius:8px">
             <Icon name="megaphone" class="h-4 w-4 text-eagles-green" />
@@ -103,7 +102,7 @@ export const prerender = false;
           </a>
         )}
         <p class="text-base font-black uppercase text-eagles-green">{site.association}</p>
-        <h1 class="mt-4 font-display text-4xl font-black uppercase leading-none sm:text-6xl md:text-8xl">
+        <h1 class="mt-4 break-words font-display text-4xl font-black uppercase leading-[.92] sm:text-6xl md:text-7xl xl:text-8xl">
           Greenacre Eagles <span class="text-eagles-green">FC</span>
         </h1>
         <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-xl">
@@ -116,7 +115,8 @@ export const prerender = false;
         </div>
       </div>
 
-      <div class="grid min-w-0 gap-4 sm:grid-cols-[1fr_.72fr]">
+      <div class="relative isolate grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,.72fr)]">
+        <div class="pointer-events-none absolute -inset-y-5 -left-5 -right-[max(0px,calc((100vw-80rem)/2))] -z-10 hidden bg-eagles-green lg:block" style="clip-path:polygon(12% 0, 100% 0, 100% 100%, 0 100%)" aria-hidden="true"></div>
         <div class="overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
           <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="h-full min-h-96 w-full object-cover" />
         </div>
@@ -211,7 +211,7 @@ export const prerender = false;
       <div>
         <p class="eyebrow text-white/75">Contact</p>
         <h2 class="mt-3 font-display text-4xl font-black uppercase leading-none">Contact the club</h2>
-        <p class="mt-4 max-w-2xl text-base leading-7 text-white/80">Questions about teams, fixtures, volunteering or sponsorship?</p>
+        <p class="mt-4 max-w-2xl text-base leading-7 text-white/80">Questions about teams, fixtures, club operations or sponsorship?</p>
       </div>
       <ButtonLink href="/contact/" variant="light">Get in touch</ButtonLink>
     </div>

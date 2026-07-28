@@ -369,9 +369,12 @@ begin
 
   select * into before_row
   from public.wwcc_submissions
-  where id=submission_id and status='pending'
+  where id=submission_id and status in ('pending','approved')
   for update;
-  if not found then raise exception 'Pending WWCC submission not found'; end if;
+  if not found then raise exception 'Reviewable WWCC submission not found'; end if;
+  if before_row.status='approved' and decision<>'approved' then
+    raise exception 'An approved WWCC can only have its verified details updated';
+  end if;
   if before_row.user_id=actor then raise exception 'You cannot approve your own WWCC'; end if;
 
   final_expiry:=coalesce(corrected_expiry_date,before_row.expiry_date);
@@ -547,6 +550,7 @@ revoke all on function public.refresh_wwcc_status(uuid) from public,anon;
 grant execute on function public.refresh_wwcc_status(uuid) to authenticated,service_role;
 
 -- Retire the roster/recruitment API surface without deleting production history.
+revoke execute on function public.update_member_compliance(uuid,text,text,text,text,text,date,text,text) from authenticated;
 revoke execute on function public.request_volunteer_shift(uuid) from authenticated;
 revoke execute on function public.update_volunteer_assignment(uuid,text,text) from authenticated;
 revoke execute on function public.update_volunteer_shift_status(uuid,text,text) from authenticated;

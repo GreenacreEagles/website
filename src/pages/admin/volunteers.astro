@@ -1,129 +1,206 @@
 ---
-import EmptyState from "@components/EmptyState.astro";
 import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
+import EmptyState from "@components/EmptyState.astro";
 import FormActions from "@components/FormActions.astro";
-import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
-import { formatDateTime, statusLabel } from "@lib/format";
+import { hasAnyPermission } from "@lib/auth/permissions";
+import { formatDate, formatDateTime, statusLabel } from "@lib/format";
 
 export const prerender = false;
 
-const session = await requirePermission(Astro, ["volunteers.manage"]);
+const session = await requirePermission(Astro, ["volunteers.view", "wwcc.view"]);
 if (!session) return Astro.redirect("/login/");
+
+await (session.supabase as any).rpc("refresh_wwcc_status", { target_user_id: null });
 
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
-const [{ data: opportunities }, { data: shifts }, { data: assignments }] = await Promise.all([
-  session.supabase.from("volunteer_opportunities").select("id,title,description,opportunity_type,status").order("created_at", { ascending: false }).limit(80),
-  session.supabase.from("volunteer_shifts").select("id,starts_at,ends_at,capacity,status,volunteer_opportunities(title),venue,volunteer_assignments(id,status,user_id)").order("starts_at", { ascending: true }).limit(80),
-  session.supabase.from("volunteer_assignments").select("id,status,checked_in_at,completed_at,profiles:user_id(full_name,email),volunteer_shifts(starts_at,volunteer_opportunities(title))").order("created_at", { ascending: false }).limit(80)
+const selectedFilter = ["pending", "approved", "expiring", "expired", "rejected", "all"].includes(Astro.url.searchParams.get("filter") ?? "")
+  ? Astro.url.searchParams.get("filter")!
+  : "pending";
+const canReview = hasAnyPermission(session.permissions, ["wwcc.verify"]);
+
+const [{ data: submissions }, { data: assignments }] = await Promise.all([
+  (session.supabase as any)
+    .from("wwcc_submissions")
+    .select("id,user_id,role_assignment_id,legal_name,wwcc_number,expiry_date,notes,status,submitted_at,reviewed_at,review_reason,document_file_id,profiles:user_id(full_name,email),reviewer:reviewed_by(full_name)")
+    .order("submitted_at", { ascending: false }),
+  (session.supabase as any)
+    .from("user_role_assignments")
+    .select("id,user_id,status,created_at,profiles:user_id(full_name,email),roles!inner(key,name)")
+    .eq("roles.key", "volunteer")
+    .is("revoked_at", null)
+    .in("status", ["pending", "active", "suspended", "expired"])
+    .order("created_at", { ascending: false })
 ]);
 
-const activeAssignmentCount = (shift: any) =>
-  shift.volunteer_assignments?.filter((assignment: any) => ["interested", "assigned", "checked_in", "replacement_requested"].includes(assignment.status)).length ?? 0;
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const threeMonths = new Date(today);
+threeMonths.setMonth(threeMonths.getMonth() + 3);
+
+const histories = new Map<string, any[]>();
+for (const submission of submissions ?? []) {
+  const history = histories.get(submission.user_id) ?? [];
+  history.push(submission);
+  histories.set(submission.user_id, history);
+}
+
+const records = new Map<string, any>();
+for (const assignment of assignments ?? []) {
+  records.set(assignment.user_id, {
+    userId: assignment.user_id,
+    assignment,
+    profile: assignment.profiles,
+    latest: histories.get(assignment.user_id)?.[0] ?? null,
+    history: histories.get(assignment.user_id) ?? []
+  });
+}
+for (const submission of submissions ?? []) {
+  if (!records.has(submission.user_id)) {
+    records.set(submission.user_id, {
+      userId: submission.user_id,
+      assignment: null,
+      profile: submission.profiles,
+      latest: histories.get(submission.user_id)?.[0] ?? null,
+      history: histories.get(submission.user_id) ?? []
+    });
+  }
+}
+
+const statusFor = (record: any) => {
+  const latest = record.latest;
+  if (!latest || latest.status === "pending") return "pending";
+  if (latest.status === "rejected" || latest.status === "resubmission_required") return "rejected";
+  if (latest.status !== "approved") return latest.status;
+  const expiry = new Date(`${latest.expiry_date}T00:00:00`);
+  if (expiry < today) return "expired";
+  if (expiry <= threeMonths) return "expiring";
+  return "approved";
+};
+
+const allRecords = [...records.values()]
+  .map((record) => ({ ...record, effectiveStatus: statusFor(record) }))
+  .sort((a, b) => String(a.profile?.full_name ?? a.profile?.email ?? "").localeCompare(String(b.profile?.full_name ?? b.profile?.email ?? "")));
+const visibleRecords = selectedFilter === "all" ? allRecords : allRecords.filter((record) => record.effectiveStatus === selectedFilter);
+const filters = [
+  ["pending", "Pending"],
+  ["approved", "Approved"],
+  ["expiring", "Expiring within 3 months"],
+  ["expired", "Expired"],
+  ["rejected", "Rejected"],
+  ["all", "All"]
+] as const;
+const countFor = (filter: string) => filter === "all" ? allRecords.length : allRecords.filter((record) => record.effectiveStatus === filter).length;
+const badgeFor = (status: string) => status === "approved" ? "green" : status === "rejected" || status === "expired" ? "red" : "amber";
 ---
 
-<PortalLayout title="Volunteer management" section="Administration" session={session}>
-  <div class="grid gap-6">
+<PortalLayout title="WWCC management" section="Administration" session={session}>
+  <div class="grid min-w-0 gap-6">
     <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Volunteer management" intro="Coordinate opportunities, shifts and roster updates while keeping the active lists front and centre.">
-      <Fragment slot="actions">
-        <AdminDialog id="add-volunteer-opportunity" title="Add opportunity" actionLabel="Add opportunity" intro="Create a volunteer role that shifts can be scheduled against." size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record">
-            <input type="hidden" name="action" value="volunteerOpportunity" />
-            <label><span class="label">Title</span><input class="field" name="title" placeholder="Canteen helper" required /></label>
-            <label><span class="label">Type</span><input class="field" name="opportunity_type" placeholder="canteen" required /></label>
-            <label><span class="label">Description</span><textarea class="field min-h-24" name="description"></textarea></label>
-            <label><span class="label">Required permission</span><input class="field" name="required_permission" placeholder="Optional" /></label>
-            <label><span class="label">Status</span><select class="field" name="status">{["active", "paused", "archived"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-            <FormActions submitLabel="Add opportunity" />
-          </form>
-        </AdminDialog>
-        <AdminDialog id="add-volunteer-shift" title="Add shift" actionLabel="Add shift" intro="Schedule a shift for an existing role and set the capacity needed." size="lg">
-          <form class="grid gap-4" method="post" action="/api/admin/create-record">
-            <input type="hidden" name="action" value="volunteerShift" />
-            <label><span class="label">Opportunity</span><select class="field" name="opportunity_id" required><option value="">Select opportunity</option>{(opportunities ?? []).map((item) => <option value={item.id}>{item.title}</option>)}</select></label>
-            <label><span class="label">Location</span><input class="field" name="venue" maxlength="240" placeholder="e.g. Clubhouse" /></label>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label><span class="label">Starts</span><input class="field" name="starts_at" type="datetime-local" required /></label>
-              <label><span class="label">Ends</span><input class="field" name="ends_at" type="datetime-local" /></label>
+    <AdminPageHeader
+      title="Working With Children Checks"
+      intro="Review club-assigned volunteers, verify private supporting documents and monitor upcoming expiry dates."
+    />
+
+    <nav class="surface flex min-w-0 gap-2 overflow-x-auto p-3" aria-label="WWCC status filters">
+      {filters.map(([value, label]) => (
+        <a
+          class:list={["focus-ring inline-flex min-h-11 shrink-0 items-center gap-2 px-4 py-2 text-sm font-black", selectedFilter === value ? "bg-eagles-pine text-white" : "bg-eagles-mist text-eagles-ink hover:bg-eagles-line"]}
+          style="border-radius:8px"
+          href={`/admin/volunteers/?filter=${value}`}
+          aria-current={selectedFilter === value ? "page" : undefined}
+        >
+          {label}<span class="rounded-full bg-white/80 px-2 py-0.5 text-xs text-eagles-ink">{countFor(value)}</span>
+        </a>
+      ))}
+    </nav>
+
+    {visibleRecords.length === 0 && (
+      <EmptyState title={`No ${selectedFilter === "all" ? "" : selectedFilter} WWCC records`} text="Records will appear here when a volunteer role is assigned or a WWCC submission is received." />
+    )}
+
+    <div class="grid gap-4">
+      {visibleRecords.map((record) => {
+        const submission = record.latest;
+        const displayName = record.profile?.full_name || record.profile?.email || "Volunteer";
+        return (
+          <article class="surface min-w-0 p-5 md:p-6">
+            <div class="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 class="min-w-0 break-words font-display text-2xl font-black uppercase leading-none">{displayName}</h2>
+                  <StatusBadge label={record.effectiveStatus === "expiring" ? "Expiring within 3 months" : statusLabel(record.effectiveStatus)} tone={badgeFor(record.effectiveStatus)} />
+                </div>
+                <p class="mt-2 break-all text-sm text-eagles-ink/70 sm:break-normal">{record.profile?.email ?? "No email recorded"}</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <a class="focus-ring inline-flex min-h-11 items-center justify-center border border-eagles-line bg-white px-4 py-2 text-sm font-black hover:bg-eagles-mist" style="border-radius:8px" href={`/admin/users/${record.userId}/`}>View user</a>
+                {submission && (
+                  <AdminDialog id={`wwcc-history-${record.userId}`} title="WWCC submission history" actionLabel="View submission" tone="secondary" size="lg">
+                    <div class="grid gap-4">
+                      {record.history.map((item: any) => (
+                        <article class="border border-eagles-line p-4" style="border-radius:8px">
+                          <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="font-black">{formatDateTime(item.submitted_at)}</p>
+                            <StatusBadge label={statusLabel(item.status)} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"} />
+                          </div>
+                          <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                            <div><dt class="font-black">WWCC number</dt><dd class="break-all">{item.wwcc_number}</dd></div>
+                            <div><dt class="font-black">Expiry</dt><dd>{formatDate(item.expiry_date)}</dd></div>
+                            <div><dt class="font-black">Reviewed by</dt><dd>{item.reviewer?.full_name ?? "Not reviewed"}</dd></div>
+                            <div><dt class="font-black">Reviewed date</dt><dd>{formatDateTime(item.reviewed_at)}</dd></div>
+                          </dl>
+                          {item.review_reason && <p class="mt-3 text-sm leading-6"><strong>Review note:</strong> {item.review_reason}</p>}
+                          <a class="focus-ring mt-3 inline-flex min-h-11 items-center font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${item.id}`}>Securely download document</a>
+                        </article>
+                      ))}
+                    </div>
+                  </AdminDialog>
+                )}
+                {submission && canReview && ["pending", "approved"].includes(submission.status) && (
+                  <AdminDialog id={`wwcc-review-${submission.id}`} title={submission.status === "approved" ? "Update verified WWCC" : "Review WWCC"} actionLabel={submission.status === "approved" ? "Update" : "Review"} size="lg">
+                    <form class="grid min-w-0 gap-4" method="post" action="/api/admin/wwcc-review">
+                      <input type="hidden" name="submission_id" value={submission.id} />
+                      <input type="hidden" name="filter" value={selectedFilter} />
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <label><span class="label">WWCC number</span><input class="field" name="corrected_wwcc_number" value={submission.wwcc_number} required /></label>
+                        <label><span class="label">Expiry date</span><input class="field" type="date" name="corrected_expiry_date" value={submission.expiry_date} required /></label>
+                      </div>
+                      <label>
+                        <span class="label">Decision</span>
+                        <select class="field" name="decision">
+                          <option value="approved" selected={submission.status === "approved"}>Approve</option>
+                          {submission.status === "pending" && <option value="rejected">Reject</option>}
+                          {submission.status === "pending" && <option value="resubmission_required">Request resubmission</option>}
+                        </select>
+                      </label>
+                      <label><span class="label">Review reason</span><textarea class="field min-h-24" name="reason" minlength="5" required></textarea></label>
+                      <a class="focus-ring inline-flex min-h-11 items-center font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${submission.id}`}>Securely view supporting document</a>
+                      <FormActions submitLabel={submission.status === "approved" ? "Save verified details" : "Save review"} />
+                    </form>
+                  </AdminDialog>
+                )}
+              </div>
             </div>
-            <div class="grid gap-3 md:grid-cols-2">
-              <label><span class="label">Capacity</span><input class="field" name="capacity" type="number" min="1" value="1" required /></label>
-              <label><span class="label">Status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item}>{statusLabel(item)}</option>)}</select></label>
-            </div>
-            <FormActions submitLabel="Add shift" />
-          </form>
-        </AdminDialog>
-      </Fragment>
-    </AdminPageHeader>
-  </div>
-  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
-    <section class="surface p-5 md:p-7">
-      <h2 class="font-display text-3xl font-black uppercase leading-none">Opportunities</h2>
-      <div class="mt-5 grid gap-3">
-        {(opportunities ?? []).length === 0 && <EmptyState title="No volunteer opportunities" text="Setup, canteen, barbecue, marshal and pack-down roles will appear here once scheduled." />}
-        {(opportunities ?? []).map((item) => (
-          <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
-            <p class="font-black">{item.title}</p>
-            <p class="text-sm text-eagles-ink/70">{item.description ?? statusLabel(item.opportunity_type)}</p>
-            <StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "amber"} />
+
+            <dl class="mt-5 grid min-w-0 gap-4 border-t border-eagles-line pt-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
+              <div><dt class="font-black">Assigned role</dt><dd>{record.assignment?.roles?.name ?? "Volunteer"}</dd></div>
+              <div><dt class="font-black">Role state</dt><dd>{statusLabel(record.assignment?.status ?? "pending")}</dd></div>
+              <div><dt class="font-black">WWCC number</dt><dd class="break-all">{submission?.wwcc_number ?? "Not submitted"}</dd></div>
+              <div><dt class="font-black">Expiry date</dt><dd>{formatDate(submission?.expiry_date)}</dd></div>
+              <div><dt class="font-black">Submission date</dt><dd>{formatDateTime(submission?.submitted_at)}</dd></div>
+              <div><dt class="font-black">Reviewed by</dt><dd>{submission?.reviewer?.full_name ?? "Not reviewed"}</dd></div>
+              <div><dt class="font-black">Reviewed date</dt><dd>{formatDateTime(submission?.reviewed_at)}</dd></div>
+              <div><dt class="font-black">Supporting document</dt><dd>{submission ? <a class="font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${submission.id}`}>Private download</a> : "Not supplied"}</dd></div>
+            </dl>
           </article>
-        ))}
-      </div>
-    </section>
-    <aside class="grid gap-5 content-start">
-      <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Shifts</h2>
-        <div class="mt-4 grid gap-3">
-          {(shifts ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Scheduled shifts will appear here.</p>}
-          {(shifts ?? []).map((shift: any) => (
-            <div class="border-t border-eagles-line pt-3 text-sm">
-              <div class="flex items-start justify-between gap-3">
-                <p>
-                  <strong>{shift.volunteer_opportunities?.title ?? "Shift"}</strong><br />
-                  {formatDateTime(shift.starts_at)} - {activeAssignmentCount(shift)}/{shift.capacity} filled
-                </p>
-                <StatusBadge label={statusLabel(shift.status)} tone={shift.status === "open" ? "green" : shift.status === "cancelled" ? "red" : "amber"} />
-              </div>
-              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action">
-                <input type="hidden" name="action" value="shift" />
-                <input type="hidden" name="shift_id" value={shift.id} />
-                <label><span class="label">Shift status</span><select class="field" name="status">{["open", "filled", "cancelled", "completed"].map((item) => <option value={item} selected={shift.status === item}>{statusLabel(item)}</option>)}</select></label>
-                <label><span class="label">Note</span><input class="field" name="note" placeholder="Optional roster note" /></label>
-                <button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px" type="submit">Update shift</button>
-              </form>
-            </div>
-          ))}
-        </div>
-      </article>
-      <article class="surface p-5">
-        <h2 class="font-display text-2xl font-black uppercase leading-none">Assignments</h2>
-        <div class="mt-4 grid gap-3">
-          {(assignments ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Volunteer assignments will appear here.</p>}
-          {(assignments ?? []).map((assignment: any) => (
-            <div class="border-t border-eagles-line pt-3 text-sm">
-              <div class="flex items-start justify-between gap-3">
-                <p>
-                  <strong>{assignment.profiles?.full_name ?? assignment.profiles?.email}</strong><br />
-                  {assignment.volunteer_shifts?.volunteer_opportunities?.title ?? "Shift"} - {formatDateTime(assignment.volunteer_shifts?.starts_at)}
-                </p>
-                <StatusBadge label={statusLabel(assignment.status)} tone={assignment.status === "completed" ? "green" : assignment.status === "cancelled" ? "red" : "amber"} />
-              </div>
-              <form class="mt-3 grid gap-2" method="post" action="/api/admin/volunteer-action">
-                <input type="hidden" name="action" value="assignment" />
-                <input type="hidden" name="assignment_id" value={assignment.id} />
-                <label><span class="label">Assignment status</span><select class="field" name="status">{["interested", "assigned", "checked_in", "completed", "cancelled", "replacement_requested"].map((item) => <option value={item} selected={assignment.status === item}>{statusLabel(item)}</option>)}</select></label>
-                <label><span class="label">Note</span><input class="field" name="note" placeholder="Optional coordinator note" /></label>
-                <button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px" type="submit">Update assignment</button>
-              </form>
-            </div>
-          ))}
-        </div>
-      </article>
-    </aside>
+        );
+      })}
+    </div>
   </div>
 </PortalLayout>

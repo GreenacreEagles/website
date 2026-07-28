@@ -1,4 +1,4 @@
-﻿---
+---
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
@@ -10,12 +10,12 @@ const fundraisers = await getCollection("fundraisers");
 export const prerender = true;
 ---
 
-<BaseLayout title="Community and Fundraising" description="Greenacre Eagles FC community support, fundraisers, volunteer calls, and donation campaigns.">
+<BaseLayout title="Community and Fundraising" description="Greenacre Eagles FC community support, fundraisers, and donation campaigns.">
   <section class="section-pad bg-white">
     <div class="section-shell">
       <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <SectionHeading eyebrow="Community" title="Support that reaches the pitch" intro="Every contribution helps players train, teams prepare, and families enjoy a stronger local football club." />
-        <ButtonLink href="/volunteer/" variant="secondary">Volunteer</ButtonLink>
+        <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
       </div>
       <div class="mt-10 grid gap-8">
         {fundraisers.map((fundraiser) => <FundraiserCard fundraiser={fundraiser} />)}

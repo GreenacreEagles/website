@@ -69,21 +69,6 @@ const schemas = {
     ends_on: nullableDate,
     status: z.enum(["active", "inactive", "left"]).default("active")
   }),
-  volunteerOpportunity: z.object({
-    title: z.string().trim().min(2).max(140),
-    description: nullableText(600),
-    opportunity_type: z.string().trim().min(2).max(80),
-    required_permission: nullableText(120),
-    status: z.enum(["active", "paused", "archived"])
-  }),
-  volunteerShift: z.object({
-    opportunity_id: uuidSchema,
-    venue: nullableText(240),
-    starts_at: z.string().min(1),
-    ends_at: nullableDate,
-    capacity: z.coerce.number().int().min(1).max(200),
-    status: z.enum(["open", "filled", "cancelled", "completed"])
-  }),
   canteenCategory: z.object({
     name: z.string().trim().min(2).max(80),
     display_order: z.coerce.number().int().min(0).default(0),
@@ -209,8 +194,6 @@ const actionConfig = {
   fixture: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Fixture saved internally." },
   training: { permissions: ["club_structure.manage", "teams.manage"], redirect: "/admin/teams/", success: "Training session created." },
   teamStaff: { permissions: ["club_structure.manage", "team_memberships.manage", "teams.manage"], redirect: "/admin/teams/", success: "Team staff assignment saved." },
-  volunteerOpportunity: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer opportunity created." },
-  volunteerShift: { permissions: ["volunteers.manage"], redirect: "/admin/volunteers/", success: "Volunteer shift created." },
   canteenCategory: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen category created." },
   canteenProduct: { permissions: ["canteen.manage"], redirect: "/admin/canteen/", success: "Canteen product created." },
   voucher: { permissions: ["canteen.vouchers.manage"], redirect: "/admin/canteen/", success: "Voucher issued." },
@@ -260,10 +243,6 @@ export const POST: APIRoute = async (context) => {
       target_starts_on: data.starts_on ?? null,
       target_ends_on: data.ends_on ?? null
     }));
-  } else if (action === "volunteerOpportunity") {
-    ({ error } = await session.supabase.from("volunteer_opportunities").insert(data));
-  } else if (action === "volunteerShift") {
-    ({ error } = await session.supabase.from("volunteer_shifts").insert(data));
   } else if (action === "canteenCategory") {
     ({ error } = await session.supabase.from("canteen_categories").insert(data));
   } else if (action === "canteenProduct") {
