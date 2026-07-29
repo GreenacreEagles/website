@@ -92,9 +92,9 @@ export const prerender = false;
 
 <BaseLayout title={site.name} description={site.description}>
   <section class="relative isolate overflow-hidden bg-eagles-mist text-eagles-ink">
-    <div class="absolute inset-x-0 top-0 -z-20 h-32 bg-white sm:h-40"></div>
-    <div class="section-shell grid min-w-0 gap-8 py-8 md:py-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,.8fr)] xl:items-center xl:gap-8 xl:py-12 2xl:gap-10">
-      <div class="relative z-10 min-w-0 max-w-2xl xl:max-w-none">
+    <div class="absolute inset-x-0 top-0 -z-20 h-40 bg-white"></div>
+    <div class="section-shell grid min-w-0 gap-9 py-10 md:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)] md:items-center md:gap-6 md:py-12 lg:gap-8 lg:py-14 xl:gap-12">
+      <div class="relative z-10 min-w-0 max-w-3xl md:max-w-none">
         {announcement && (
           <a href={announcementHref} class="focus-ring mb-5 inline-flex max-w-full items-center gap-3 border border-eagles-green/25 bg-white px-3 py-2.5 text-sm font-black text-eagles-ink shadow-match-card hover:border-eagles-green hover:text-eagles-green sm:mb-6 sm:px-4 sm:py-3" style="border-radius:8px">
             <Icon name="megaphone" class="h-4 w-4 shrink-0 text-eagles-green" />
@@ -102,27 +102,28 @@ export const prerender = false;
           </a>
         )}
         <p class="text-sm font-black uppercase leading-snug text-eagles-green sm:text-base">{site.association}</p>
-        <h1 class="hero-title mt-3 sm:mt-4">
-          Greenacre <span class="whitespace-nowrap">Eagles <span class="text-eagles-green">FC</span></span>
+        <h1 class="mt-4 max-w-full font-display text-[clamp(2.65rem,12.5vw,4.5rem)] font-black uppercase leading-[.88] text-eagles-ink md:text-[clamp(3rem,6vw,4.5rem)] xl:text-[5.25rem] 2xl:text-8xl">
+          <span class="block">Greenacre</span>
+          <span class="block whitespace-nowrap">Eagles <span class="text-eagles-green">FC</span></span>
         </h1>
-        <p class="mt-4 max-w-xl text-base leading-7 text-eagles-ink/75 sm:mt-5 sm:text-lg sm:leading-8">
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-xl">
           Junior and senior football in Greenacre, competing in the Bankstown District Amateur Football Association.
         </p>
-        <div class="mt-6 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:flex-wrap sm:gap-3 [&_a]:w-full sm:[&_a]:w-auto">
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap [&_a]:w-full sm:[&_a]:w-auto">
           <ButtonLink href="/news/">Latest club news</ButtonLink>
           <ButtonLink href="/teams/" variant="secondary">View teams</ButtonLink>
           <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
 
-      <div class="relative isolate min-w-0 overflow-hidden xl:overflow-visible">
-        <div class="pointer-events-none absolute inset-y-3 left-3 right-3 -z-10 hidden bg-eagles-green sm:block xl:inset-y-4 xl:left-[10%] xl:right-0" style="clip-path:polygon(8% 0, 100% 0, 100% 100%, 0 100%)" aria-hidden="true"></div>
-        <div class="grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,.82fr)]">
+      <div class="relative isolate min-w-0 overflow-hidden p-3 sm:p-4">
+        <div class="pointer-events-none absolute inset-0 -z-10 bg-eagles-green" style="clip-path:polygon(12% 0, 100% 0, 100% 100%, 0 100%)" aria-hidden="true"></div>
+        <div class="grid min-w-0 grid-cols-2 gap-3 sm:gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,.72fr)]">
           <div class="min-w-0 overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-            <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="aspect-[16/10] max-h-[15rem] w-full object-cover sm:max-h-[16rem] lg:max-h-[17rem] xl:max-h-[19rem] 2xl:max-h-[20rem]" />
+            <img src={photos.celebration} alt="Greenacre Eagles players celebrating on the field" class="aspect-[4/5] h-full max-h-[31rem] w-full object-cover" />
           </div>
           <div class="min-w-0 overflow-hidden bg-white shadow-match-card" style="border-radius:8px">
-            <img src={photos.team} alt="Greenacre Eagles team on match day" class="aspect-[16/10] max-h-[15rem] w-full object-cover object-top sm:max-h-[16rem] lg:max-h-[17rem] xl:max-h-[19rem] 2xl:max-h-[20rem]" />
+            <img src={photos.team} alt="Greenacre Eagles team on match day" class="aspect-[4/5] h-full max-h-[31rem] w-full object-cover object-top" />
           </div>
         </div>
       </div>

@@ -1,0 +1,5 @@
+
+> greenacre-eagles-website@1.0.0 dev
+> cross-env ASTRO_TELEMETRY_DISABLED=1 astro dev --host 127.0.0.1 --port 4321
+
+{"message":"Dev server already running at http://127.0.0.1:4321 (pid 50788)\n  Stop:   astro dev stop\n  Status: astro dev status\n  Logs:   astro dev logs","label":"SKIP_FORMAT","level":"info"}
