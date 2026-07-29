@@ -86,3 +86,17 @@ test("WWCC document access and review remain private and audited", () => {
   assert.match(review, /review_wwcc_submission/);
   assert.match(read("src/pages/admin/volunteers.astro"), /clearance_type/);
 });
+test("user access supports multi-role assignment without role dates", () => {
+  const page = read("src/pages/admin/users/[id].astro");
+  const route = read("src/pages/api/admin/assign-role.ts");
+  assert.match(page, /actionLabel="Manage roles"/);
+  assert.match(page, /from\("role_catalog"\)/);
+  assert.match(page, /name="role_ids"/);
+  assert.match(page, /type="checkbox"/);
+  assert.match(page, /Assign selected roles/);
+  assert.doesNotMatch(page, /name="starts_at"|name="ends_at"/);
+  assert.match(route, /formData\.getAll\("role_ids"\)/);
+  assert.match(route, /for \(const roleId of parsed\.data\.role_ids\)/);
+  assert.match(route, /rpc\("assign_user_role"/);
+  assert.doesNotMatch(route, /toTimestamp/);
+});
