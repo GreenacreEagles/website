@@ -24,10 +24,10 @@ const portalNav: NavItem[] = [
   { href: "/portal/account/", label: "My account" },
   { href: "/portal/roles/", label: "My roles" },
   { href: "/portal/teams/", label: "Teams" },
-  { href: "/portal/family/", label: "Family" },
+  { href: "/portal/family/", label: "Family groups" },
   { href: "/portal/vouchers/", label: "Wallet" },
   { href: "/portal/canteen/", label: "Canteen" },
-  { href: "/portal/canteen-staff/", label: "Canteen fulfilment", permissions: ["canteen.orders.fulfil"] },
+  { href: "/portal/canteen-staff/", label: "Canteen Staff", permissions: ["canteen.orders.fulfil"] },
   { href: "/portal/merchandise/", label: "Merchandise" },
   { href: "/portal/coaching/", label: "Coaching Resources", permissions: ["coaching_resources.read", "teams.manage"] },
   { href: "/portal/notice-board/", label: "Club Notice Board" }
@@ -50,7 +50,9 @@ const adminNav: NavItem[] = [
   { href: "/admin/users/", label: "Users and Access", permissions: ["users.read"] }
 ];
 
-const childNav = portalNav.filter((item) => item.href === "/portal/teams/" || item.href === "/portal/vouchers/");
+const childNav = portalNav.filter((item) =>
+  ["/portal/account/", "/portal/teams/", "/portal/vouchers/", "/portal/canteen/"].includes(item.href)
+);
 const visiblePortalNav = (session.isChildAccount ? childNav : portalNav).filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const visibleAdminNav = adminNav.filter((item) => !item.permissions || hasAnyPermission(session.permissions, item.permissions));
 const showAdmin = !session.isChildAccount && canAccessAdmin(session.permissions);

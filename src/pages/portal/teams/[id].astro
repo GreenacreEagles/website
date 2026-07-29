@@ -47,7 +47,7 @@ const [{ data: team }, { data: posts }, { data: squad }, { data: staff }, { data
     .limit(12),
   session.supabase
     .from("match_reports")
-    .select("id,fixture_id,status,result,final_score_for,final_score_against,highlights,improvement_notes,conduct_issues,injury_notes,reviewer_notes,created_at,profiles:author_id(full_name,preferred_name,email),fixtures(opponent,round,starts_at)")
+    .select("id,fixture_id,status,result,final_score_for,final_score_against,highlights,improvement_notes,conduct_issues,injury_notes,reviewer_notes,created_at,updated_at,match_description,match_date,venue,report_body,last_edited_at,last_edited_by,profiles:author_id(full_name,preferred_name,email),fixtures(opponent,round,starts_at)")
     .eq("team_id", teamId)
     .order("created_at", { ascending: false })
     .limit(12)
@@ -58,7 +58,8 @@ if (!team) return Astro.redirect("/portal/teams/");
 const activeStaffRole = (staff ?? []).find((item: any) => item.user_id === session.user.id)?.staff_role ?? "";
 const canPost = session.permissions.has("*") || session.permissions.has("team_posts.create") || session.permissions.has("teams.manage") || ["coach", "team_manager"].includes(activeStaffRole);
 const canSubmitReport = session.permissions.has("*") || session.permissions.has("match_reports.submit") || session.permissions.has("teams.manage") || ["coach", "team_manager"].includes(activeStaffRole);
-const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
+const selectedTab = ["posts", "reports", "squad"].includes(Astro.url.searchParams.get("tab") ?? "") ? Astro.url.searchParams.get("tab")! : "posts";
+const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id === session.user.id).map((item: any) => statusLabel(item.staff_role)))];
 ---
 
 <PortalLayout title={team.name} section="Team board" session={session}>
@@ -73,11 +74,16 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
         <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
           {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""}. Team posts and polls are private to authorised team members, family and staff.
         </p>
+        {teamRoles.length > 0 && <div class="mt-3 flex flex-wrap gap-2">{teamRoles.map((role) => <StatusBadge label={role} tone="ink" />)}</div>}
       </article>
 
-      {(posts ?? []).length === 0 && <EmptyState title="No team posts yet" text="Pinned announcements, polls and activity notices will appear here when team staff publish them." />}
+      <nav class="surface grid grid-cols-3 gap-1 p-1" aria-label="Team board sections">
+        {[['posts','Team Posts'],['reports','Match Reports'],['squad','Squad List']].map(([key,label]) => <a class:list={["focus-ring flex min-h-11 items-center justify-center px-2 py-2 text-center text-sm font-black", selectedTab === key ? "bg-eagles-green text-white" : "text-eagles-ink hover:bg-eagles-mist"]} style="border-radius:8px" aria-current={selectedTab === key ? "page" : undefined} href={`?tab=${key}`}>{label}</a>)}
+      </nav>
 
-      {(posts ?? []).map((post: any) => {
+      {selectedTab === "posts" && (posts ?? []).length === 0 && <EmptyState title="No team posts yet" text="Pinned announcements and yes/no polls will appear here when team staff publish them." />}
+
+      {selectedTab === "posts" && (posts ?? []).map((post: any) => {
         const userReaction = (post.team_post_reactions ?? []).find((reaction: any) => reaction.user_id === session.user.id);
         const userResponse = (post.team_poll_options ?? []).flatMap((option: any) => option.team_poll_responses ?? []).find((response: any) => response.user_id === session.user.id);
         return (
@@ -119,15 +125,12 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
               </form>
             )}
 
-            <form class="mt-5 flex flex-wrap gap-2 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction">
+            {post.post_type !== "poll" && <form class="mt-5 flex flex-wrap items-center gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction">
               <input type="hidden" name="team_id" value={team.id} />
               <input type="hidden" name="post_id" value={post.id} />
-              {reactionLabels.map((reaction) => (
-                <button class:list={["border px-3 py-2 text-sm font-black hover:border-eagles-green", userReaction?.reaction === reaction ? "border-eagles-green bg-eagles-green text-white" : "border-eagles-line bg-white text-eagles-ink"]} style="border-radius:8px" name="reaction" value={reaction} type="submit">
-                  {statusLabel(reaction)}
-                </button>
-              ))}
-            </form>
+              <button class:list={["min-h-11 border px-4 py-2 text-sm font-black", userReaction ? "border-eagles-green bg-eagles-green text-white" : "border-eagles-line bg-white text-eagles-ink hover:border-eagles-green"]} style="border-radius:999px" type="submit">{userReaction ? "Unlike" : "Like"}</button>
+              <span class="text-sm font-black text-eagles-ink/70">{(post.team_post_reactions ?? []).length} {(post.team_post_reactions ?? []).length === 1 ? "like" : "likes"}</span>
+            </form>}
           </article>
         );
       })}
@@ -138,11 +141,11 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
         <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post">
           <h2 class="card-title">Create post</h2>
           <input type="hidden" name="team_id" value={team.id} />
-          <label><span class="label">Type</span><select class="field" name="post_type"><option value="announcement">Announcement</option><option value="activity">Activity notice</option><option value="poll">Poll</option></select></label>
+          <label><span class="label">Type</span><select class="field" name="post_type"><option value="announcement">Standard post</option><option value="poll">Yes/No poll</option></select></label>
           <label><span class="label">Title</span><input class="field" name="title" maxlength="140" required /></label>
           <label><span class="label">Body</span><textarea class="field min-h-32" name="body"></textarea></label>
           <label class="flex items-center gap-3"><input type="checkbox" name="is_pinned" value="true" /><span class="font-bold">Pin post</span></label>
-          <label><span class="label">Poll options</span><input class="field" name="poll_options" placeholder="Yes, No, Maybe" /></label>
+          <p class="text-sm text-eagles-ink/70">Polls always use the answers Yes and No.</p>
           <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Publish</button>
         </form>
       )}
@@ -165,8 +168,8 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
           ))}
         </div>
       </article>
-      <article class="surface p-5">
-        <h2 class="card-title">Squad</h2>
+      {selectedTab === "squad" && <article class="surface p-5">
+        <h2 class="card-title">Squad list</h2>
         <div class="mt-4 grid gap-2">
           {(squad ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">The active squad will appear here once assigned.</p>}
           {(squad ?? []).map((item: any) => (
@@ -176,11 +179,11 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
             </p>
           ))}
         </div>
-      </article>
+      </article>}
     </aside>
   </div>
 
-  <section id="match-reports" class="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+  {selectedTab === "reports" && <section id="match-reports" class="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
     <article class="surface p-4 sm:p-5 md:p-6">
       <h2 class="panel-title">Match reports</h2>
       <div class="mt-5 grid gap-3">
@@ -189,12 +192,12 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
           <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <p class="font-black">{report.fixtures?.opponent ? `v ${report.fixtures.opponent}` : "Team report"} {report.final_score_for !== null && report.final_score_against !== null ? `${report.final_score_for}-${report.final_score_against}` : ""}</p>
+                <p class="font-black">{report.match_description || (report.fixtures?.opponent ? `v ${report.fixtures.opponent}` : "Team report")} {report.final_score_for !== null && report.final_score_against !== null ? `${report.final_score_for}-${report.final_score_against}` : ""}</p>
                 <p class="mt-1 text-sm text-eagles-ink/70">By {report.profiles?.preferred_name || report.profiles?.full_name || "Team staff"} - {formatDateTime(report.created_at)}</p>
               </div>
               <StatusBadge label={statusLabel(report.status)} tone={report.status === "reviewed" || report.status === "closed" ? "green" : "amber"} />
             </div>
-            {report.highlights && <p class="mt-3 whitespace-pre-line text-sm leading-6 text-eagles-ink/75">{report.highlights}</p>}
+            {(report.report_body || report.highlights) && <p class="mt-3 whitespace-pre-line text-sm leading-6 text-eagles-ink/75">{report.report_body || report.highlights}</p>}
             {report.improvement_notes && <p class="mt-3 text-sm leading-6 text-eagles-ink/70"><strong>Focus next:</strong> {report.improvement_notes}</p>}
             {report.reviewer_notes && <p class="mt-3 bg-eagles-mist p-3 text-sm" style="border-radius:8px"><strong>Reviewer notes</strong><br />{report.reviewer_notes}</p>}
           </article>
@@ -206,20 +209,21 @@ const reactionLabels = ["acknowledged", "thanks", "attending", "unavailable"];
       <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report">
         <input type="hidden" name="team_id" value={team.id} />
         <h2 class="card-title">Submit report</h2>
-        <label><span class="label">Fixture</span><select class="field" name="fixture_id"><option value="">General team report</option>{(fixtures ?? []).map((fixture: any) => <option value={fixture.id}>{fixture.round ? `${fixture.round} - ` : ""}{fixture.opponent} - {formatDateTime(fixture.starts_at)}</option>)}</select></label>
+        <label><span class="label">Fixture or match</span><input class="field" name="match_description" maxlength="200" placeholder="Eagles v Opponent" required /></label>
+        <div class="grid gap-3 md:grid-cols-2"><label><span class="label">Match date</span><input class="field" name="match_date" type="date" required /></label><label><span class="label">Venue</span><input class="field" name="venue" maxlength="160" /></label></div>
         <div class="grid gap-3 md:grid-cols-2">
           <label><span class="label">Eagles score</span><input class="field" name="final_score_for" type="number" min="0" max="99" /></label>
           <label><span class="label">Opponent score</span><input class="field" name="final_score_against" type="number" min="0" max="99" /></label>
         </div>
         <label><span class="label">Result</span><select class="field" name="result"><option value="">Not set</option><option value="win">Win</option><option value="draw">Draw</option><option value="loss">Loss</option><option value="abandoned">Abandoned</option></select></label>
-        <label><span class="label">Highlights</span><textarea class="field min-h-24" name="highlights"></textarea></label>
+        <label><span class="label">Report</span><textarea class="field min-h-32" name="report_body" required></textarea></label>
+        <label><span class="label">Highlights (optional)</span><textarea class="field min-h-24" name="highlights"></textarea></label>
         <label><span class="label">Improvement notes</span><textarea class="field min-h-24" name="improvement_notes"></textarea></label>
         <label><span class="label">Conduct issues</span><textarea class="field min-h-20" name="conduct_issues"></textarea></label>
         <label><span class="label">Injury notes</span><textarea class="field min-h-20" name="injury_notes"></textarea></label>
         <label><span class="label">Private notes</span><textarea class="field min-h-20" name="private_notes"></textarea></label>
-        <label><span class="label">Save as</span><select class="field" name="status"><option value="submitted">Submit for review</option><option value="draft">Draft</option></select></label>
-        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Save report</button>
+        <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Publish report</button>
       </form>
     )}
-  </section>
+  </section>}
 </PortalLayout>

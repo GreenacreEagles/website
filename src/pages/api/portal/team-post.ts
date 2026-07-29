@@ -9,7 +9,7 @@ const schema = z.object({
   team_id: uuidSchema,
   title: z.string().trim().min(3).max(140),
   body: z.string().trim().max(4000).optional(),
-  post_type: z.enum(["announcement", "poll", "activity"]),
+  post_type: z.enum(["announcement", "poll"]),
   is_pinned: z.string().optional(),
   poll_options: z.string().trim().max(500).optional()
 });
@@ -22,15 +22,7 @@ export const POST: APIRoute = async (context) => {
   if (!parsed.success) return context.redirect(redirectWithMessage("/portal/teams/", "error", parsed.error.issues[0]?.message ?? "Post could not be created."));
 
   const redirectPath = `/portal/teams/${parsed.data.team_id}/`;
-  const options = (parsed.data.poll_options ?? "")
-    .split(",")
-    .map((option) => option.trim())
-    .filter(Boolean)
-    .slice(0, 8);
-
-  if (parsed.data.post_type === "poll" && options.length < 2) {
-    return context.redirect(redirectWithMessage(redirectPath, "error", "Polls need at least two options."));
-  }
+  const options = parsed.data.post_type === "poll" ? ["Yes", "No"] : [];
 
   const { data: post, error: postError } = await (session.supabase as any)
     .from("team_posts")

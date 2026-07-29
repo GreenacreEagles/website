@@ -28,20 +28,13 @@ if (canViewClubTeams || teamIds.length > 0) {
   teams = data ?? [];
 }
 
-const [{ data: training }, { data: recentPosts }] = await Promise.all([
-  session.supabase
-    .from("training_sessions")
-    .select("id,starts_at,ends_at,status,notes,teams(id,name),venue")
-    .order("starts_at", { ascending: true })
-    .limit(12),
-  (session.supabase as any)
+const { data: recentPosts } = await (session.supabase as any)
     .from("team_posts")
     .select("id,team_id,title,post_type,is_pinned,published_at")
     .eq("status", "active")
     .order("is_pinned", { ascending: false })
     .order("published_at", { ascending: false })
-    .limit(30)
-]);
+    .limit(30);
 
 const postsByTeam = new Map<string, any[]>();
 (recentPosts ?? []).forEach((post: any) => {
@@ -52,7 +45,7 @@ const postsByTeam = new Map<string, any[]>();
 ---
 
 <PortalLayout title="Teams" section="Football" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+  <div class="grid gap-6">
     <section class="grid gap-4">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
@@ -78,9 +71,9 @@ const postsByTeam = new Map<string, any[]>();
                 {teamPosts.length > 0 && <StatusBadge label={`${teamPosts.length} posts`} tone="ink" />}
               </div>
             </div>
-            <dl class="mt-5 grid gap-3 text-sm md:grid-cols-3">
-                  <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
-              <div><dt class="font-black">Board</dt><dd><a class="font-black text-eagles-green hover:text-eagles-ink" href={`/portal/teams/${team.id}/`}>Open team page</a></dd></div>
+            <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
+              <div><dt class="sr-only">Team board</dt><dd><a class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-pine" href={`/portal/teams/${team.id}/`}>Open team page</a></dd></div>
             </dl>
             {teamPosts.length > 0 && (
               <div class="mt-5 grid gap-2 border-t border-eagles-line pt-4">
@@ -98,17 +91,5 @@ const postsByTeam = new Map<string, any[]>();
 
     </section>
 
-    <aside class="surface p-5">
-      <h2 class="card-title">Training</h2>
-      <div class="mt-4 grid gap-3">
-        {(training ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Training sessions will appear here once schedules are published.</p>}
-        {(training ?? []).map((item: any) => (
-          <div class="border-t border-eagles-line pt-3">
-            <p class="font-black text-eagles-ink">{item.teams?.name ?? "Club session"}</p>
-            <p class="text-sm text-eagles-ink/70">{formatDateTime(item.starts_at)} at {item.venue ?? "club venue"}</p>
-          </div>
-        ))}
-      </div>
-    </aside>
   </div>
 </PortalLayout>

@@ -95,7 +95,7 @@ if (childUserIds.length > 0) {
 const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => voucher.status === "active" && voucher.remaining_value_cents > 0 && voucher.beneficiary_id === session.user.id);
 ---
 
-<PortalLayout title="Family" section="Members" session={session}>
+<PortalLayout title="Family groups" section="Members" session={session}>
   <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
     <section class="grid gap-5">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
@@ -163,6 +163,12 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
     </section>
 
     <aside class="grid gap-5 content-start">
+      <form class="surface grid gap-4 p-5" method="post" action="/api/portal/family-group">
+        <h2 class="card-title">New group</h2>
+        <p class="text-sm leading-6 text-eagles-ink/70">Create a family group that you can manage, then invite another adult or add a child login.</p>
+        <label><span class="label">Group name</span><input class="field" name="name" minlength="2" maxlength="120" required /></label>
+        <button class="min-h-11 bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create group</button>
+      </form>
       {invitationList.length > 0 && (
         <article class="surface p-5">
           <h2 class="card-title">Invitations</h2>

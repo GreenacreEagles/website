@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requireUser } from "@lib/auth/guards";
-import { optionalUuidSchema, redirectWithMessage, uuidSchema } from "@lib/forms";
+import { redirectWithMessage, uuidSchema } from "@lib/forms";
 
 export const prerender = false;
 
@@ -10,7 +10,10 @@ const nullableText = (max = 2000) => z.preprocess((value) => (value === "" ? nul
 
 const schema = z.object({
   team_id: uuidSchema,
-  fixture_id: optionalUuidSchema,
+  match_description: z.string().trim().min(2).max(200),
+  match_date: z.string().date(),
+  venue: nullableText(160),
+  report_body: z.string().trim().min(2).max(5000),
   final_score_for: optionalNumber,
   final_score_against: optionalNumber,
   result: z.preprocess((value) => (value === "" ? null : value), z.enum(["win", "draw", "loss", "abandoned"]).nullable().optional()),
@@ -18,8 +21,7 @@ const schema = z.object({
   improvement_notes: nullableText(2500),
   conduct_issues: nullableText(1500),
   injury_notes: nullableText(1500),
-  private_notes: nullableText(2500),
-  status: z.enum(["draft", "submitted"]).default("submitted")
+  private_notes: nullableText(2500)
 });
 
 export const POST: APIRoute = async (context) => {
@@ -31,8 +33,12 @@ export const POST: APIRoute = async (context) => {
 
   const data = parsed.data;
   const redirectPath = `/portal/teams/${data.team_id}/#match-reports`;
-  const { error } = await session.supabase.from("match_reports").insert({
-    fixture_id: data.fixture_id ?? null,
+  const { error } = await (session.supabase as any).from("match_reports").insert({
+    fixture_id: null,
+    match_description: data.match_description,
+    match_date: data.match_date,
+    venue: data.venue ?? null,
+    report_body: data.report_body,
     team_id: data.team_id,
     author_id: session.user.id,
     final_score_for: data.final_score_for ?? null,
@@ -43,7 +49,7 @@ export const POST: APIRoute = async (context) => {
     conduct_issues: data.conduct_issues ?? null,
     injury_notes: data.injury_notes ?? null,
     private_notes: data.private_notes ?? null,
-    status: data.status
+    status: "submitted"
   });
 
   return context.redirect(redirectWithMessage(redirectPath, error ? "error" : "success", error?.message ?? "Match report saved."));

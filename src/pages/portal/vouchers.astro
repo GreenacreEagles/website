@@ -81,14 +81,14 @@ const walletCards = await Promise.all(
           <p class="eyebrow">{statusLabel(wallet.account_type)}</p>
           <p class="mt-2 text-4xl font-black text-eagles-green">{formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</p>
           <p class="mt-2 text-sm text-eagles-ink/70">{statusLabel(wallet.status)}</p>
-          <p class="mt-3 text-xs font-bold text-eagles-ink/60">Wallet ID</p>
-          <p class="mt-1 break-all font-mono text-sm font-black text-eagles-ink">{wallet.id}</p>
           {wallet.qrCode && (
-            <div class="mt-4 border-t border-eagles-line pt-4">
-              <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" />
-              <p class="mt-3 text-sm font-bold text-eagles-ink/70">Show this QR code to authorised canteen staff for wallet purchases.</p>
-              <p class="mt-2 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{wallet.displayCode}</p>
-            </div>
+            <details class="mt-4 border-t border-eagles-line pt-4">
+              <summary class="focus-ring inline-flex min-h-11 cursor-pointer items-center rounded-full bg-eagles-green px-5 py-3 text-sm font-black text-white">Show wallet QR code</summary>
+              <div class="mt-4">
+                <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" loading="lazy" />
+                <p class="mt-3 text-sm font-bold text-eagles-ink/70">Present this QR code at the club or canteen for an authorised wallet payment.</p>
+              </div>
+            </details>
           )}
         </article>
       ))}
