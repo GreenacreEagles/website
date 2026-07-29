@@ -1,17 +1,35 @@
 import type { APIRoute } from "astro";
-import { createSupabaseServerClient } from "@lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@lib/supabase/server";
 import { redirectWithMessage } from "@lib/forms";
 import { validateRecoveryPasswords } from "@lib/auth/password-recovery";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
 const resetRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
   context.redirect(redirectWithMessage("/reset-password/", type, message), 303);
 
+const rateLimitSupabase = (context: Parameters<APIRoute>[0]) => {
+  try {
+    return createSupabaseServiceClient(context);
+  } catch {
+    return null;
+  }
+};
+
 export const POST: APIRoute = async (context) => {
   const recoveryUserId = context.cookies.get("gefc-password-recovery")?.value;
   if (!recoveryUserId) {
     return resetRedirect(context, "error", "This password reset link is invalid or has expired. Request a new reset link.");
+  }
+
+  const rateLimit = await consumeRateLimit({
+    supabase: rateLimitSupabase(context),
+    limitClass: "auth",
+    key: rateLimitKey([recoveryUserId, clientIp(context.request)])
+  });
+  if (!rateLimit.allowed) {
+    return context.redirect(rateLimitRedirect("/reset-password/", rateLimit), 303);
   }
 
   const supabase = createSupabaseServerClient(context);

@@ -4,7 +4,7 @@ import { requirePermission } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
 import { writeAdminAudit } from "@lib/audit";
-import { articleImageObjectKey, coachingAttachmentObjectKey, deleteR2Object, getManagedPublicObjectKey, getPrivateMediaBucket, getPublicMediaBucket, getPublicMediaUrl, getRuntimeEnv, getUploadedFile, validatePrivateFile, validatePublicImage, putPublicMediaObject } from "@lib/media";
+import { articleImageObjectKey, coachingAttachmentObjectKey, deleteR2Object, getManagedPublicObjectKey, getPrivateMediaBucket, getPublicMediaBucket, getPublicMediaUrl, getRuntimeEnv, getUploadedFile, logPrivateUploadAudit, validatePrivateFile, validatePublicImage, putPublicMediaObject } from "@lib/media";
 
 export const prerender=false;
 const nullable=(max:number)=>z.preprocess((value)=>value===""?null:value,z.string().trim().max(max).nullable());
@@ -108,6 +108,7 @@ export const POST:APIRoute=async(context)=>{
         if(fileError){await deleteR2Object(bucket,objectPath,"coaching attachment rollback");console.error("coaching file record insert failed",{code:fileError.code,message:fileError.message,correlationId});return redirect("error","The attachment metadata could not be saved.");}
         uploadedPrivate={id:fileId,bucket:bucketName,object_path:objectPath,mime_type:attachment.type};
         attachmentFileId=fileId;
+        logPrivateUploadAudit({route:"/api/admin/content-entry",operation:"coaching_resource.attachment_upload",actorId:session.user.id,sizeBytes:attachment.size});
       }else if(formData.get("remove_attachment")==="on")attachmentFileId=null;
       values={id,title:data.title,slug:safeSlug,resource_type:data.resource_type,visibility:data.visibility,summary:data.summary,body:{type:"plain_text",text:data.body},external_url:data.external_url,duration_minutes:data.duration_minutes,status:data.status,age_group_tags:splitList(data.age_group_tags),skill_level_tags:splitList(data.skill_level_tags),equipment_required:splitList(data.equipment_required),review_due_on:data.review_due_on,attachment_file_id:attachmentFileId,created_by:current?.created_by??session.user.id};
     }

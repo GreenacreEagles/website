@@ -1,15 +1,24 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { createSupabaseServerClient } from "@lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@lib/supabase/server";
 import { redirectWithMessage } from "@lib/forms";
 import { verifyTurnstile } from "@lib/security/turnstile";
 import { getConfiguredSiteOrigin } from "@lib/site-url";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
 const schema = z.object({ email: z.string().email() });
 const resetRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
   context.redirect(redirectWithMessage("/forgot-password/", type, message), 303);
+
+const rateLimitSupabase = (context: Parameters<APIRoute>[0]) => {
+  try {
+    return createSupabaseServiceClient(context);
+  } catch {
+    return null;
+  }
+};
 
 export const POST: APIRoute = async (context) => {
   const correlationId = crypto.randomUUID();
@@ -20,6 +29,16 @@ export const POST: APIRoute = async (context) => {
     } catch (cause) {
       console.error("Password reset form parsing failed", { cause, correlationId });
       return resetRedirect(context, "error", "The password reset form could not be read.");
+    }
+
+    const normalizedIdentifier = String(formData.get("email") ?? "").trim().toLowerCase();
+    const rateLimit = await consumeRateLimit({
+      supabase: rateLimitSupabase(context),
+      limitClass: "auth",
+      key: rateLimitKey([normalizedIdentifier, clientIp(context.request)])
+    });
+    if (!rateLimit.allowed) {
+      return context.redirect(rateLimitRedirect("/forgot-password/", rateLimit), 303);
     }
 
     const verification = await verifyTurnstile(context, formData, "reset_password");

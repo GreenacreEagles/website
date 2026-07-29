@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../types/database.types";
 import { getPublicMediaUrl } from "./media";
+import { PAGE_BOUNDS, clampLimit } from "./pagination";
 
 export type PublicTeamSummary = {
   id: string; slug: string; name: string; division: string | null;
@@ -27,30 +28,44 @@ const mapTeam = (row: any, context: Context): PublicTeamSummary => ({
   imageUrl: getPublicMediaUrl(row.image_object_key, context)
 });
 
-export async function getPublicTeams(client: Client, context: Context): Promise<{ activeTeamCount: number; teams: PublicTeamSummary[] }> {
-  const [{ count, error: countError }, { data, error }] = await Promise.all([
-    client.from("teams").select("id", { count: "exact", head: true }).eq("status", "active"),
-    (client as any).from("teams").select(teamSelect).eq("status", "active").eq("public", true)
-      .order("year", { referencedTable: "seasons", ascending: false })
-      .order("sort_order").order("name")
-  ]);
-  if (countError || error) throw countError ?? error;
-  return { activeTeamCount: count ?? 0, teams: (data ?? []).map((row: any) => mapTeam(row, context)) };
+export async function getPublicTeams(client: Client, context: Context, limit?: number): Promise<{ activeTeamCount: number; teams: PublicTeamSummary[] }> {
+  const boundedLimit = clampLimit(limit, PAGE_BOUNDS.teams);
+  const { data, error } = await (client as any).from("teams").select(teamSelect).eq("status", "active").eq("public", true)
+    .order("year", { referencedTable: "seasons", ascending: false })
+    .order("sort_order").order("name")
+    .limit(boundedLimit);
+  if (error) throw error;
+  const teams = (data ?? []).map((row: any) => mapTeam(row, context));
+
+  // Skip the extra COUNT(*) round-trip when the page already holds every active team.
+  if (teams.length < boundedLimit) {
+    return { activeTeamCount: teams.length, teams };
+  }
+  const { count, error: countError } = await client.from("teams").select("id", { count: "exact", head: true }).eq("status", "active");
+  if (countError) throw countError;
+  return { activeTeamCount: count ?? teams.length, teams };
 }
 
-export async function getPublicTeam(client: Client, context: Context, slug: string): Promise<PublicTeamDetail | null> {
+export async function getPublicTeam(
+  client: Client,
+  context: Context,
+  slug: string,
+  limits?: { squadLimit?: number; staffLimit?: number }
+): Promise<PublicTeamDetail | null> {
   const { data: team, error } = await (client as any).from("teams").select(teamSelect)
     .eq("slug", slug).eq("status", "active").eq("public", true).maybeSingle();
   if (error) throw error;
   if (!team) return null;
 
+  const squadLimit = clampLimit(limits?.squadLimit, PAGE_BOUNDS.teamSquad);
+  const staffLimit = clampLimit(limits?.staffLimit, PAGE_BOUNDS.teamStaff);
   const [{ data: squad, error: squadError }, { data: staff, error: staffError }] = await Promise.all([
     (client as any).from("team_players")
       .select("id,squad_number,player_records(id,photo_object_key,photo_consent,registration_status,profiles:user_id(full_name,preferred_name))")
-      .eq("team_id", team.id).eq("status", "active").order("squad_number"),
+      .eq("team_id", team.id).eq("status", "active").order("squad_number").limit(squadLimit),
     (client as any).from("team_staff")
       .select("id,staff_role,profiles:user_id(full_name,preferred_name,public_photo_object_key,public_photo_consent)")
-      .eq("team_id", team.id).eq("status", "active").order("staff_role")
+      .eq("team_id", team.id).eq("status", "active").order("staff_role").limit(staffLimit)
   ]);
   if (squadError || staffError) throw squadError ?? staffError;
   const players = (squad ?? []).filter((row: any) => row.player_records?.registration_status === "registered").map((row: any) => {

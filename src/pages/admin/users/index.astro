@@ -3,19 +3,29 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { formatDate } from "@lib/format";
+import { PAGE_BOUNDS, clampLimit, clampOffset, clampSearch } from "@lib/pagination";
 
 export const prerender = false;
 
 const session = await requirePermission(Astro, ["users.read"]);
 if (!session) return Astro.redirect("/login/");
 
-const q = Astro.url.searchParams.get("q")?.trim() ?? "";
+const q = clampSearch(Astro.url.searchParams.get("q")) ?? "";
 const status = Astro.url.searchParams.get("status") ?? "";
+const limit = clampLimit(Astro.url.searchParams.get("limit"), PAGE_BOUNDS.users);
+const offset = clampOffset(Astro.url.searchParams.get("offset"));
 const { data: directory, error: directoryError } = await (session.supabase as any).rpc("admin_user_directory", {
-  search_text: q || null, page_limit: 100, page_offset: 0, target_user_id: null
+  search_text: q || null, page_limit: limit, page_offset: offset, target_user_id: null
 });
 const users = ((directory ?? []) as any[]).filter((user) => !status || user.account_status === status);
 const count = users.length ? users[0].total_count : 0;
+const hasPrev = offset > 0;
+const hasNext = offset + limit < count;
+const pageLink = (o: number) => {
+  const url = new URL(Astro.url);
+  url.searchParams.set("offset", String(Math.max(0, o)));
+  return `${url.pathname}${url.search}`;
+};
 const emailLabel = (user: any) => user.child_account ? "Username-only child account" : user.email ?? "No personal email";
 ---
 
@@ -37,6 +47,13 @@ const emailLabel = (user: any) => user.child_account ? "Username-only child acco
     </form>
     {directoryError && <p class="mt-4 border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">User search is temporarily unavailable.</p>}
     <p class="mt-4 text-sm font-bold text-eagles-ink/60">{count ?? 0} matching users</p>
+    {(hasPrev || hasNext) && (
+      <div class="mt-4 flex items-center justify-between gap-3">
+        <a class:list={["focus-ring inline-flex min-h-11 items-center rounded-lg border border-eagles-line px-4 py-2 text-sm font-black", !hasPrev && "pointer-events-none opacity-40"]} href={pageLink(offset - limit)} aria-disabled={!hasPrev}>Previous</a>
+        <span class="text-sm font-bold text-eagles-ink/60">Showing {offset + 1}-{offset + users.length} of {count ?? users.length}</span>
+        <a class:list={["focus-ring inline-flex min-h-11 items-center rounded-lg border border-eagles-line px-4 py-2 text-sm font-black", !hasNext && "pointer-events-none opacity-40"]} href={pageLink(offset + limit)} aria-disabled={!hasNext}>Next</a>
+      </div>
+    )}
     <div class="mt-6 grid gap-3 md:hidden" aria-label="Matching users">
       {(users ?? []).map((user) => (
         <article class="border border-eagles-line bg-eagles-mist p-4" style="border-radius:8px">

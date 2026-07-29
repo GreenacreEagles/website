@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@lib/auth/guards";
 import { redirectWithMessage, uuidSchema } from "@lib/forms";
 import { friendlyCanteenError } from "@lib/canteen-store";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 const optionalUuid = z.preprocess((value) => value === "" || value == null ? null : value, uuidSchema.nullable());
@@ -17,6 +18,12 @@ const schema = z.object({
 export const POST: APIRoute = async (context) => {
   const session = await requireUser(context);
   if (!session) return context.redirect(`/login/?returnTo=${encodeURIComponent("/portal/canteen/shop/checkout/")}`);
+  const limit = await consumeRateLimit({
+    supabase: session.supabase,
+    limitClass: "checkout",
+    key: rateLimitKey([session.user.id, clientIp(context.request)])
+  });
+  if (!limit.allowed) return context.redirect(rateLimitRedirect("/portal/canteen/shop/checkout/", limit));
   const form = await context.request.formData();
   const parsed = schema.safeParse({
     request_key: form.get("request_key"), wallet_id: form.get("wallet_id"),

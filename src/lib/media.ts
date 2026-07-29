@@ -7,8 +7,11 @@ import {
   type R2Bucket,
   type UploadedFile
 } from "./media-core";
+import { logInfo } from "./logging";
+import { sanitizeFilename } from "./validation";
 
 export { getUploadedFile, putPublicMediaObject, type R2Bucket, type UploadedFile } from "./media-core";
+export { sanitizeFilename } from "./validation";
 
 type RuntimeContext = {
   locals?: unknown;
@@ -220,7 +223,11 @@ export const validatePrivateFile = async (file: UploadedFile, context: RuntimeCo
 };
 
 const extensionForMime = (mimeType: string) => (mimeType === "image/jpeg" ? "jpg" : PRIVATE_FILE_EXTENSIONS[mimeType]?.[0] ?? "bin");
-const generatedKey = (folder: string, id: string, mimeType: string) => `${folder}/${id}/${crypto.randomUUID()}.${extensionForMime(mimeType)}`;
+/** Object keys always use a generated UUID segment; any caller-supplied name is sanitized defense-in-depth only, never trusted for uniqueness or path segments. */
+const generatedKey = (folder: string, id: string, mimeType: string, originalName?: string | null) => {
+  const suffix = originalName ? `-${sanitizeFilename(originalName).replace(/\.[^./]*$/, "")}` : "";
+  return `${folder}/${id}/${crypto.randomUUID()}${suffix}.${extensionForMime(mimeType)}`;
+};
 
 export const playerPhotoObjectKey = (id: string, mimeType: string) => generatedKey("players",id,mimeType);
 export const socialPostImageObjectKey = (id: string, mimeType: string) => generatedKey("social-posts",id,mimeType);
@@ -233,6 +240,17 @@ export const teamImageObjectKey = (id: string, mimeType: string) => generatedKey
 export const coachingAttachmentObjectKey = (id: string, mimeType: string) => generatedKey("coaching-resources",id,mimeType);
 export const wwccDocumentObjectKey = (userId: string, submissionId: string, mimeType: string) =>
   generatedKey("wwcc/"+userId,submissionId,mimeType);
+
+/** Records that a private upload succeeded without ever logging file contents, names, or paths. */
+export const logPrivateUploadAudit = (fields: { route: string; operation: string; actorId?: string; sizeBytes: number }) => {
+  logInfo("media.private_upload", {
+    route: fields.route,
+    operation: fields.operation,
+    actorId: fields.actorId,
+    sizeBytes: fields.sizeBytes,
+    status: 200
+  });
+};
 
 export const deleteR2Object = async (bucket: R2Bucket | null, objectKey: string | null | undefined, label: string) => {
   const key = normaliseObjectKey(objectKey);

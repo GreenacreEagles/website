@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
-import { getPrivateMediaBucket } from "@lib/media";
+import { getPrivateMediaBucket, sanitizeFilename } from "@lib/media";
 
 export const prerender=false;
 export const GET:APIRoute=async(context)=>{
@@ -23,7 +23,7 @@ export const GET:APIRoute=async(context)=>{
     if(!object)return new Response("Attachment not found",{status:404,headers:{"cache-control":"no-store"}});
     const headers=new Headers({"cache-control":"private, no-store","content-type":file.mime_type??object.httpMetadata?.contentType??"application/octet-stream","x-content-type-options":"nosniff"});
     const extension=String(file.object_path).split(".").pop()?.replace(/[^a-z0-9]/gi,"")||"bin";
-    const filename=`${resource.slug||"coaching-resource"}.${extension}`.replace(/[^a-z0-9._-]/gi,"-");
+    const filename=sanitizeFilename(`${resource.slug||"coaching-resource"}.${extension}`).replace(/[^a-zA-Z0-9._-]/g,"-");
     headers.set("content-disposition",`attachment; filename="${filename}"`);
     object.writeHttpMetadata?.(headers);
     headers.set("content-type",file.mime_type??headers.get("content-type")??"application/octet-stream");

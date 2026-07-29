@@ -103,7 +103,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
             {post.body && <p class="mt-4 whitespace-pre-line text-base leading-7 text-eagles-ink/75">{post.body}</p>}
 
             {post.post_type === "poll" && (
-              <form class="mt-5 grid gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-poll-response">
+              <form class="mt-5 grid gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-poll-response" data-guard-submit>
                 <input type="hidden" name="team_id" value={team.id} />
                 <input type="hidden" name="post_id" value={post.id} />
                 <p class="font-black">Poll response</p>
@@ -125,7 +125,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
               </form>
             )}
 
-            {post.post_type !== "poll" && <form class="mt-5 flex flex-wrap items-center gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction">
+            {post.post_type !== "poll" && <form class="mt-5 flex flex-wrap items-center gap-3 border-t border-eagles-line pt-5" method="post" action="/api/portal/team-post-reaction" data-guard-submit>
               <input type="hidden" name="team_id" value={team.id} />
               <input type="hidden" name="post_id" value={post.id} />
               <button class:list={["min-h-11 border px-4 py-2 text-sm font-black", userReaction ? "border-eagles-green bg-eagles-green text-white" : "border-eagles-line bg-white text-eagles-ink hover:border-eagles-green"]} style="border-radius:999px" type="submit">{userReaction ? "Unlike" : "Like"}</button>
@@ -138,7 +138,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
 
     <aside class="grid gap-5 content-start">
       {canPost && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post">
+        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/team-post" data-guard-submit>
           <h2 class="card-title">Create post</h2>
           <input type="hidden" name="team_id" value={team.id} />
           <label><span class="label">Type</span><select class="field" name="post_type"><option value="announcement">Standard post</option><option value="poll">Yes/No poll</option></select></label>
@@ -206,7 +206,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
     </article>
 
     {canSubmitReport && (
-      <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report">
+      <form class="surface grid gap-4 p-5 content-start" method="post" action="/api/portal/match-report" data-guard-submit>
         <input type="hidden" name="team_id" value={team.id} />
         <h2 class="card-title">Submit report</h2>
         <label><span class="label">Fixture or match</span><input class="field" name="match_description" maxlength="200" placeholder="Eagles v Opponent" required /></label>
@@ -226,4 +226,15 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
       </form>
     )}
   </section>}
+
+  <script>
+    document.querySelectorAll<HTMLFormElement>("form[data-guard-submit]").forEach((form) => {
+      form.addEventListener("submit", () => {
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+      });
+    });
+  </script>
 </PortalLayout>

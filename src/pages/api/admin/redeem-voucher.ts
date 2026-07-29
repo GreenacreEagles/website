@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requirePermission } from "@lib/auth/guards";
 import { optionalUuidSchema, redirectWithMessage } from "@lib/forms";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
@@ -19,6 +20,13 @@ const schema = z.object({
 export const POST: APIRoute = async (context) => {
   const session = await requirePermission(context, ["canteen.vouchers.redeem"]);
   if (!session) return context.redirect("/login/");
+
+  const limit = await consumeRateLimit({
+    supabase: session.supabase,
+    limitClass: "vouchers",
+    key: rateLimitKey([session.user.id, clientIp(context.request)])
+  });
+  if (!limit.allowed) return context.redirect(rateLimitRedirect("/portal/canteen-staff/", limit));
 
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   const redirectTo = parsed.success && parsed.data.return_to ? parsed.data.return_to : "/portal/canteen-staff/";

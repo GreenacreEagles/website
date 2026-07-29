@@ -1,9 +1,8 @@
 import { defineMiddleware } from "astro:middleware";
 import { formatServerTimings, recordServerTiming } from "@lib/server-timing";
 import { getConfiguredSiteOrigin } from "@lib/site-url";
+import { PRIVATE_NO_STORE, isPublicCacheablePath, maybeMatchEdgeCache, maybeStoreEdgeCache, requestHasAuthCookies, resolveCacheControl } from "@lib/cache";
 
-const privatePrefixes = ["/portal/", "/admin/", "/api/"];
-const dynamicPublicPrefixes = ["/news", "/events", "/sponsors", "/social", "/teams", "/merchandise", "/canteen"];
 const productionPagesHost = "website-4h5.pages.dev";
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -66,6 +65,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
+  const cacheEligible = context.request.method === "GET" && isPublicCacheablePath(pathname) && !requestHasAuthCookies(context.request);
+  if (cacheEligible) {
+    const cached = await maybeMatchEdgeCache(context.request, pathname);
+    if (cached) {
+      recordServerTiming(context, "edge-cache-hit", startedAt);
+      const hitResponse = new Response(cached.body, cached);
+      const timings = formatServerTimings(context);
+      if (timings) hitResponse.headers.set("Server-Timing", timings);
+      return applySecurityHeaders(hitResponse, isHttps);
+    }
+  }
+
   let response = await next();
   recordServerTiming(context, "total", startedAt);
   applySecurityHeaders(response, isHttps);
@@ -106,23 +117,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
   if (timings) response.headers.set("Server-Timing", timings);
 
-  const privateResponse =
-    privatePrefixes.some((prefix) => pathname.startsWith(prefix)) ||
-    pathname === "/login/" ||
-    pathname === "/login" ||
-    context.request.headers.has("cookie");
+  const hasSetCookie = Boolean(response.headers.get("set-cookie"));
+  const cacheControl = resolveCacheControl({
+    pathname,
+    method: context.request.method,
+    status: response.status,
+    request: context.request,
+    setCookie: hasSetCookie
+  });
+  if (cacheControl) response.headers.set("Cache-Control", cacheControl);
 
-  if (privateResponse) {
-    response.headers.set("Cache-Control", "private, no-store");
-    return response;
-  }
-
-  if (
-    context.request.method === "GET" &&
-    response.status === 200 &&
-    (pathname === "/" || dynamicPublicPrefixes.some((prefix) => pathname.startsWith(prefix)))
-  ) {
-    response.headers.set("Cache-Control", "public, max-age=30, s-maxage=120, stale-while-revalidate=300");
+  if (!hasSetCookie && cacheControl && cacheControl !== PRIVATE_NO_STORE) {
+    await maybeStoreEdgeCache(context.request, response, pathname);
   }
 
   return response;

@@ -4,6 +4,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDate, formatMoney, statusLabel } from "@lib/format";
+import { PAGE_BOUNDS } from "@lib/pagination";
 
 export const prerender = false;
 
@@ -23,12 +24,14 @@ const [{ data: familyMemberships }, { data: playerRecords }, { data: pendingInvi
     .from("player_records")
     .select("id,registration_status,photo_consent,code_of_conduct_accepted_at,seasons(name,year)")
     .eq("user_id", session.user.id)
-    .order("created_at", { ascending: false }),
+    .order("created_at", { ascending: false })
+    .limit(PAGE_BOUNDS.families.maxLimit),
   (session.supabase as any)
     .from("family_relationship_invitations")
     .select("id,family_id,relationship,message,expires_at,families(name),profiles:invited_by(full_name,preferred_name)")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
+    .limit(PAGE_BOUNDS.invitations.maxLimit)
 ]);
 
 const membershipList = familyMemberships ?? [];
@@ -51,7 +54,8 @@ if (familyIds.length > 0) {
       .from("family_members")
       .select("id,family_id,user_id,relationship,status,is_primary_guardian,can_manage,can_spend,spending_limit_cents,profiles:user_id(full_name,preferred_name,email),families(name)")
       .in("family_id", familyIds)
-      .order("created_at"),
+      .order("created_at")
+      .limit(PAGE_BOUNDS.families.maxLimit),
     session.supabase
       .from("voucher_issuances")
       .select("id,beneficiary_id,family_id,voucher_type,status,remaining_value_cents,expires_at,issue_reason,profiles:beneficiary_id(full_name,preferred_name)")
@@ -186,15 +190,16 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
       )}
 
       {manageableFamilyIds.length > 0 && (
-        <form class="surface grid gap-4 p-5" method="post" action="/api/portal/child-account">
+        <form id="create-child-account-form" class="surface grid gap-4 p-5" method="post" action="/api/portal/child-account">
           <h2 class="card-title">Create child login</h2>
           <p class="text-sm leading-6 text-eagles-ink/70">Child logins use a username and password, do not need an email address, and only open Teams and Wallet.</p>
+          <input type="hidden" name="idempotency_key" id="create-child-idempotency-key" value="" />
           <label><span class="label">Family</span><select class="field" name="family_id">{membershipList.filter((member: any) => manageableFamilyIds.includes(member.family_id)).map((member: any) => <option value={member.family_id}>{member.families?.name ?? "Family"}</option>)}</select></label>
           <label><span class="label">Child full name</span><input class="field" name="full_name" autocomplete="off" required /></label>
           <label><span class="label">Username</span><input class="field" name="username" autocomplete="username" pattern="[a-z0-9][a-z0-9._-]{2,40}" required /></label>
           <label><span class="label">Temporary password</span><input class="field" name="password" type="password" autocomplete="new-password" minlength="8" required /></label>
           <label><span class="label">Spending limit</span><input class="field" name="spending_limit" type="number" min="0" step="0.01" placeholder="Optional" /></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Create child login</button>
+          <button id="create-child-account-submit" class="bg-eagles-green px-4 py-3 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60" style="border-radius:8px" type="submit">Create child login</button>
         </form>
       )}
 
@@ -251,4 +256,19 @@ const assignableVouchers = (familyVouchers ?? []).filter((voucher: any) => vouch
       )}
     </aside>
   </div>
+
+  <script>
+    const childForm = document.querySelector<HTMLFormElement>("#create-child-account-form");
+    const childSubmit = document.querySelector<HTMLButtonElement>("#create-child-account-submit");
+    const childIdempotency = document.querySelector<HTMLInputElement>("#create-child-idempotency-key");
+    childForm?.addEventListener("submit", () => {
+      if (childIdempotency && !childIdempotency.value) {
+        childIdempotency.value = crypto.randomUUID();
+      }
+      if (!childSubmit) return;
+      childSubmit.disabled = true;
+      childSubmit.textContent = "Creating login…";
+      childSubmit.setAttribute("aria-busy", "true");
+    });
+  </script>
 </PortalLayout>

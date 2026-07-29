@@ -9,6 +9,7 @@ import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
 import { hasAnyPermission } from "@lib/auth/permissions";
 import { formatDate, formatDateTime, statusLabel } from "@lib/format";
+import { PAGE_BOUNDS } from "@lib/pagination";
 
 export const prerender = false;
 
@@ -28,7 +29,8 @@ const [{ data: submissions }, { data: assignments }] = await Promise.all([
   (session.supabase as any)
     .from("wwcc_submissions")
     .select("id,user_id,role_assignment_id,legal_name,wwcc_number,expiry_date,clearance_type,notes,status,submitted_at,reviewed_at,review_reason,document_file_id,profiles:user_id(full_name,email),reviewer:reviewed_by(full_name)")
-    .order("submitted_at", { ascending: false }),
+    .order("submitted_at", { ascending: false })
+    .limit(PAGE_BOUNDS.volunteers.maxLimit),
   (session.supabase as any)
     .from("user_role_assignments")
     .select("id,user_id,status,created_at,profiles:user_id(full_name,email),roles!inner(key,name)")
@@ -36,6 +38,7 @@ const [{ data: submissions }, { data: assignments }] = await Promise.all([
     .is("revoked_at", null)
     .in("status", ["pending", "active", "suspended", "expired"])
     .order("created_at", { ascending: false })
+    .limit(PAGE_BOUNDS.volunteers.maxLimit)
 ]);
 
 const today = new Date();

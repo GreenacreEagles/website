@@ -9,3 +9,13 @@ dist
 .env.*
 !.env.example
 *.log
+.env.local
+
+# Backup/export artifacts (may contain production data or secrets; never commit)
+backups/
+backups/local/
+*.dump
+*.sql.gz
+
+# Local k6 load-test output (staging only; never run against production)
+load-test-results/

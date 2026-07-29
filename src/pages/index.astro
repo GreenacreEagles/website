@@ -9,7 +9,7 @@ import SponsorStrip from "@components/SponsorStrip.astro";
 import { site } from "@data/site";
 import { newestFirst, upcomingFirst } from "@lib/content";
 import { formatDateTime } from "@lib/format";
-import { fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, type PublicSponsor } from "@lib/public-content";
+import { fetchHomepageContent, fetchPublicAnnouncement, fetchPublicArticles, fetchPublicSponsors, markdownAnnouncement, markdownArticle, type PublicSponsor } from "@lib/public-content";
 import { getPublicEvents, type PublicEventSummary } from "@lib/public-events";
 import { createSupabaseServerClient } from "@lib/supabase/server";
 import { getPublicTeams } from "@lib/public-teams";
@@ -21,29 +21,52 @@ const [markdownNewsItems, markdownEventItems, markdownAnnouncementItems] = await
   getCollection("announcements")
 ]);
 const markdownNews = newestFirst(markdownNewsItems).map(markdownArticle);
-const dbNews = await fetchPublicArticles(3);
-const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
 
 const supabase = createSupabaseServerClient(Astro);
-const [socialResult, teamsResult, sponsorsResult, eventsResult] = await Promise.allSettled([
-  getPublicSocial(supabase, Astro),
-  getPublicTeams(supabase, Astro),
-  fetchPublicSponsors(supabase, Astro, 3),
-  getPublicEvents(supabase, Astro)
-]);
+// Prefer a single consolidated RPC round-trip; fall back to per-section fetches only if it fails.
+const homepageContent = await fetchHomepageContent(supabase, Astro, {
+  articleLimit: 3,
+  socialLimit: 3,
+  sponsorLimit: 3,
+  eventLimit: 3
+});
 
-const reportLoadFailure = (label: string, result: PromiseSettledResult<unknown>) => {
-  if (result.status === "rejected") console.error(`Unable to load homepage ${label}`, { cause: result.reason });
-};
-reportLoadFailure("social posts", socialResult);
-reportLoadFailure("teams", teamsResult);
-reportLoadFailure("sponsors", sponsorsResult);
-reportLoadFailure("events", eventsResult);
+let dbNews = homepageContent?.articles ?? [];
+let socialPosts: PublicSocialPost[] = homepageContent?.socialPosts ?? [];
+let spotlightTeam = homepageContent?.spotlightTeam ?? null;
+let sponsors: PublicSponsor[] = homepageContent?.sponsors ?? [];
+let databaseEvents: PublicEventSummary[] = homepageContent?.events ?? [];
+let announcementFromDb = homepageContent?.announcement ?? null;
 
-const socialPosts: PublicSocialPost[] = socialResult.status === "fulfilled" ? socialResult.value.posts.slice(0, 3) : [];
-const spotlightTeam = teamsResult.status === "fulfilled" ? teamsResult.value.teams[0] : null;
-const sponsors: PublicSponsor[] = sponsorsResult.status === "fulfilled" ? sponsorsResult.value : [];
-const databaseEvents: PublicEventSummary[] = eventsResult.status === "fulfilled" ? eventsResult.value.slice(0, 3) : [];
+if (!homepageContent) {
+  const [articlesResult, socialResult, teamsResult, sponsorsResult, eventsResult, announcementResult] = await Promise.allSettled([
+    fetchPublicArticles(3),
+    getPublicSocial(supabase, Astro, { postsLimit: 3 }),
+    getPublicTeams(supabase, Astro, 1),
+    fetchPublicSponsors(supabase, Astro, 3),
+    getPublicEvents(supabase, Astro, 3),
+    fetchPublicAnnouncement()
+  ]);
+
+  const reportLoadFailure = (label: string, result: PromiseSettledResult<unknown>) => {
+    if (result.status === "rejected") console.error(`Unable to load homepage ${label}`, { cause: result.reason });
+  };
+  reportLoadFailure("articles", articlesResult);
+  reportLoadFailure("social posts", socialResult);
+  reportLoadFailure("teams", teamsResult);
+  reportLoadFailure("sponsors", sponsorsResult);
+  reportLoadFailure("events", eventsResult);
+  reportLoadFailure("announcement", announcementResult);
+
+  dbNews = articlesResult.status === "fulfilled" ? articlesResult.value.articles : [];
+  socialPosts = socialResult.status === "fulfilled" ? socialResult.value.posts.slice(0, 3) : [];
+  spotlightTeam = teamsResult.status === "fulfilled" ? (teamsResult.value.teams[0] ?? null) : null;
+  sponsors = sponsorsResult.status === "fulfilled" ? sponsorsResult.value : [];
+  databaseEvents = eventsResult.status === "fulfilled" ? eventsResult.value.slice(0, 3) : [];
+  announcementFromDb = announcementResult.status === "fulfilled" ? announcementResult.value : null;
+}
+
+const news = (dbNews.length > 0 ? dbNews : markdownNews).slice(0, 3);
 
 const registrationPrompt = /\b(join|register|registration|expression of interest|sign up|request a place)\b/i;
 const now = new Date();
@@ -72,7 +95,7 @@ const markdownAnnouncementItem = markdownAnnouncementItems
   .filter((item) => item.data.active)
   .sort((a, b) => a.data.priority - b.data.priority)
   .map(markdownAnnouncement)[0];
-const announcementCandidate = (await fetchPublicAnnouncement()) ?? markdownAnnouncementItem;
+const announcementCandidate = announcementFromDb ?? markdownAnnouncementItem;
 const announcement = announcementCandidate && !registrationPrompt.test([
   announcementCandidate.title,
   announcementCandidate.message,

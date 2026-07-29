@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@lib/auth/guards";
 import { redirectWithMessage } from "@lib/forms";
 import { friendlyMerchandiseError } from "@lib/merchandise-store";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
@@ -15,6 +16,13 @@ const schema = z.object({
 export const POST: APIRoute = async (context) => {
   const session = await requireUser(context);
   if (!session) return context.redirect(`/login/?returnTo=${encodeURIComponent("/portal/shop/checkout/")}`);
+
+  const limit = await consumeRateLimit({
+    supabase: session.supabase,
+    limitClass: "checkout",
+    key: rateLimitKey([session.user.id, clientIp(context.request)])
+  });
+  if (!limit.allowed) return context.redirect(rateLimitRedirect("/portal/shop/checkout/", limit));
 
   const parsed = schema.safeParse(Object.fromEntries(await context.request.formData()));
   if (!parsed.success) {

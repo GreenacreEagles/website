@@ -1,13 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../types/database.types";
 import { getPublicMediaUrl } from "./media";
+import { PAGE_BOUNDS, clampLimit } from "./pagination";
 export type SocialPlatform = "instagram" | "facebook" | "tiktok";
 export type PublicSocialProfile = { id:string; platform:SocialPlatform; displayName:string; username:string|null; profileUrl:string };
 export type PublicSocialPost = { id:string; platform:SocialPlatform; title:string|null; caption:string|null; postUrl:string; imageUrl:string|null; imageAltText:string|null; publishedAt:string|null; featured:boolean };
-export async function getPublicSocial(client: SupabaseClient<Database>, context:{locals?:any}) {
+export async function getPublicSocial(client: SupabaseClient<Database>, context:{locals?:any}, options?:{postsLimit?:number; profilesLimit?:number}) {
+  const postsLimit = clampLimit(options?.postsLimit, PAGE_BOUNDS.social);
+  const profilesLimit = clampLimit(options?.profilesLimit, PAGE_BOUNDS.socialProfiles);
   const [{data:profiles,error:pe},{data:posts,error:po}] = await Promise.all([
-    (client as any).from("social_profiles").select("id,platform,display_name,username,profile_url").eq("active",true).order("sort_order").order("platform"),
-    (client as any).from("social_posts").select("id,platform,title,caption,post_url,image_object_key,image_alt_text,published_at,featured").eq("active",true).order("featured",{ascending:false}).order("sort_order").order("published_at",{ascending:false,nullsFirst:false}).order("created_at",{ascending:false})
+    (client as any).from("social_profiles").select("id,platform,display_name,username,profile_url").eq("active",true).order("sort_order").order("platform").limit(profilesLimit),
+    (client as any).from("social_posts").select("id,platform,title,caption,post_url,image_object_key,image_alt_text,published_at,featured").eq("active",true).order("featured",{ascending:false}).order("sort_order").order("published_at",{ascending:false,nullsFirst:false}).order("created_at",{ascending:false}).limit(postsLimit)
   ]);
   if(pe||po) throw pe??po;
   return {

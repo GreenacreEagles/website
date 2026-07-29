@@ -1,11 +1,20 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import { createSupabaseServerClient } from "@lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@lib/supabase/server";
 import { redirectWithMessage } from "@lib/forms";
 import { verifyTurnstile } from "@lib/security/turnstile";
 import { getConfiguredSiteOrigin } from "@lib/site-url";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
+
+const rateLimitSupabase = (context: Parameters<APIRoute>[0]) => {
+  try {
+    return createSupabaseServiceClient(context);
+  } catch {
+    return null;
+  }
+};
 
 const schema = z.object({
   fullName: z.string().trim().min(2).max(120),
@@ -30,6 +39,16 @@ export const POST: APIRoute = async (context) => {
     } catch (cause) {
       console.error("Signup form parsing failed", { cause, correlationId });
       return signupRedirect(context, "error", "The account form could not be read. Please try again.");
+    }
+
+    const normalizedIdentifier = String(formData.get("email") ?? "").trim().toLowerCase();
+    const rateLimit = await consumeRateLimit({
+      supabase: rateLimitSupabase(context),
+      limitClass: "auth",
+      key: rateLimitKey([normalizedIdentifier, clientIp(context.request)])
+    });
+    if (!rateLimit.allowed) {
+      return context.redirect(rateLimitRedirect("/signup/", rateLimit), 303);
     }
 
     const verification = await verifyTurnstile(context, formData, "signup");

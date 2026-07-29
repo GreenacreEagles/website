@@ -61,6 +61,13 @@ type PortalContextResult = {
 
 const requestSessions = new WeakMap<object, Promise<PortalSession | null>>();
 
+/**
+ * Consolidated per-request loader: one auth check + one `get_portal_context` RPC gives the
+ * user, profile, roles, permissions, unread notification count, and child-account flag,
+ * memoised per request. Mutation routes should call requireUser/requirePermission (which use
+ * this cache) rather than re-fetching full page data lists (teams, wallets, notifications, etc.)
+ * that the portal pages already load separately.
+ */
 export const getPortalSession = async (context: AstroContext): Promise<PortalSession | null> => {
   const requestKey = context as object;
   const existing = requestSessions.get(requestKey);

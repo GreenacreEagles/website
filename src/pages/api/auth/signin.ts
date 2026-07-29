@@ -1,13 +1,22 @@
 import type { APIRoute } from "astro";
-import { createSupabaseServerClient } from "@lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseServiceClient } from "@lib/supabase/server";
 import { redirectWithMessage } from "@lib/forms";
 import { runSignInFlow } from "@lib/auth/signin-flow";
 import { verifyTurnstile } from "@lib/security/turnstile";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitRedirect } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
 const loginRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
   context.redirect(redirectWithMessage("/login/", type, message), 303);
+
+const rateLimitSupabase = (context: Parameters<APIRoute>[0]) => {
+  try {
+    return createSupabaseServiceClient(context);
+  } catch {
+    return null;
+  }
+};
 
 export const GET: APIRoute = async (context) => context.redirect("/login/", 303);
 
@@ -20,6 +29,16 @@ export const POST: APIRoute = async (context) => {
     } catch (cause) {
       console.error("Sign-in form parsing failed", { cause, correlationId });
       return loginRedirect(context, "error", "The sign-in form could not be read. Please try again.");
+    }
+
+    const normalizedIdentifier = String(formData.get("email") ?? "").trim().toLowerCase();
+    const rateLimit = await consumeRateLimit({
+      supabase: rateLimitSupabase(context),
+      limitClass: "auth",
+      key: rateLimitKey([normalizedIdentifier, clientIp(context.request)])
+    });
+    if (!rateLimit.allowed) {
+      return context.redirect(rateLimitRedirect("/login/", rateLimit), 303);
     }
 
     const outcome = await runSignInFlow(formData, {

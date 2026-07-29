@@ -5,10 +5,22 @@ import NewsCard from "@components/NewsCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import { newestFirst } from "@lib/content";
 import { fetchPublicArticles, markdownArticle } from "@lib/public-content";
+import { PAGE_BOUNDS, clampLimit, clampOffset } from "@lib/pagination";
+
+const limit = clampLimit(Astro.url.searchParams.get("limit"), PAGE_BOUNDS.news);
+const offset = clampOffset(Astro.url.searchParams.get("offset"));
 
 const markdownArticles = newestFirst(await getCollection("news")).map(markdownArticle);
-const dbArticles = await fetchPublicArticles(60);
-const articles = dbArticles.length > 0 ? dbArticles : markdownArticles;
+const { articles: dbArticles, total } = await fetchPublicArticles(limit, offset);
+const usingMarkdownFallback = dbArticles.length === 0 && offset === 0;
+const articles = usingMarkdownFallback ? markdownArticles : dbArticles;
+const hasPrev = !usingMarkdownFallback && offset > 0;
+const hasNext = !usingMarkdownFallback && offset + limit < total;
+const pageLink = (o: number) => {
+  const url = new URL(Astro.url);
+  url.searchParams.set("offset", String(Math.max(0, o)));
+  return `${url.pathname}${url.search}`;
+};
 
 export const prerender = false;
 ---
@@ -28,6 +40,13 @@ export const prerender = false;
       <div class="mt-10 grid gap-5 lg:grid-cols-3">
         {articles.map((article) => <NewsCard article={article} />)}
       </div>
+
+      {(hasPrev || hasNext) && (
+        <div class="mt-10 flex items-center justify-between gap-3">
+          <a class:list={["focus-ring inline-flex min-h-11 items-center rounded-lg border border-eagles-line px-4 py-2 text-sm font-black", !hasPrev && "pointer-events-none opacity-40"]} href={pageLink(offset - limit)} aria-disabled={!hasPrev}>Previous</a>
+          <a class:list={["focus-ring inline-flex min-h-11 items-center rounded-lg border border-eagles-line px-4 py-2 text-sm font-black", !hasNext && "pointer-events-none opacity-40"]} href={pageLink(offset + limit)} aria-disabled={!hasNext}>Next</a>
+        </div>
+      )}
     </div>
   </section>
 </BaseLayout>

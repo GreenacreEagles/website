@@ -2,9 +2,10 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import { requireUser } from "@lib/auth/guards";
 import { hasAnyPermission } from "@lib/auth/permissions";
-import { getPrivateMediaBucket } from "@lib/media";
+import { getPrivateMediaBucket, sanitizeFilename } from "@lib/media";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
 import { writeAdminAudit } from "@lib/audit";
+import { clientIp, consumeRateLimit, rateLimitKey, rateLimitResponse } from "@lib/security/rate-limit";
 
 export const prerender = false;
 
@@ -13,6 +14,13 @@ export const GET: APIRoute = async (context) => {
   try {
     const session = await requireUser(context);
     if (!session) return new Response("Unauthorised", { status: 401, headers: { "cache-control": "no-store" } });
+
+    const limit = await consumeRateLimit({
+      supabase: session.supabase,
+      limitClass: "wwcc_document",
+      key: rateLimitKey([session.user.id, clientIp(context.request)])
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const id = z.string().uuid().safeParse(new URL(context.request.url).searchParams.get("id"));
     if (!id.success) return new Response("Invalid submission", { status: 400, headers: { "cache-control": "no-store" } });
@@ -53,7 +61,7 @@ export const GET: APIRoute = async (context) => {
       "x-content-type-options": "nosniff"
     });
     const extension = String(file.object_path).split(".").pop()?.replace(/[^a-z0-9]/gi, "") || "bin";
-    const safeName = String(submission.legal_name ?? "wwcc-document").replace(/[^a-z0-9._-]/gi, "-");
+    const safeName = sanitizeFilename(String(submission.legal_name ?? "wwcc-document")).replace(/[^a-zA-Z0-9._-]/g, "-");
     headers.set("content-disposition", `attachment; filename="${safeName}-WWCC.${extension}"`);
     object.writeHttpMetadata?.(headers);
     headers.set("cache-control", "private, no-store");
