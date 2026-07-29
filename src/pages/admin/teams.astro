@@ -20,6 +20,9 @@ const error = Astro.url.searchParams.get("error");
 const { publicMediaConfigured } = getMediaCapabilities(Astro);
 const requestedSeasonId = Astro.url.searchParams.get("season");
 const requestedTeamId = Astro.url.searchParams.get("team");
+const q=Astro.url.searchParams.get("q")?.trim().toLowerCase()??"";
+const statusFilter=Astro.url.searchParams.get("status")??"";
+const competitionFilter=Astro.url.searchParams.get("competition")??"";
 const [{ data: seasons }, { data: teams }, { data: competitions }, { data: profiles }, { data: teamStaff }, { data: teamPlayers }] = await Promise.all([
   session.supabase.from("seasons").select("*").order("starts_on", { ascending: false }),
   (session.supabase as any).from("teams").select("id,name,slug,season_id,competition_id,public,summary,sort_order,division,colour,status,external_fixture_url,image_object_key,seasons(id,name),competitions(id,name)").order("name"),
@@ -43,6 +46,7 @@ const canManage = session.permissions.has("*") || session.permissions.has("club_
 const canAssign = session.permissions.has("*") || session.permissions.has("club_structure.manage") || session.permissions.has("team_memberships.manage");
 const seasonUrl = (seasonId: string) => "/admin/teams/?season=" + encodeURIComponent(seasonId);
 const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team=" + encodeURIComponent(teamId) + "#team-details";
+const searchedTeams=filteredTeams.filter((team:any)=>{const haystack=[team.name,team.division,team.seasons?.name,team.competitions?.name].filter(Boolean).join(" ").toLowerCase();return (!q||haystack.includes(q))&&(!statusFilter||team.status===statusFilter)&&(!competitionFilter||team.competition_id===competitionFilter);});
 ---
 
 <PortalLayout title="Seasons & teams" section="Administration" session={session}>
@@ -92,6 +96,7 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
         </AdminDialog>}
       </Fragment>
     </AdminPageHeader>
+    <form class="surface grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-5" method="get"><label class="sm:col-span-2"><span class="label">Search teams</span><input class="field" type="search" name="q" value={q} placeholder="Team, season, competition or division"/></label><label><span class="label">Season</span><select class="field" name="season"><option value="">All</option>{(seasons??[]).map((item:any)=><option value={item.id} selected={requestedSeasonId===item.id}>{item.name}</option>)}</select></label><label><span class="label">Competition</span><select class="field" name="competition"><option value="">All</option>{(competitions??[]).map((item:any)=><option value={item.id} selected={competitionFilter===item.id}>{item.name}</option>)}</select></label><label><span class="label">Status</span><select class="field" name="status"><option value="">All</option><option value="active" selected={statusFilter==="active"}>Active</option><option value="inactive" selected={statusFilter==="inactive"}>Inactive</option></select></label><button class="min-h-11 rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white xl:col-start-5">Filter</button></form>
 
     <section class="surface p-5 md:p-7">
       <div>
@@ -129,11 +134,11 @@ const teamUrl = (teamId: string) => seasonUrl(selectedSeason?.id ?? "") + "&team
           <p class="text-xs font-black uppercase tracking-[0.18em] text-eagles-green">{selectedSeason?.name ?? "Select a season"}</p>
           <h2 class="mt-1 panel-title">Teams</h2>
         </div>
-        <p class="text-sm text-eagles-ink/60">{filteredTeams.length} {filteredTeams.length === 1 ? "team" : "teams"}</p>
+        <p class="text-sm text-eagles-ink/60">{searchedTeams.length} {searchedTeams.length === 1 ? "team" : "teams"}</p>
       </div>
       <div class="mt-5 grid gap-3 lg:grid-cols-2">
-        {selectedSeason && filteredTeams.length === 0 && <p class="text-sm text-eagles-ink/70">No teams are attached to this season yet.</p>}
-        {filteredTeams.map((team: any) => (
+        {selectedSeason && searchedTeams.length === 0 && <p class="text-sm text-eagles-ink/70">No teams are attached to this season yet.</p>}
+        {searchedTeams.map((team: any) => (
           <article class:list={["border p-4", team.id === selectedTeam?.id ? "border-eagles-green bg-eagles-mist" : "border-eagles-line bg-white"]} style="border-radius:8px">
             <div class="flex items-start justify-between gap-4">
               <a class="min-w-0 flex-1" href={teamUrl(team.id)}>

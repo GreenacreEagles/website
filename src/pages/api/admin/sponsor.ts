@@ -7,7 +7,8 @@ import { writeAdminAudit } from "@lib/audit";
 
 export const prerender = false;
 const back = "/admin/sponsors/";
-const httpsUrl = z.string().trim().url().refine((value) => new URL(value).protocol === "https:", "Website must use HTTPS.");
+export const normalizeSponsorWebsite = (value: unknown) => { const raw=String(value??"").trim(); if (!raw) return raw; const withoutRepeated=raw.replace(/^(?:https:\/\/)+/i,""); if (/^[a-z][a-z0-9+.-]*:\/\//i.test(withoutRepeated)) return withoutRepeated; return "https://"+withoutRepeated; };
+const httpsUrl = z.preprocess(normalizeSponsorWebsite,z.string().trim().url().max(800).refine((value) => new URL(value).protocol === "https:", "Website must use HTTPS."));
 const schema = z.object({
   id: z.string().uuid().optional(),
   mode: z.enum(["create", "update", "delete"]),

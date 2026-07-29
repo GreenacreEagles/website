@@ -1,0 +1,7 @@
+---
+interface Item { value:string; label:string; href:string }
+const {items,current,label="Sections"}=Astro.props as {items:Item[];current:string;label?:string};
+---
+<nav class="surface flex min-w-0 gap-1 overflow-x-auto p-1.5" aria-label={label}>
+ {items.map(item=><a class:list={["focus-ring inline-flex min-h-11 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-black",current===item.value?"bg-eagles-pine text-white":"text-eagles-ink hover:bg-eagles-mist"]} href={item.href} aria-current={current===item.value?"page":undefined}>{item.label}</a>)}
+</nav>

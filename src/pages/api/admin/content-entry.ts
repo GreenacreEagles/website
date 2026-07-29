@@ -11,9 +11,8 @@ const nullable=(max:number)=>z.preprocess((value)=>value===""?null:value,z.strin
 const optionalDate=z.preprocess((value)=>value===""?null:value,z.string().datetime({local:true}).nullable());
 const optionalInteger=z.preprocess((value)=>value===""?null:Number(value),z.number().int().min(0).nullable());
 const splitList=(value:string|null)=>(value??"").split(",").map((item)=>item.trim()).filter(Boolean);
-const slugify=(value:string)=>value.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,140);
-const articleSchema=z.object({title:z.string().trim().min(2).max(180),slug:nullable(140),summary:nullable(500),body:z.string().trim().min(2).max(6000),category:nullable(80),workflow_status:z.enum(["active","inactive"]),publish_at:optionalDate,tags:nullable(240)});
-const resourceSchema=z.object({title:z.string().trim().min(2).max(180),slug:nullable(140),resource_type:z.enum(["drill","session_plan","program","policy","video","document","external_link"]),visibility:z.enum(["coaches","team_staff","admins","public"]),summary:nullable(800),body:z.string().trim().max(6000),external_url:nullable(400),duration_minutes:optionalInteger,status:z.enum(["active","inactive"]),age_group_tags:nullable(240),skill_level_tags:nullable(240),equipment_required:nullable(240),review_due_on:z.preprocess((value)=>value===""?null:value,z.string().date().nullable())});
+const articleSchema=z.object({title:z.string().trim().min(2).max(180),summary:nullable(500),body:z.string().trim().min(2).max(6000),category:nullable(80),workflow_status:z.enum(["active","inactive"]),publish_at:optionalDate,tags:nullable(240)});
+const resourceSchema=z.object({title:z.string().trim().min(2).max(180),resource_type:z.enum(["drill","session_plan","program","policy","video","document","external_link"]),visibility:z.enum(["coaches","team_staff","admins","public"]),summary:nullable(800),body:z.string().trim().max(6000),external_url:nullable(400),duration_minutes:optionalInteger,status:z.enum(["active","inactive"]),age_group_tags:nullable(240),skill_level_tags:nullable(240),equipment_required:nullable(240),review_due_on:z.preprocess((value)=>value===""?null:value,z.string().date().nullable())});
 
 type StoredFile={id:string;bucket:string;object_path:string;mime_type:string|null};
 const relatedFile=(row:any):StoredFile|null=>Array.isArray(row?.file_records)?row.file_records[0]??null:row?.file_records??null;
@@ -70,6 +69,10 @@ export const POST:APIRoute=async(context)=>{
     let oldPublicKey:string|null=null;
     let oldPrivate:StoredFile|null=null;
     let values:any;
+    const parsedTitle=(parsed.data as any).title as string;
+    const {data:generatedSlug,error:slugError}=await service.rpc("generate_admin_slug",{target_kind:entity==="article"?"news":"coaching_resource",target_title:parsedTitle,current_id:idResult.success?id:null});
+    if(slugError||(!current?.slug&&!generatedSlug))return redirect("error",slugError?.message??"A unique URL could not be generated.");
+    const safeSlug=current?.slug??generatedSlug;
 
     if(entity==="article"){
       const data=parsed.data as z.infer<typeof articleSchema>;
@@ -86,7 +89,7 @@ export const POST:APIRoute=async(context)=>{
         try{await putPublicMediaObject(bucket,uploadedPublicKey,validation.bytes,image.type);}catch(cause){console.error("article image upload failed",{cause,correlationId});return redirect("error","The article image could not be uploaded.");}
         featuredImageUrl=getPublicMediaUrl(uploadedPublicKey,context);
       }else if(formData.get("remove_image")==="on")featuredImageUrl=null;
-      values={id,title:data.title,slug:data.slug||slugify(data.title),summary:data.summary,body:{type:"plain_text",text:data.body},category:data.category,workflow_status:data.workflow_status,publish_at:data.publish_at,featured_image_url:featuredImageUrl,tags:splitList(data.tags),author_id:session.user.id};
+      values={id,title:data.title,slug:safeSlug,summary:data.summary,body:{type:"plain_text",text:data.body},category:data.category,workflow_status:data.workflow_status,publish_at:data.publish_at,featured_image_url:featuredImageUrl,tags:splitList(data.tags),author_id:session.user.id};
     }else{
       const data=parsed.data as z.infer<typeof resourceSchema>;
       oldPrivate=relatedFile(current);
@@ -106,7 +109,7 @@ export const POST:APIRoute=async(context)=>{
         uploadedPrivate={id:fileId,bucket:bucketName,object_path:objectPath,mime_type:attachment.type};
         attachmentFileId=fileId;
       }else if(formData.get("remove_attachment")==="on")attachmentFileId=null;
-      values={id,title:data.title,slug:data.slug||slugify(data.title),resource_type:data.resource_type,visibility:data.visibility,summary:data.summary,body:{type:"plain_text",text:data.body},external_url:data.external_url,duration_minutes:data.duration_minutes,status:data.status,age_group_tags:splitList(data.age_group_tags),skill_level_tags:splitList(data.skill_level_tags),equipment_required:splitList(data.equipment_required),review_due_on:data.review_due_on,attachment_file_id:attachmentFileId,created_by:current?.created_by??session.user.id};
+      values={id,title:data.title,slug:safeSlug,resource_type:data.resource_type,visibility:data.visibility,summary:data.summary,body:{type:"plain_text",text:data.body},external_url:data.external_url,duration_minutes:data.duration_minutes,status:data.status,age_group_tags:splitList(data.age_group_tags),skill_level_tags:splitList(data.skill_level_tags),equipment_required:splitList(data.equipment_required),review_due_on:data.review_due_on,attachment_file_id:attachmentFileId,created_by:current?.created_by??session.user.id};
     }
 
     const result=idResult.success?await service.from(table).update(values).eq("id",id):await service.from(table).insert(values);

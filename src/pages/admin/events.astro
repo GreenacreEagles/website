@@ -19,10 +19,7 @@ if (!session) return Astro.redirect("/login/");
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const { publicMediaConfigured } = getMediaCapabilities(Astro);
-const [{ data: events }, { data: registrations }] = await Promise.all([
-  (session.supabase as any).from("club_events").select("id,title,slug,description,status,visibility,starts_at,ends_at,registration_opens_at,registration_closes_at,capacity,price_cents,image_url,image_object_key,venue,club_event_ticket_types(id,name,description,price_cents,capacity,max_per_order,active,sort_order)").order("starts_at", { ascending: false }).limit(80),
-  session.supabase.from("event_registrations").select("id,status,created_at,club_events(title),profiles:attendee_id(full_name,email)").order("created_at", { ascending: false }).limit(80)
-]);
+const { data: events } = await (session.supabase as any).from("club_events").select("id,title,slug,description,status,visibility,starts_at,ends_at,registration_opens_at,registration_closes_at,capacity,price_cents,image_url,image_object_key,venue,club_event_ticket_types(id,name,description,price_cents,capacity,max_per_order,active,sort_order)").order("starts_at", { ascending: false }).limit(80);
 ---
 
 <PortalLayout title="Event management" section="Administration" session={session}>
@@ -58,7 +55,7 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
       </Fragment>
     </AdminPageHeader>
   </div>
-  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+  <div class="grid gap-6">
     <section class="surface p-5 md:p-7">
       <h2 class="panel-title">Events</h2>
       <div class="mt-5 grid gap-3">
@@ -98,20 +95,12 @@ const [{ data: events }, { data: registrations }] = await Promise.all([
                   </form>)}
                 </div>
               </AdminDialog>
-              <a class="text-sm font-black text-eagles-green" href="/admin/event-tickets/">View orders</a>
+              <a class="focus-ring inline-flex min-h-11 items-center text-sm font-black text-eagles-green" href={`/admin/events/${event.id}/`}>Open event details</a>
             </div>
           </article>
         ))}
       </div>
     </section>
-    <aside class="grid gap-5 content-start">
-      <article class="surface p-5">
-        <h2 class="card-title">Registrations</h2>
-        <div class="mt-4 grid gap-3">
-          {(registrations ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No event registrations yet.</p>}
-          {(registrations ?? []).map((registration: any) => <p class="border-t border-eagles-line pt-3 text-sm"><strong>{registration.profiles?.full_name ?? registration.profiles?.email ?? "Attendee"}</strong><br />{registration.club_events?.title ?? "Event"} - {statusLabel(registration.status)}</p>)}
-        </div>
-      </article>
-    </aside>
+
   </div>
 </PortalLayout>

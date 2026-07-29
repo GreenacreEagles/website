@@ -13,6 +13,7 @@ const schema = z.object({
   direction: z.enum(["credit", "debit"]),
   transaction_type: z.string().trim().min(3).max(80),
   description: z.string().trim().min(3).max(500),
+  idempotency_key: z.string().trim().min(8).max(200).optional(),
   beneficiary_id: optionalUuidSchema,
   return_to: z.string().trim().optional()
 });
@@ -33,7 +34,7 @@ export const POST: APIRoute = async (context) => {
     direction: parsed.data.direction,
     transaction_type: parsed.data.transaction_type,
     description: parsed.data.description,
-    idempotency_key: `wallet-adjust:${session.user.id}:${parsed.data.wallet_id}:${crypto.randomUUID()}`,
+    idempotency_key: parsed.data.idempotency_key || `wallet-adjust:${session.user.id}:${parsed.data.wallet_id}:${crypto.randomUUID()}`,
     beneficiary_id: parsed.data.beneficiary_id ?? null
   });
 

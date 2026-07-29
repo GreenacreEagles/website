@@ -1,0 +1,7 @@
+import type { APIRoute } from "astro";
+import { z } from "zod";
+import { requireUser } from "@lib/auth/guards";
+import { redirectWithMessage } from "@lib/forms";
+export const prerender=false;
+const allowedReturn=new Set(["/admin/canteen/?section=products","/admin/highlights/?section=posts","/admin/coaching-resources/"]);
+export const POST:APIRoute=async(context)=>{const session=await requireUser(context);if(!session)return context.redirect("/login/",303);const form=await context.request.formData();const target=z.enum(["canteen_categories","social_posts","coaching_resources"]).safeParse(form.get("target"));const returnTo=allowedReturn.has(String(form.get("return_to")))?String(form.get("return_to")):"/admin/";let raw:unknown;try{raw=JSON.parse(String(form.get("ids")||"[]"));}catch{return context.redirect(redirectWithMessage(returnTo,"error","The new order could not be read."),303);}const ids=z.array(z.string().uuid()).min(1).max(500).refine(value=>new Set(value).size===value.length).safeParse(raw);if(!target.success||!ids.success)return context.redirect(redirectWithMessage(returnTo,"error","The new order is invalid."),303);const{data,error}=await(session.supabase as any).rpc("reorder_admin_items",{target_kind:target.data,target_ids:ids.data});const message=error?.message??String(data??0)+" items reordered.";return context.redirect(redirectWithMessage(returnTo,error?"error":"success",message),303);};

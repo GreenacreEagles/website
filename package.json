@@ -16,11 +16,12 @@
     "check": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro build",
     "typecheck": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
     "lint": "cross-env ASTRO_TELEMETRY_DISABLED=1 astro check",
-    "test": "npm run test:auth && npm run test:media && npm run test:wwcc && npm run test:portal && npm run typecheck",
+    "test": "npm run test:auth && npm run test:media && npm run test:wwcc && npm run test:portal && npm run test:admin && npm run typecheck",
     "test:auth": "node --experimental-strip-types --test tests/auth-flow.test.mjs",
     "test:media": "node --experimental-strip-types --test tests/media-runtime.test.mjs",
     "test:wwcc": "node --experimental-strip-types --test tests/wwcc-status.test.mjs",
     "test:portal": "node --test tests/member-portal-contract.test.mjs",
+    "test:admin": "node --test tests/admin-operations-contract.test.mjs",
     "test:db": "supabase test db"
   },
   "dependencies": {

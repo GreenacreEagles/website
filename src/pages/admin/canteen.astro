@@ -2,6 +2,8 @@
 import AdminDialog from "@components/AdminDialog.astro";
 import AdminFeedback from "@components/AdminFeedback.astro";
 import AdminPageHeader from "@components/AdminPageHeader.astro";
+import AdminSegmentedTabs from "@components/AdminSegmentedTabs.astro";
+import AdminReorderForm from "@components/AdminReorderForm.astro";
 import CanteenProductForm from "@components/CanteenProductForm.astro";
 import EmptyState from "@components/EmptyState.astro";
 import FormActions from "@components/FormActions.astro";
@@ -12,7 +14,7 @@ import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
 import { getMediaCapabilities, getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 
 export const prerender = false;
-const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.vouchers.manage", "canteen.vouchers.redeem"]);
+const session = await requirePermission(Astro, ["canteen.manage", "canteen.orders.manage", "canteen.orders.fulfil", "canteen.vouchers.manage", "canteen.vouchers.redeem"]);
 if (!session) return Astro.redirect("/login/");
 
 const service = session.supabase as any;
@@ -20,13 +22,14 @@ const { publicMediaConfigured } = getMediaCapabilities(Astro);
 const now = new Date().toISOString();
 const [{ data: categories }, { data: products }, { data: orders }, { count: voucherCount }] = await Promise.all([
   service.from("canteen_categories").select("id,name,is_active,display_order").order("display_order").order("name"),
-  service.from("canteen_products").select("id,category_id,name,description,price_cents,image_url,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
+  service.from("canteen_products").select("id,category_id,name,description,price_cents,image_url,image_object_key,dietary_info,allergen_info,stock_quantity,low_stock_threshold,voucher_valid_days,is_active,is_sold_out,fulfilment_type,canteen_categories(name)").order("is_active", { ascending: false }).order("name").limit(200),
   service.from("canteen_orders").select("id,order_number,order_status,payment_status,payment_method,subtotal_cents,voucher_discount_cents,wallet_credit_cents,amount_due_cents,total_cents,created_at,special_instructions,pickup_code,profiles:customer_id(full_name,email),recipient:recipient_id(full_name,email),canteen_order_items(product_name_snapshot,quantity,line_total_cents)").in("order_status", ["awaiting_payment", "paid", "accepted", "preparing", "ready_for_pickup"]).order("created_at", { ascending: false }).limit(100),
   service.from("voucher_issuances").select("id", { count: "exact", head: true }).eq("status", "active").is("claimed_at", null).gt("remaining_value_cents", 0).or(`expires_at.is.null,expires_at.gt.${now}`),
 ]);
 
 const canManageCatalog = session.permissions.has("*") || session.permissions.has("canteen.manage");
-const canManageOrders = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
+const canChangePayments = session.permissions.has("*") || session.permissions.has("canteen.orders.manage");
+const canManageOrders = canChangePayments || session.permissions.has("canteen.orders.fulfil");
 const canManageVouchers = session.permissions.has("*") || session.permissions.has("canteen.vouchers.manage");
 const canRedeem = canManageOrders || session.permissions.has("*") || session.permissions.has("canteen.vouchers.redeem");
 const soldOutCount = (products ?? []).filter((p: any) => p.is_active && p.is_sold_out).length;
@@ -36,6 +39,14 @@ const allergenOptions = ["gluten", "dairy", "egg", "peanuts", "tree nuts", "soy"
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const requestKey = crypto.randomUUID();
+const section = Astro.url.searchParams.get("section") === "products" ? "products" : "orders";
+const productQ = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
+const categoryFilter = Astro.url.searchParams.get("category") ?? "";
+const activeFilter = Astro.url.searchParams.get("active") ?? "";
+const availabilityFilter = Astro.url.searchParams.get("availability") ?? "";
+const voucherFilter = Astro.url.searchParams.get("voucher") ?? "";
+const filteredProducts = ((products ?? []) as any[]).filter((product) => { const haystack=[product.name,product.description,product.canteen_categories?.name].filter(Boolean).join(" ").toLowerCase(); return (!productQ||haystack.includes(productQ))&&(!categoryFilter||product.category_id===categoryFilter)&&(!activeFilter||(activeFilter==="active"?product.is_active:!product.is_active))&&(!availabilityFilter||(availabilityFilter==="sold_out"?product.is_sold_out:!product.is_sold_out))&&(!voucherFilter||(voucherFilter==="eligible"?product.fulfilment_type==="item_voucher":product.fulfilment_type!=="item_voucher")); });
+const fulfilmentLabel=(value:string)=>({accepted:"New",preparing:"Preparing",ready_for_pickup:"Ready for collection",collected:"Collected",cancelled:"Cancelled",awaiting_payment:"New",paid:"New"} as Record<string,string>)[value]??statusLabel(value);
 ---
 
 <PortalLayout title="Canteen operations" section="Administration" session={session}>
@@ -121,26 +132,17 @@ const requestKey = crypto.randomUUID();
         )}
         {canManageCatalog && (
           <AdminDialog id="manage-canteen-categories" title="Manage categories" actionLabel="Manage categories" tone="secondary" size="lg">
-            <div class="grid gap-5">
-              {(categories ?? []).map((category: any, index: number) => (
-                <form class="grid gap-3 border border-eagles-line p-4 md:grid-cols-[1fr_130px_auto]" style="border-radius:8px" method="post" action="/api/admin/canteen-category">
-                  <input type="hidden" name="category_id" value={category.id} />
-                  <label><span class="label">Name</span><input class="field" name="name" value={category.name} required /></label>
-                  <label><span class="label">Position</span><select class="field" name="position">{(categories ?? []).map((_: any, optionIndex: number) => <option value={optionIndex + 1} selected={index === optionIndex}>{optionIndex + 1}</option>)}</select></label>
-                  <div class="flex flex-wrap items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active} /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Save</button><button class="text-xs font-black text-red-700" name="intent" value="delete" formnovalidate onclick="return confirm('Delete this category? Products will become uncategorised.')">Delete</button></div>
-                </form>
-              ))}
-              <form class="grid gap-3 border-t border-eagles-line pt-5 md:grid-cols-[1fr_130px_auto]" method="post" action="/api/admin/canteen-category">
-                <input type="hidden" name="category_id" value="" />
-                <label><span class="label">New category</span><input class="field" name="name" required /></label>
-                <label><span class="label">Position</span><select class="field" name="position">{[...(categories ?? []), null].map((_: any, index: number) => <option value={index + 1} selected={index === (categories ?? []).length}>{index + 1}</option>)}</select></label>
-                <div class="flex items-end gap-3 pb-1"><label class="text-sm font-bold"><input type="checkbox" name="is_active" checked /> Active</label><button class="bg-eagles-green px-3 py-2 text-xs font-black text-white" style="border-radius:8px">Add</button></div>
-              </form>
-            </div>
-          </AdminDialog>
+ <div class="grid gap-6">
+  <section><h3 class="card-title">Display order</h3><div class="mt-3"><AdminReorderForm target="canteen_categories" returnTo="/admin/canteen/?section=products" label="Save category order">{(categories??[]).map((category:any)=><article class="flex min-w-0 items-center gap-3 rounded-lg border border-eagles-line bg-white p-3" data-reorder-id={category.id} draggable="true" tabindex="0"><span class="cursor-grab font-black" aria-hidden="true">↕</span><span class="min-w-0 flex-1 break-words font-black">{category.name}</span><button class="min-h-11 px-2 text-sm font-black text-eagles-pine" type="button" data-move="up">Move up</button><button class="min-h-11 px-2 text-sm font-black text-eagles-pine" type="button" data-move="down">Move down</button></article>)}</AdminReorderForm></div></section>
+  <section class="grid gap-3 border-t border-eagles-line pt-5"><h3 class="card-title">Category details</h3>{(categories??[]).map((category:any)=><form class="grid gap-3 rounded-lg border border-eagles-line p-3 sm:grid-cols-[minmax(0,1fr)_auto]" method="post" action="/api/admin/canteen-category"><input type="hidden" name="category_id" value={category.id}/><input type="hidden" name="position" value={category.display_order}/><label><span class="label">Name</span><input class="field" name="name" value={category.name} required/></label><div class="flex flex-wrap items-end gap-2"><label class="flex min-h-11 items-center gap-2 text-sm font-bold"><input type="checkbox" name="is_active" checked={category.is_active}/>Active</label><button class="min-h-11 rounded-lg bg-eagles-green px-3 py-2 text-sm font-black text-white">Save</button><button class="min-h-11 px-2 text-sm font-black text-red-700" name="intent" value="delete" formnovalidate>Delete</button></div></form>)}</section>
+  <form class="grid gap-3 border-t border-eagles-line pt-5 sm:grid-cols-[minmax(0,1fr)_auto]" method="post" action="/api/admin/canteen-category"><input type="hidden" name="position" value={(categories??[]).length+1}/><label><span class="label">New category</span><input class="field" name="name" required/></label><button class="min-h-11 self-end rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white">Add category</button></form>
+ </div>
+</AdminDialog>
         )}
       </Fragment>
     </AdminPageHeader>
+
+    <AdminSegmentedTabs current={section} items={[{value:"orders",label:"Orders",href:"/admin/canteen/?section=orders"},{value:"products",label:"Products",href:"/admin/canteen/?section=products"}]} label="Canteen sections" />
 
     <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Canteen summary">
       {[
@@ -151,7 +153,7 @@ const requestKey = crypto.randomUUID();
       ].map(([label, value]) => <article class="surface p-4"><p class="text-xs font-black uppercase tracking-wide text-eagles-ink/60">{label}</p><p class="mt-2 font-display text-4xl font-black text-eagles-green">{value}</p></article>)}
     </section>
 
-    <section class="surface p-5 md:p-7">
+    {section === "orders" && (<section class="surface p-5 md:p-7">
       <h2 class="panel-title">Orders</h2>
       <p class="mt-1 text-sm text-eagles-ink/65">Only orders that still need action are shown.</p>
       <div class="mt-5 grid gap-3">
@@ -163,21 +165,21 @@ const requestKey = crypto.randomUUID();
                 <p class="font-black">Order {order.order_number} · {formatMoney(order.total_cents)}</p>
                 <p class="text-sm text-eagles-ink/65">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} · {formatDateTime(order.created_at)}</p>
               </div>
-              <div class="flex gap-2"><StatusBadge label={statusLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
+              <div class="flex gap-2"><StatusBadge label={fulfilmentLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
             </div>
             <div class="mt-3 grid gap-1">{(order.canteen_order_items ?? []).map((item: any) => <p class="text-sm"><strong>{item.quantity}×</strong> {item.product_name_snapshot}</p>)}</div>
             <p class="mt-3 text-sm font-bold text-eagles-muted">{order.payment_method === "pay_at_club" ? `Pay at club · $${((order.amount_due_cents ?? 0) / 100).toFixed(2)} due` : "Paid with member benefits"}</p>
             {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold" style="border-radius:8px">{order.special_instructions}</p>}
-            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="payment_status" value="paid" /><input type="hidden" name="order_status" value="accepted" /><input type="hidden" name="reason" value="Payment received at club" /><button class="bg-eagles-ink px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Mark payment received</button></form>}{order.payment_status === "paid" && <form method="post" action="/api/admin/complete-canteen-order"><input type="hidden" name="order_id" value={order.id} /><input type="hidden" name="source" value="manual" /><button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px">Complete order</button></form>}</div>}
+            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{canChangePayments && order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="payment_status" value="paid"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="Payment received at club"/><button class="min-h-11 rounded-lg bg-eagles-ink px-4 py-2 text-sm font-black text-white">Mark as paid</button></form>}{order.payment_status === "paid" && order.order_status === "accepted" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="preparing"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><button class="min-h-11 rounded-lg bg-eagles-pine px-4 py-2 text-sm font-black text-white">Start preparing</button></form>}{order.payment_status === "paid" && order.order_status === "preparing" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="ready_for_pickup"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><button class="min-h-11 rounded-lg bg-eagles-pine px-4 py-2 text-sm font-black text-white">Mark ready for collection</button></form>}{order.payment_status === "paid" && ["accepted","preparing","ready_for_pickup"].includes(order.order_status) && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="collected"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="One-tap authorised collection"/><button class="min-h-11 rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white">Mark collected</button></form>}{canChangePayments && !["collected","cancelled"].includes(order.order_status) && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="cancelled"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="Cancelled by authorised canteen administrator"/><button class="min-h-11 rounded-lg border border-red-200 px-4 py-2 text-sm font-black text-red-700">Cancel</button></form>}</div>}
           </article>
         ))}
       </div>
-    </section>
+    </section>)}
 
-    <section class="surface p-5 md:p-7">
-      <h2 class="panel-title">Products</h2>
+    {section === "products" && (<section class="surface p-5 md:p-7">
+      <h2 class="panel-title">Products</h2><form class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5" method="get"><input type="hidden" name="section" value="products"/><label class="sm:col-span-2"><span class="label">Search products</span><input class="field" type="search" name="q" value={productQ} placeholder="Name, category or description"/></label><label><span class="label">Category</span><select class="field" name="category"><option value="">All</option>{(categories??[]).map((category:any)=><option value={category.id} selected={categoryFilter===category.id}>{category.name}</option>)}</select></label><label><span class="label">Status</span><select class="field" name="active"><option value="">All</option><option value="active" selected={activeFilter==="active"}>Active</option><option value="inactive" selected={activeFilter==="inactive"}>Inactive</option></select></label><label><span class="label">Availability</span><select class="field" name="availability"><option value="">All</option><option value="available" selected={availabilityFilter==="available"}>Available</option><option value="sold_out" selected={availabilityFilter==="sold_out"}>Sold out</option></select></label><label><span class="label">Voucher</span><select class="field" name="voucher"><option value="">All</option><option value="eligible" selected={voucherFilter==="eligible"}>Voucher eligible</option><option value="standard" selected={voucherFilter==="standard"}>Standard</option></select></label><button class="focus-ring min-h-11 self-end rounded-lg bg-eagles-green px-4 py-3 text-sm font-black text-white">Filter</button></form>
       <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {(products ?? []).map((product: any) => (
+        {filteredProducts.map((product: any) => (
           <article class="border border-eagles-line p-4" style="border-radius:8px">
             <div class="flex items-start justify-between gap-3"><div><p class="font-black">{product.name}</p><p class="text-sm text-eagles-ink/65">{product.canteen_categories?.name ?? "Uncategorised"} · {formatMoney(product.price_cents)}</p></div><StatusBadge label={product.is_sold_out ? "Sold out" : product.is_active ? "Active" : "Inactive"} tone={product.is_sold_out ? "red" : product.is_active ? "green" : "ink"} /></div>
             <p class="mt-3 text-sm font-bold">{product.stock_quantity === null ? "Open stock" : `${product.stock_quantity} in stock`}</p>
@@ -185,7 +187,7 @@ const requestKey = crypto.randomUUID();
           </article>
         ))}
       </div>
-    </section>
+    </section>)}
   </div>
 </PortalLayout>
 

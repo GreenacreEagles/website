@@ -4,13 +4,14 @@ import ImageUploadField from "@components/ImageUploadField.astro";
 import { statusLabel } from "@lib/format";
 interface Props { sponsor?: any; mediaConfigured?: boolean; currentUrl?: string | null; }
 const { sponsor, mediaConfigured=false, currentUrl=null } = Astro.props;
+const websiteValue=String(sponsor?.website_url??"").replace(/^https:\/\//i,"");
 ---
 <div class="grid gap-4">
   {sponsor && <input type="hidden" name="id" value={sponsor.id} />}
   <input type="hidden" name="mode" value={sponsor ? "update" : "create"} />
   <label><span class="label">Sponsor name</span><input class="field" name="name" value={sponsor?.name} required /></label>
   <label><span class="label">Description</span><textarea class="field min-h-24" name="description">{sponsor?.description}</textarea></label>
-  <label><span class="label">Website (HTTPS)</span><input class="field" name="website_url" type="url" pattern="https://.*" value={sponsor?.website_url} required /></label>
+  <label><span class="label">Website</span><span class="flex min-w-0 items-stretch"><span class="flex items-center rounded-l-lg border border-r-0 border-eagles-line bg-eagles-mist px-3 text-sm font-black text-eagles-ink/70">https://</span><input class="field min-w-0 rounded-l-none" name="website_url" type="text" inputmode="url" value={websiteValue} placeholder="example.com" required /></span></label>
   <div class="grid gap-4 md:grid-cols-3">
     <label><span class="label">Tier (optional)</span><input class="field" name="tier" value={sponsor?.tier} /></label>
     <label><span class="label">Sort order</span><input class="field" name="display_priority" type="number" min="0" value={sponsor?.display_priority ?? 0} required /></label>

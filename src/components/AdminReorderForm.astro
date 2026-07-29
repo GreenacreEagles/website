@@ -1,0 +1,16 @@
+---
+const {target,returnTo,label="Save order"}=Astro.props as {target:string;returnTo:string;label?:string};
+---
+<form class="grid gap-3" method="post" action="/api/admin/reorder" data-reorder-form>
+ <input type="hidden" name="target" value={target}/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="ids" value="" data-reorder-ids/>
+ <div class="grid gap-2" data-reorder-list><slot /></div>
+ <div class="flex items-center gap-3"><button class="focus-ring min-h-11 rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60" type="submit" data-reorder-save>{label}</button><span class="text-sm font-bold text-eagles-ink/65" aria-live="polite" data-reorder-state>Drag items or use Move up and Move down.</span></div>
+</form>
+<script>
+ for(const form of document.querySelectorAll<HTMLFormElement>("[data-reorder-form]")){const list=form.querySelector<HTMLElement>("[data-reorder-list]");const ids=form.querySelector<HTMLInputElement>("[data-reorder-ids]");const state=form.querySelector<HTMLElement>("[data-reorder-state]");const sync=()=>{if(ids&&list)ids.value=JSON.stringify([...list.querySelectorAll<HTMLElement>("[data-reorder-id]")].map(row=>row.dataset.reorderId));};sync();let dragged:HTMLElement|null=null;
+ list?.addEventListener("dragstart",event=>{dragged=(event.target as HTMLElement).closest<HTMLElement>("[data-reorder-id]");dragged?.setAttribute("aria-grabbed","true");});
+ list?.addEventListener("dragover",event=>{event.preventDefault();const row=(event.target as HTMLElement).closest<HTMLElement>("[data-reorder-id]");if(!dragged||!row||row===dragged)return;const box=row.getBoundingClientRect();row.parentElement?.insertBefore(dragged,event.clientY<box.top+box.height/2?row:row.nextSibling);sync();if(state)state.textContent="Order changed. Save to persist.";});
+ list?.addEventListener("dragend",()=>{dragged?.removeAttribute("aria-grabbed");dragged=null;});
+ list?.addEventListener("click",event=>{const button=(event.target as HTMLElement).closest<HTMLButtonElement>("[data-move]");if(!button)return;event.preventDefault();const row=button.closest<HTMLElement>("[data-reorder-id]");if(!row)return;if(button.dataset.move==="up"&&row.previousElementSibling)row.parentElement?.insertBefore(row,row.previousElementSibling);if(button.dataset.move==="down"&&row.nextElementSibling)row.parentElement?.insertBefore(row.nextElementSibling,row);sync();row.focus();if(state)state.textContent="Order changed. Save to persist.";});
+ form.addEventListener("submit",()=>{sync();const save=form.querySelector<HTMLButtonElement>("[data-reorder-save]");if(save){save.disabled=true;save.textContent="Saving…";}if(state)state.textContent="Saving order…";});}
+</script>

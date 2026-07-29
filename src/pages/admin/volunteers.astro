@@ -27,7 +27,7 @@ const canReview = hasAnyPermission(session.permissions, ["wwcc.verify"]);
 const [{ data: submissions }, { data: assignments }] = await Promise.all([
   (session.supabase as any)
     .from("wwcc_submissions")
-    .select("id,user_id,role_assignment_id,legal_name,wwcc_number,expiry_date,notes,status,submitted_at,reviewed_at,review_reason,document_file_id,profiles:user_id(full_name,email),reviewer:reviewed_by(full_name)")
+    .select("id,user_id,role_assignment_id,legal_name,wwcc_number,expiry_date,clearance_type,notes,status,submitted_at,reviewed_at,review_reason,document_file_id,profiles:user_id(full_name,email),reviewer:reviewed_by(full_name)")
     .order("submitted_at", { ascending: false }),
   (session.supabase as any)
     .from("user_role_assignments")
@@ -150,7 +150,7 @@ const badgeFor = (status: string) => status === "approved" ? "green" : status ==
                             <StatusBadge label={statusLabel(item.status)} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"} />
                           </div>
                           <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                            <div><dt class="font-black">WWCC number</dt><dd class="break-all">{item.wwcc_number}</dd></div>
+                            <div><dt class="font-black">WWCC number</dt><dd class="break-all">{item.wwcc_number}</dd></div><div><dt class="font-black">Clearance</dt><dd>{statusLabel(item.clearance_type)}</dd></div>
                             <div><dt class="font-black">Expiry</dt><dd>{formatDate(item.expiry_date)}</dd></div>
                             <div><dt class="font-black">Reviewed by</dt><dd>{item.reviewer?.full_name ?? "Not reviewed"}</dd></div>
                             <div><dt class="font-black">Reviewed date</dt><dd>{formatDateTime(item.reviewed_at)}</dd></div>
@@ -191,7 +191,7 @@ const badgeFor = (status: string) => status === "approved" ? "green" : status ==
             <dl class="mt-5 grid min-w-0 gap-4 border-t border-eagles-line pt-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
               <div><dt class="font-black">Assigned role</dt><dd>{record.assignment?.roles?.name ?? "Volunteer"}</dd></div>
               <div><dt class="font-black">Role state</dt><dd>{statusLabel(record.assignment?.status ?? "pending")}</dd></div>
-              <div><dt class="font-black">WWCC number</dt><dd class="break-all">{submission?.wwcc_number ?? "Not submitted"}</dd></div>
+              <div><dt class="font-black">WWCC number</dt><dd class="break-all">{submission?.wwcc_number ?? "Not submitted"}</dd></div><div><dt class="font-black">Clearance</dt><dd>{submission?.clearance_type ? statusLabel(submission.clearance_type) : "Not submitted"}</dd></div>
               <div><dt class="font-black">Expiry date</dt><dd>{formatDate(submission?.expiry_date)}</dd></div>
               <div><dt class="font-black">Submission date</dt><dd>{formatDateTime(submission?.submitted_at)}</dd></div>
               <div><dt class="font-black">Reviewed by</dt><dd>{submission?.reviewer?.full_name ?? "Not reviewed"}</dd></div>

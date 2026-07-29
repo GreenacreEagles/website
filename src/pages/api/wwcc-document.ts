@@ -4,6 +4,7 @@ import { requireUser } from "@lib/auth/guards";
 import { hasAnyPermission } from "@lib/auth/permissions";
 import { getPrivateMediaBucket } from "@lib/media";
 import { createSupabaseServiceClient } from "@lib/supabase/server";
+import { writeAdminAudit } from "@lib/audit";
 
 export const prerender = false;
 
@@ -57,6 +58,7 @@ export const GET: APIRoute = async (context) => {
     object.writeHttpMetadata?.(headers);
     headers.set("cache-control", "private, no-store");
     headers.set("content-type", file.mime_type ?? headers.get("content-type") ?? "application/octet-stream");
+    if (canReview && submission.user_id !== session.user.id) await writeAdminAudit(context, { actor_id: session.user.id, action: "wwcc.document_viewed", entity_type: "wwcc_submission", entity_id: submission.id, after_state: { document_file_id: submission.document_file_id }, correlation_id: correlationId });
     return new Response(object.body, { status: 200, headers });
   } catch (cause) {
     console.error("WWCC document download failed", { cause, correlationId });
