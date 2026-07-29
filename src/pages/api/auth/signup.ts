@@ -43,7 +43,7 @@ export const POST: APIRoute = async (context) => {
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${getConfiguredSiteOrigin(context)}/portal/`,
+        emailRedirectTo: `${getConfiguredSiteOrigin(context)}/auth/confirm`,
         data: {
           full_name: parsed.data.fullName,
           terms_accepted: true,
@@ -52,7 +52,7 @@ export const POST: APIRoute = async (context) => {
       }
     });
 
-    if (error) return signupRedirect(context, "error", "Account creation failed. The email may already be registered.");
+    if (error) return signupRedirect(context, "error", "Account creation could not be completed. Check your details and try again.");
     return signupRedirect(context, "success", "Account created. Check your email, then sign in.");
   } catch (cause) {
     console.error("Unexpected signup failure", { cause, correlationId });

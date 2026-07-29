@@ -8,12 +8,21 @@ max_rows = 1000
 
 [auth]
 enabled = true
-site_url = "http://localhost:4321"
+site_url = "https://greenacreeaglesfc.com"
 additional_redirect_urls = [
-  "http://localhost:4321/auth/callback",
-  "https://website-4h5.pages.dev/auth/callback",
-  "https://greenacreeaglesfc.com/auth/callback"
+  "https://greenacreeaglesfc.com/auth/confirm",
+  "https://greenacreeaglesfc.com/reset-password",
+  "http://localhost:4321/auth/confirm",
+  "http://localhost:4321/reset-password"
 ]
 
 [db]
 major_version = 17
+
+[auth.email.template.recovery]
+subject = "Reset your Greenacre Eagles FC password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your Greenacre Eagles FC account"
+content_path = "./supabase/templates/confirmation.html"

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { verifyTurnstileToken } from "../src/lib/security/turnstile-core.ts";
 import { runSignInFlow } from "../src/lib/auth/signin-flow.ts";
 
@@ -117,5 +118,60 @@ test("external and non-portal return targets are not allowed", async () => {
     assert.equal(result.success, true);
     assert.equal(result.location, "/portal/");
     assert.doesNotMatch(result.location, /evil|password|member%40|member@/);
+  }
+});
+
+test("password recovery uses a token-hash SSR confirmation flow", async () => {
+  const { parseEmailOtpType, confirmationDestination } = await import("../src/lib/auth/email-links.ts");
+  assert.equal(parseEmailOtpType("recovery"), "recovery");
+  assert.equal(parseEmailOtpType("email"), "email");
+  for (const value of [null, "invite", "magiclink", "https://evil.example/"]) assert.equal(parseEmailOtpType(value), null);
+  assert.equal(confirmationDestination("recovery"), "/reset-password/");
+  assert.match(confirmationDestination("email"), /^\/login\/\?success=/);
+  assert.doesNotMatch(confirmationDestination("email"), /token|evil|https?:/);
+});
+
+test("recovery password validation rejects weak and mismatched passwords", async () => {
+  const { validateRecoveryPasswords } = await import("../src/lib/auth/password-recovery.ts");
+  assert.equal(validateRecoveryPasswords({ password: "short", confirmPassword: "short" }).success, false);
+  const mismatch = validateRecoveryPasswords({ password: "long-enough", confirmPassword: "different-value" });
+  assert.equal(mismatch.success, false);
+  assert.match(mismatch.error.issues[0].message, /match/i);
+  assert.equal(validateRecoveryPasswords({ password: "long-enough", confirmPassword: "long-enough" }).success, true);
+});
+
+test("auth pages and handlers retain the secure recovery contract", () => {
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  const requestPage = read("src/pages/forgot-password.astro");
+  const resetPage = read("src/pages/reset-password.astro");
+  const requestRoute = read("src/pages/api/auth/reset-password.ts");
+  const confirmRoute = read("src/pages/auth/confirm.ts");
+  const updateRoute = read("src/pages/api/auth/update-password.ts");
+  const signupRoute = read("src/pages/api/auth/signup.ts");
+  assert.match(requestPage, /action="\/api\/auth\/reset-password"/);
+  assert.match(requestRoute, /resetPasswordForEmail/);
+  assert.match(requestRoute, /\/auth\/confirm/);
+  assert.match(requestRoute, /If an account exists for that email/);
+  assert.match(confirmRoute, /verifyOtp\(\{ token_hash: tokenHash, type \}\)/);
+  assert.match(confirmRoute, /gefc-password-recovery/);
+  assert.doesNotMatch(confirmRoute, /searchParams\.get\("next"\)/);
+  assert.match(resetPage, /Choose a new password/);
+  assert.match(resetPage, /action="\/api\/auth\/update-password"/);
+  assert.doesNotMatch(resetPage, /action="\/api\/auth\/signin"|action="\/api\/auth\/signup"/);
+  assert.match(updateRoute, /auth\.getUser\(\)/);
+  assert.match(updateRoute, /auth\.updateUser\(\{ password:/);
+  assert.match(updateRoute, /signOut\(\{ scope: "global" \}\)/);
+  assert.match(signupRoute, /\/auth\/confirm/);
+});
+
+test("auth email templates use supported token-hash links without external redirects", () => {
+  const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  const recovery = read("supabase/templates/recovery.html");
+  const confirmation = read("supabase/templates/confirmation.html");
+  assert.match(recovery, /\{\{ \.SiteURL \}\}\/auth\/confirm\?token_hash=\{\{ \.TokenHash \}\}&type=recovery/);
+  assert.match(confirmation, /\{\{ \.SiteURL \}\}\/auth\/confirm\?token_hash=\{\{ \.TokenHash \}\}&type=email/);
+  for (const template of [recovery, confirmation]) {
+    assert.doesNotMatch(template, /\.ConfirmationURL|\.RedirectTo|\|\s*[a-z]/i);
+    assert.doesNotMatch(template, /pages\.dev|workers\.dev|localhost/);
   }
 });

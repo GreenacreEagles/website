@@ -9,7 +9,7 @@ export const prerender = false;
 
 const schema = z.object({ email: z.string().email() });
 const resetRedirect = (context: Parameters<APIRoute>[0], type: "success" | "error", message: string) =>
-  context.redirect(redirectWithMessage("/reset-password/", type, message), 303);
+  context.redirect(redirectWithMessage("/forgot-password/", type, message), 303);
 
 export const POST: APIRoute = async (context) => {
   const correlationId = crypto.randomUUID();
@@ -30,11 +30,11 @@ export const POST: APIRoute = async (context) => {
 
     const supabase = createSupabaseServerClient(context);
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-      redirectTo: `${getConfiguredSiteOrigin(context)}/portal/account/`
+      redirectTo: `${getConfiguredSiteOrigin(context)}/auth/confirm`
     });
 
-    if (error) return resetRedirect(context, "error", "Password reset could not be sent.");
-    return resetRedirect(context, "success", "Password reset email sent.");
+    if (error) console.error("Password reset request failed", { correlationId, code: error.code });
+    return resetRedirect(context, "success", "If an account exists for that email, a password reset link has been sent.");
   } catch (cause) {
     console.error("Unexpected password reset failure", { cause, correlationId });
     return resetRedirect(context, "error", `Password reset is temporarily unavailable. Reference ${correlationId}.`);
