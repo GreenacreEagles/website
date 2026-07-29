@@ -13,6 +13,16 @@ export type WwccDisplayStatus =
   | "expired"
   | "rejected";
 
+export type VolunteerWorkflowStage =
+  | "not_requested"
+  | "adult_confirmation_required"
+  | "wwcc_details_required"
+  | "pending_review"
+  | "approved"
+  | "rejected"
+  | "expiring"
+  | "expired";
+
 const dateOnly = (value: Date) => {
   const year = value.getUTCFullYear();
   const month = String(value.getUTCMonth() + 1).padStart(2, "0");
@@ -45,3 +55,33 @@ export const wwccStatusLabel = (status: WwccDisplayStatus) => ({
   expired: "Expired",
   rejected: "Resubmission required"
 })[status];
+
+export const volunteerWorkflowStage = ({
+  hasAssignment,
+  adultConfirmed,
+  wwccStatus
+}: {
+  hasAssignment: boolean;
+  adultConfirmed: boolean;
+  wwccStatus: WwccDisplayStatus;
+}): VolunteerWorkflowStage => {
+  if (!hasAssignment) return "not_requested";
+  if (wwccStatus === "approved") return "approved";
+  if (wwccStatus === "rejected") return "rejected";
+  if (wwccStatus === "expiring") return "expiring";
+  if (wwccStatus === "expired") return "expired";
+  if (!adultConfirmed) return "adult_confirmation_required";
+  if (wwccStatus === "not_submitted") return "wwcc_details_required";
+  return "pending_review";
+};
+
+export const volunteerWorkflowLabel = (stage: VolunteerWorkflowStage) => ({
+  not_requested: "Not requested",
+  adult_confirmation_required: "Adult confirmation required",
+  wwcc_details_required: "WWCC details required",
+  pending_review: "Pending review",
+  approved: "Approved",
+  rejected: "Rejected",
+  expiring: "Expiring",
+  expired: "Expired"
+})[stage];

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { wwccDisplayStatus, wwccStatusLabel } from "../src/lib/wwcc.ts";
+import { volunteerWorkflowLabel, volunteerWorkflowStage, wwccDisplayStatus, wwccStatusLabel } from "../src/lib/wwcc.ts";
 
 const now = new Date("2026-07-28T12:00:00Z");
 
@@ -19,4 +19,13 @@ test("WWCC status derives approved, expiring and expired from the expiry date", 
 test("WWCC display labels are clear", () => {
   assert.equal(wwccStatusLabel("not_submitted"), "WWCC required");
   assert.equal(wwccStatusLabel("expiring"), "Expiring within 3 months");
+});
+
+test("volunteer workflow requires adult confirmation before WWCC details", () => {
+  assert.equal(volunteerWorkflowStage({ hasAssignment: false, adultConfirmed: false, wwccStatus: "not_submitted" }), "not_requested");
+  assert.equal(volunteerWorkflowStage({ hasAssignment: true, adultConfirmed: false, wwccStatus: "not_submitted" }), "adult_confirmation_required");
+  assert.equal(volunteerWorkflowStage({ hasAssignment: true, adultConfirmed: true, wwccStatus: "not_submitted" }), "wwcc_details_required");
+  assert.equal(volunteerWorkflowStage({ hasAssignment: true, adultConfirmed: true, wwccStatus: "pending" }), "pending_review");
+  assert.equal(volunteerWorkflowStage({ hasAssignment: true, adultConfirmed: false, wwccStatus: "approved" }), "approved");
+  assert.equal(volunteerWorkflowLabel("adult_confirmation_required"), "Adult confirmation required");
 });
