@@ -72,6 +72,30 @@
     font-size: clamp(1.875rem, 1.35rem + 1.8vw, 2.75rem);
   }
 
+  .portal-title {
+    @apply break-words font-display font-black uppercase leading-tight text-eagles-ink;
+    font-size: clamp(1.35rem, 1.15rem + 0.8vw, 1.85rem);
+  }
+
+  .filter-bar {
+    display: grid;
+    gap: 0.75rem;
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 40rem) {
+    .filter-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 80rem) {
+    .filter-bar {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 12rem) minmax(0, 11rem) auto;
+    }
+  }
+
   .section-title {
     @apply break-words font-display font-black uppercase leading-none;
     font-size: clamp(1.5rem, 1.2rem + 1.1vw, 2.25rem);
@@ -90,6 +114,39 @@
   .surface {
     @apply min-w-0 border border-eagles-line bg-white shadow-match-card;
     border-radius: 8px;
+  }
+
+  /* Repeating cards follow the space they are in, including the portal sidebar. */
+  .tile-grid,
+  .stat-grid,
+  .action-grid {
+    display: grid;
+    align-items: start;
+  }
+
+  .tile-grid > *,
+  .stat-grid > *,
+  .action-grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tile-grid {
+    gap: clamp(0.75rem, 1.4vw, 1.25rem);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+  }
+
+  .stat-grid {
+    container-type: inline-size;
+    container-name: stats;
+    justify-content: start;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), min(100%, 18rem)));
+  }
+
+  .action-grid {
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12.5rem), 1fr));
   }
 
   .dark-surface {
@@ -134,8 +191,9 @@
   }
 
   .portal-nav-link {
-    @apply inline-flex min-h-10 items-center whitespace-nowrap px-3 py-2 text-eagles-ink/75 hover:bg-eagles-mist hover:text-eagles-pine;
+    @apply inline-flex min-h-11 min-w-0 items-center px-3 py-2 text-eagles-ink/75 hover:bg-eagles-mist hover:text-eagles-pine;
     border-radius: 8px;
+    overflow-wrap: anywhere;
   }
 
   .portal-nav-link[aria-current="page"] {
@@ -152,6 +210,13 @@
 
   .focus-ring {
     @apply outline-none;
+  }
+}
+
+@container stats (max-width: 40rem) {
+  .stat-grid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    max-width: none;
   }
 }
 

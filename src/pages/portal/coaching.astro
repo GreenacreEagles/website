@@ -35,18 +35,18 @@ const bodyText = (resource: any) => (typeof resource.body?.text === "string" ? r
 
 <PortalLayout title="Coaching Resources" section="Football" session={session}>
   <div class="grid gap-5">
-    <form class="surface grid gap-3 p-4 lg:grid-cols-[1fr_220px_220px_auto]" method="get">
-      <label><span class="label">Search</span><input class="field" name="q" value={query} placeholder="Pressing, rondo, U12, warm-up" /></label>
+    <form class="surface filter-bar p-4" method="get">
+      <label><span class="label">Search</span><input class="field" name="q" value={query} placeholder="Warm-up, U12, passing" /></label>
       <label><span class="label">Type</span><select class="field" name="type"><option value="">All types</option>{resourceTypes.map((item) => <option value={item} selected={typeFilter === item}>{statusLabel(item)}</option>)}</select></label>
       <label><span class="label">Age group</span><select class="field" name="age"><option value="">All ages</option>{ageGroups.map((item) => <option value={item} selected={ageFilter === item}>{item}</option>)}</select></label>
       <div class="flex items-end"><button class="w-full bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Filter</button></div>
     </form>
 
-    <section class="grid gap-4 md:grid-cols-2">
-    {resourceList.length === 0 && <EmptyState title="No coaching resources found" text="Session plans, drills and team resources will appear here for approved coaches and football staff." />}
+    <section class="tile-grid">
+    {resourceList.length === 0 && <div class="col-span-full"><EmptyState title="No coaching resources found" text="Session plans and drills will show here." /></div>}
     {resourceList.map((resource) => (
       <a
-        class="surface group block p-5 transition hover:-translate-y-0.5 hover:border-eagles-green focus:outline-none focus-visible:ring-4 focus-visible:ring-eagles-green/30"
+        class="surface group block p-5 hover:border-eagles-green focus:outline-none focus-visible:ring-4 focus-visible:ring-eagles-green/30"
         href={`/portal/coaching/${encodeURIComponent(resource.slug ?? resource.id)}/`}
         aria-label={`View ${resource.title}`}
       >

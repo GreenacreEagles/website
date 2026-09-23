@@ -13,6 +13,10 @@ export const POST:APIRoute=async context=>{
  if(!parsed.success)return context.redirect(redirectWithMessage(back,"error","Check the ticket quantity."));
  const limit=await consumeRateLimit({supabase:session.supabase,limitClass:"checkout",key:rateLimitKey([session.user.id,clientIp(context.request)])});
  if(!limit.allowed)return context.redirect(rateLimitRedirect(back,limit));
+ if(isManualPaymentMode(context)){
+  const {data:ticketType}=await (session.supabase as any).from("club_event_ticket_types").select("price_cents").eq("id",parsed.data.ticket_type_id).maybeSingle();
+  if((ticketType?.price_cents??1)>0)return context.redirect(redirectWithMessage(back,"error","Paid tickets cannot be reserved online yet. Only free tickets can be claimed from the website."));
+ }
  // Always resolve via the payments helper; club policy defaults to manual (pay at the club) and never calls an external gateway here.
  const provider=getPaymentProvider(context);
  const {data,error}=await (session.supabase as any).rpc("create_event_ticket_order",{ticket_type:parsed.data.ticket_type_id,ticket_quantity:parsed.data.quantity,request_key:`event:${session.user.id}:${crypto.randomUUID()}`,payment_provider:provider}).single();

@@ -31,7 +31,7 @@ const meta = [team.seasonName, team.division || team.competition].filter(Boolean
   <section class="section-pad bg-white">
     <div class="section-shell">
       <h2 class="font-display text-4xl font-black uppercase leading-none">Players</h2>
-      {team.players.length ? <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{team.players.map((player) =>
+      {team.players.length ? <div class="tile-grid mt-8">{team.players.map((player) =>
         <article class="surface overflow-hidden"><PersonAvatar src={player.photoUrl} alt={player.photoUrl ? `${player.displayName}, ${team.name} player` : `Default player avatar for ${player.displayName}`} />
           <div class="p-4"><h3 class="text-lg font-black">{player.displayName}</h3>{player.squadNumber !== null && <p class="mt-1 text-sm text-eagles-ink/65">Squad number {player.squadNumber}</p>}</div></article>)}</div> :
         <div class="mt-8"><EmptyState title="Squad details coming soon" text="This team’s public squad has not been added yet." /></div>}
@@ -40,7 +40,7 @@ const meta = [team.seasonName, team.division || team.competition].filter(Boolean
   <section class="section-pad bg-eagles-mist">
     <div class="section-shell">
       <h2 class="font-display text-4xl font-black uppercase leading-none">Coaching staff</h2>
-      {team.staff.length ? <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{team.staff.map((person) =>
+      {team.staff.length ? <div class="tile-grid mt-8">{team.staff.map((person) =>
         <article class="surface overflow-hidden"><PersonAvatar src={person.photoUrl} alt={person.photoUrl ? `${person.displayName}, ${person.roleLabel}` : `Default staff avatar for ${person.displayName}`} />
           <div class="p-4"><h3 class="text-lg font-black">{person.displayName}</h3><p class="mt-1 text-sm text-eagles-ink/65">{person.roleLabel}</p></div></article>)}</div> :
         <div class="mt-8"><EmptyState title="Staff details coming soon" text="Public coaching staff details have not been added for this team." /></div>}

@@ -30,7 +30,7 @@ try {
       {profiles.length === 0 ? (
         <p class="surface mt-8 p-6 text-base">Greenacre Eagles social links are being updated. Please check back soon.</p>
       ) : (
-        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="tile-grid mt-8">
           {profiles.map((profile) => (
             <article class="surface p-4 sm:p-5">
               <p class="eyebrow">{platformName(profile.platform)}</p>
@@ -50,7 +50,7 @@ try {
       {posts.length === 0 ? (
         <p class="surface mt-8 p-6 text-base">Follow our social pages for the latest Greenacre Eagles updates.</p>
       ) : (
-        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="tile-grid mt-8">
           {posts.map((post) => (
             <article class="surface overflow-hidden">
               {post.imageUrl ? <img src={post.imageUrl} alt={post.imageAltText ?? ""} class="aspect-[16/10] w-full object-cover" loading="lazy" /> : <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green text-center panel-title text-white" aria-hidden="true">{platformName(post.platform)}</div>}

@@ -23,11 +23,8 @@ test("admin write routes require an authenticated session (requireUser or requir
 
 const guardedPortalRoutes = [
   "src/pages/api/portal/wallet-top-up.ts",
-  "src/pages/api/portal/child-account.ts",
   "src/pages/api/portal/team-post.ts",
   "src/pages/api/portal/team-post-reaction.ts",
-  "src/pages/api/portal/family-invite.ts",
-  "src/pages/api/portal/family-invitation-accept.ts",
   "src/pages/api/portal/wwcc-submission.ts"
 ];
 
@@ -38,11 +35,11 @@ test("portal write routes require an authenticated member session", () => {
   }
 });
 
-test("child account creation rejects child accounts and only proceeds for delegated family managers", () => {
-  const source = read("src/pages/api/portal/child-account.ts");
-  assert.match(source, /!session \|\| session\.isChildAccount/);
-  assert.match(source, /can_manage/);
-  assert.match(source, /You cannot manage this family group\./);
+test("player administration no longer creates family groups or child logins", () => {
+  const source = read("src/pages/api/admin/family-player-action.ts");
+  assert.doesNotMatch(source, /from\("families"\)/);
+  assert.doesNotMatch(source, /from\("family_members"\)/);
+  assert.match(source, /from\("player_records"\)/);
 });
 
 test("WWCC document downloads are permission-checked, private, audited and never publicly cached", () => {

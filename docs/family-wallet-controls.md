@@ -1,51 +1,7 @@
-# Family And Wallet Controls
+# Tickets, vouchers and wallets
 
-## Family Administration
+Family groups, guardian invites, child logins and in-portal voucher assignment are no longer part of the member experience.
 
-Authorised administrators manage family foundations from `/admin/players/`:
+Members keep tickets and canteen vouchers on their own account. From Wallet they can send a valid ticket or voucher through the phone share sheet, a text message, or WhatsApp. The message includes the code. Anyone who has the message can use it, and it can only be redeemed once.
 
-- create family groups,
-- link guardians, carers, children, players and dependants,
-- set primary guardian, management and spending flags,
-- set optional spending limits,
-- create player records,
-- link player records to teams.
-
-Family links are not self-service. Users can invite another guardian only from an existing family where they already have `can_manage`, `can_spend` or primary guardian status. The invitee must accept from an account matching the invited email.
-
-## Portal Family Area
-
-`/portal/family/` shows:
-
-- the signed-in user's family links,
-- linked family members,
-- child and family vouchers,
-- family wallet balances where RLS permits,
-- pending invitations,
-- guardian invite form where authorised,
-- voucher assignment form for linked children,
-- player records for the signed-in user.
-
-## Voucher Assignment
-
-Guardians assign eligible vouchers through `public.assign_voucher_to_family_member()`, which delegates protected writes to `app_private.assign_voucher_to_family_member()`.
-
-The function verifies:
-
-- authenticated caller,
-- voucher exists and is active,
-- voucher has remaining value,
-- voucher has not been partially redeemed,
-- target child is active in the caller's family,
-- caller is an active parent, guardian or carer with management/spending rights or primary guardian status,
-- caller owns the voucher, the voucher is already family-scoped, or caller has voucher management permission.
-
-Assignments update `voucher_issuances`, insert `family_voucher_assignments`, notify the child account and write an audit log.
-
-## Canteen Beneficiaries
-
-The canteen order flow supports purchasing for `Me` or a linked child. The server validates non-self beneficiaries against active family relationships before writing `recipient_id` on the order.
-
-## Current Limits
-
-The wallet operations phase adds member wallet creation, manual top-up requests, treasurer settlement, payment-provider webhook settlement, controlled wallet adjustments and ledger reversal. Remaining gaps are live processor credential configuration, child spending controls at checkout, family relationship removal safeguards and full R2-backed attachment workflows.
+Player records and team links stay in administration. Wallets remain individual member accounts.

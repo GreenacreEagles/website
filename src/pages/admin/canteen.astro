@@ -144,7 +144,7 @@ const fulfilmentLabel=(value:string)=>({accepted:"New",preparing:"Preparing",rea
 
     <AdminSegmentedTabs current={section} items={[{value:"orders",label:"Orders",href:"/admin/canteen/?section=orders"},{value:"products",label:"Products",href:"/admin/canteen/?section=products"}]} label="Canteen sections" />
 
-    <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Canteen summary">
+    <section class="stat-grid" aria-label="Canteen summary">
       {[
         ["Active orders", (orders ?? []).length],
         ["Active vouchers", voucherCount ?? 0],
@@ -178,7 +178,7 @@ const fulfilmentLabel=(value:string)=>({accepted:"New",preparing:"Preparing",rea
 
     {section === "products" && (<section class="surface p-5 md:p-7">
       <h2 class="panel-title">Products</h2><form class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5" method="get"><input type="hidden" name="section" value="products"/><label class="sm:col-span-2"><span class="label">Search products</span><input class="field" type="search" name="q" value={productQ} placeholder="Name, category or description"/></label><label><span class="label">Category</span><select class="field" name="category"><option value="">All</option>{(categories??[]).map((category:any)=><option value={category.id} selected={categoryFilter===category.id}>{category.name}</option>)}</select></label><label><span class="label">Status</span><select class="field" name="active"><option value="">All</option><option value="active" selected={activeFilter==="active"}>Active</option><option value="inactive" selected={activeFilter==="inactive"}>Inactive</option></select></label><label><span class="label">Availability</span><select class="field" name="availability"><option value="">All</option><option value="available" selected={availabilityFilter==="available"}>Available</option><option value="sold_out" selected={availabilityFilter==="sold_out"}>Sold out</option></select></label><label><span class="label">Voucher</span><select class="field" name="voucher"><option value="">All</option><option value="eligible" selected={voucherFilter==="eligible"}>Voucher eligible</option><option value="standard" selected={voucherFilter==="standard"}>Standard</option></select></label><button class="focus-ring min-h-11 self-end rounded-lg bg-eagles-green px-4 py-3 text-sm font-black text-white">Filter</button></form>
-      <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div class="tile-grid mt-5">
         {filteredProducts.map((product: any) => (
           <article class="border border-eagles-line p-4" style="border-radius:8px">
             <div class="flex items-start justify-between gap-3"><div><p class="font-black">{product.name}</p><p class="text-sm text-eagles-ink/65">{product.canteen_categories?.name ?? "Uncategorised"} · {formatMoney(product.price_cents)}</p></div><StatusBadge label={product.is_sold_out ? "Sold out" : product.is_active ? "Active" : "Inactive"} tone={product.is_sold_out ? "red" : product.is_active ? "green" : "ink"} /></div>

@@ -9,7 +9,7 @@ The admin portal is separate from the member portal under `/admin/`. Members onl
 - `/admin/users/[id]/`: user profile, role history, role assignment and revocation.
 - `/admin/roles/`: role and permission catalogue.
 - `/admin/teams/`: seasons, competitions, teams, staff assignments, squad visibility, training scheduling and match report review.
-- `/admin/players/`: players and family administration foundation.
+- `/admin/players/`: player records and team links.
 - `/admin/volunteers/`: volunteer opportunities, shifts and assignments.
 - `/admin/canteen/`: catalogue, vouchers and order operations.
 - `/admin/merchandise/`: merchandise catalogue and orders.

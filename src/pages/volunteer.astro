@@ -7,21 +7,20 @@ import SectionHeading from "@components/SectionHeading.astro";
 export const prerender = true;
 ---
 
-<BaseLayout title="Volunteer roles" description="Information for club-assigned Greenacre Eagles FC volunteers.">
+<BaseLayout title="Volunteering" description="How to volunteer with Greenacre Eagles FC and add a Working With Children Check.">
   <section class="section-pad bg-white">
     <div class="section-shell grid min-w-0 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)] lg:items-start">
       <div class="min-w-0">
-        <SectionHeading eyebrow="Volunteer roles" title="Club-assigned volunteer access" intro="Volunteer roles are assigned directly by authorised club administrators. The club is not accepting role requests or expressions of interest through this website." />
+        <SectionHeading eyebrow="Volunteering" title="Help the Eagles on match day" intro="Parents and supporters keep training and match days running. Talk to the club if you would like to help." />
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/login/?returnTo=%2Fportal%2Froles%2F%23wwcc">Sign in to My Roles</ButtonLink>
+          <ButtonLink href="/login/?returnTo=%2Fportal%2Froles%2F%23wwcc">Add your Working With Children Check</ButtonLink>
           <ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink>
         </div>
       </div>
       <article class="surface min-w-0 p-5 md:p-7">
         <Icon name="shield" class="h-9 w-9 text-eagles-green" />
         <h2 class="mt-4 break-words panel-title">Working With Children Check</h2>
-        <p class="mt-4 text-base leading-7 text-eagles-ink/70">If the club has assigned you the Volunteer role, sign in and open <strong>My Roles</strong> to submit your WWCC details and private supporting document.</p>
-        <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your role remains pending until an authorised administrator approves the check.</p>
+        <p class="mt-4 text-base leading-7 text-eagles-ink/70">If you volunteer with children, sign in and add your NSW Working With Children Check. The club confirms it before you start.</p>
       </article>
     </div>
   </section>

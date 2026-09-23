@@ -23,13 +23,7 @@ const requestKey = crypto.randomUUID();
   <div class="grid gap-6">
     <PortalFeedback error={error ?? cart.error} />
 
-    <header class="surface p-4 sm:p-5 md:p-6">
-      <p class="eyebrow">Final review</p>
-      <h1 class="mt-2 page-title">Checkout</h1>
-      <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Review your order, then place it for collection and payment at the club.</p>
-    </header>
-
-    <form id="checkout-form" class="grid gap-6 xl:grid-cols-[1fr_380px]" method="post" action="/api/portal/merchandise-checkout">
+    <form id="checkout-form" class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]" method="post" action="/api/portal/merchandise-checkout">
       <input type="hidden" name="request_key" value={requestKey} />
       <input type="hidden" name="payment_method" value="pay_at_club" />
 
@@ -84,7 +78,7 @@ const requestKey = crypto.randomUUID();
           <div class="flex justify-between gap-4"><dt>Payment</dt><dd class="font-bold">Pay at the club</dd></div>
           <div class="flex justify-between gap-4 border-t border-eagles-line pt-3 text-lg"><dt class="font-black">Total</dt><dd class="font-black">{formatMoney(totals.totalCents)}</dd></div>
         </dl>
-        <p class="mt-4 text-sm leading-6 text-eagles-ink/65">Stock, availability and prices will be checked securely when you place the order.</p>
+        <p class="mt-4 text-sm leading-6 text-eagles-ink/65">Pay when you collect your order from the club.</p>
         <button id="place-order-button" class="mt-5 w-full min-h-12 bg-eagles-green px-5 py-3 font-black text-white enabled:hover:bg-eagles-ink disabled:cursor-wait disabled:bg-eagles-ink/50" style="border-radius:8px" type="submit" disabled={!totals.canCheckout}>
           {totals.canCheckout ? "Place order" : "Cart needs attention"}
         </button>

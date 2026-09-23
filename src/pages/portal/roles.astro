@@ -53,15 +53,15 @@ const error = Astro.url.searchParams.get("error");
 const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "rejected" || workflowStage === "expired" ? "red" : "amber";
 ---
 
-<PortalLayout title="My roles" section="Access" session={session}>
+<PortalLayout title="My roles" section="My roles" session={session}>
   <div class="grid min-w-0 gap-6">
     <AdminFeedback success={success} error={error} />
 
     <section class="surface min-w-0 p-4 sm:p-5 md:p-6">
-      <h2 class="break-words panel-title">Global club roles</h2>
-      <p class="mt-3 max-w-3xl text-base leading-7 text-eagles-ink/70">Club administrators assign privileged roles. Eligible adults may request only the Volunteer role below.</p>
+      <h2 class="break-words panel-title">Club roles</h2>
+      <p class="mt-3 max-w-3xl text-base leading-7 text-eagles-ink/70">The club sets these roles. Adults can ask to volunteer below.</p>
       <div class="mt-6 grid min-w-0 gap-4">
-        {(assignments ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">No global club roles are assigned.</p>}
+        {(assignments ?? []).length === 0 && <p class="text-sm text-eagles-ink/70">You have no extra club roles.</p>}
         {(assignments ?? []).map((assignment) => {
           const [defaultLabel, defaultTone] = assignmentState(assignment);
           const isVolunteer = assignment.roles?.key === "volunteer";
@@ -84,7 +84,7 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
       <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
           <h2 class="break-words panel-title">Volunteer WWCC</h2>
-          <p class="mt-3 max-w-3xl text-sm leading-6 text-eagles-ink/70">Volunteers working with children may require a current NSW Working With Children Check. Approval is based on an authorised club reviewer verifying your details in the Office of the Children’s Guardian employer system; an upload is optional supporting information only.</p>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-eagles-ink/70">Volunteers working with children need a current NSW Working With Children Check. The club confirms it with the Office of the Children’s Guardian.</p>
         </div>
         <StatusBadge label={workflowLabel} tone={badgeTone} />
       </div>
@@ -98,10 +98,10 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
       )}
 
       {workflowStage === "adult_confirmation_required" && (
-        <p class="mt-4 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Adult confirmation is required before you can provide WWCC details. Your existing request has been preserved.</p>
+        <p class="mt-4 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Confirm you are 18 or older before adding your Working With Children Check.</p>
       )}
       {workflowStage === "wwcc_details_required" && (
-        <p class="mt-4 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Next action: Provide WWCC details below. Your volunteer role remains pending until an authorised reviewer verifies your submission.</p>
+        <p class="mt-4 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Add your Working With Children Check below. The club will confirm it before your volunteer role is active.</p>
       )}
 
       {latestSubmission && (
@@ -109,12 +109,12 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
           <div><dt class="font-black">WWCC number</dt><dd class="break-all">{latestSubmission.wwcc_number}</dd></div>
           <div><dt class="font-black">Expiry date</dt><dd>{formatDate(latestSubmission.expiry_date)}</dd></div>
           <div><dt class="font-black">Submitted</dt><dd>{formatDateTime(latestSubmission.submitted_at)}</dd></div>
-          <div><dt class="font-black">Document</dt><dd><a class="font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${latestSubmission.id}`}>Private download</a></dd></div>
+          <div><dt class="font-black">Document</dt><dd><a class="font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${latestSubmission.id}`}>Download</a></dd></div>
           {latestSubmission.review_reason && <div class="sm:col-span-2 lg:col-span-4"><dt class="font-black">Review note</dt><dd class="mt-1 leading-6">{latestSubmission.review_reason}</dd></div>}
         </dl>
       )}
 
-      {workflowStage === "pending_review" && <p class="mt-5 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">Your submission is waiting for an authorised club reviewer. You will be notified when a decision is recorded.</p>}
+      {workflowStage === "pending_review" && <p class="mt-5 border border-amber-300 bg-amber-50 p-4 text-sm font-bold text-amber-950" style="border-radius:8px">The club is checking your Working With Children Check. We will let you know when it is done.</p>}
 
       {canSubmit && (
         <form class="mt-6 grid min-w-0 gap-4 border-t border-eagles-line pt-6" method="post" action="/api/portal/wwcc-submission" enctype="multipart/form-data">
@@ -128,9 +128,9 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
             <label><span class="label">Clearance type</span><select class="field" name="clearance_type" required><option value="volunteer">Volunteer</option><option value="paid_worker">Paid worker</option></select></label>
           </div>
           <label><span class="label">Expiry date</span><input class="field" type="date" name="expiry_date" min={new Date().toISOString().slice(0, 10)} value={latestSubmission?.expiry_date ?? ""} required /></label>
-          <FileUploadField name="document" label="Optional supporting file or screenshot (not authoritative proof)" configured={media.privateMediaConfigured} maxSizeMb={15} />
-          <label><span class="label">Notes for the reviewer (optional)</span><textarea class="field min-h-24" name="notes" maxlength="1000"></textarea></label>
-          <button class="focus-ring inline-flex min-h-11 w-full items-center justify-center bg-eagles-pine px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink sm:w-fit" type="submit" style="border-radius:8px">Submit WWCC for review</button>
+          <FileUploadField name="document" label="Optional supporting file" configured={media.privateMediaConfigured} maxSizeMb={15} />
+          <label><span class="label">Notes (optional)</span><textarea class="field min-h-24" name="notes" maxlength="1000"></textarea></label>
+          <button class="focus-ring inline-flex min-h-11 w-full items-center justify-center bg-eagles-pine px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink sm:w-fit" type="submit" style="border-radius:8px">Submit Working With Children Check</button>
         </form>
       )}
 
@@ -138,7 +138,7 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
         <details class="mt-6 border-t border-eagles-line pt-5">
           <summary class="focus-ring min-h-11 cursor-pointer py-3 font-black text-eagles-pine">View submission history</summary>
           <div class="mt-3 grid gap-3">
-            {(submissions ?? []).map((item: any) => <article class="min-w-0 border border-eagles-line p-4 text-sm" style="border-radius:8px"><div class="flex flex-wrap justify-between gap-2"><strong>{formatDateTime(item.submitted_at)}</strong><StatusBadge label={statusLabel(item.status)} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"} /></div><p class="mt-2">Expiry: {formatDate(item.expiry_date)}</p><a class="mt-2 inline-flex min-h-11 items-center font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${item.id}`}>Private document</a></article>)}
+            {(submissions ?? []).map((item: any) => <article class="min-w-0 border border-eagles-line p-4 text-sm" style="border-radius:8px"><div class="flex flex-wrap justify-between gap-2"><strong>{formatDateTime(item.submitted_at)}</strong><StatusBadge label={statusLabel(item.status)} tone={item.status === "approved" ? "green" : item.status === "rejected" ? "red" : "amber"} /></div><p class="mt-2">Expiry: {formatDate(item.expiry_date)}</p><a class="mt-2 inline-flex min-h-11 items-center font-black text-eagles-pine underline" href={`/api/wwcc-document?id=${item.id}`}>Download</a></article>)}
           </div>
         </details>
       )}
@@ -146,9 +146,9 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
 
     <section class="surface min-w-0 p-4 sm:p-5 md:p-6">
       <h2 class="break-words panel-title">Team positions</h2>
-      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Player, Coach and Team Manager positions are scoped to a team and season.</p>
+      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Player, Coach and Team Manager are set for a team and season.</p>
       <div class="mt-5 grid min-w-0 gap-3 md:grid-cols-2">
-        {teamAssignments.length === 0 && <p class="text-sm text-eagles-ink/70">No team positions are assigned.</p>}
+        {teamAssignments.length === 0 && <p class="text-sm text-eagles-ink/70">You have no team positions yet.</p>}
         {teamAssignments.map((item) => <article class="min-w-0 border border-eagles-line p-4" style="border-radius:8px"><div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:justify-between"><h3 class="break-words font-black">{item.position}</h3><StatusBadge label={statusLabel(item.status)} tone={item.status === "active" ? "green" : "ink"} /></div><p class="mt-2 break-words text-sm">{item.team ?? "Team"} · {item.season ?? "Season"}</p></article>)}
       </div>
     </section>
@@ -157,7 +157,7 @@ const badgeTone = workflowStage === "approved" ? "green" : workflowStage === "re
   <dialog id="volunteer-confirmation-dialog" class="m-auto w-[calc(100%-2rem)] max-w-xl border-0 bg-transparent p-0 backdrop:bg-eagles-ink/60">
     <div class="surface p-5 sm:p-6">
       <h2 class="panel-title">Confirm volunteer eligibility</h2>
-      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your volunteer role will remain pending until your Working With Children Check details are reviewed and verified by an authorised club reviewer.</p>
+      <p class="mt-3 text-sm leading-6 text-eagles-ink/70">The club confirms your Working With Children Check before your volunteer role is active.</p>
       <form class="mt-5 grid gap-5" method="post" action="/api/portal/volunteer-request">
         <label class="flex min-w-0 items-start gap-3 rounded-lg border border-eagles-line bg-eagles-mist p-4">
           <input class="focus-ring mt-1 size-5 shrink-0 accent-eagles-green" type="checkbox" name="adult_confirmation" value="true" required />

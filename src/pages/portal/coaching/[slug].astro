@@ -50,9 +50,7 @@ const bodyText = typeof resource.body?.text === "string"
 
     <article class="surface p-4 sm:p-5 md:p-6">
       <p class="eyebrow">{statusLabel(resource.resource_type)}</p>
-      <h1 class="mt-3 max-w-4xl page-title">{resource.title}</h1>
-
-      <div class="mt-5 flex flex-wrap gap-2">
+      <div class="mt-4 flex flex-wrap gap-2">
         <StatusBadge label={statusLabel(resource.visibility)} tone="ink" />
         {resource.duration_minutes !== null && <StatusBadge label={`${resource.duration_minutes} min`} tone="green" />}
         <StatusBadge label={formatDate(resource.published_at ?? resource.updated_at)} tone="ink" />

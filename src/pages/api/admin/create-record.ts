@@ -92,7 +92,6 @@ const schemas = {
   }),
   voucher: z.object({
     beneficiary_id: optionalUuidSchema,
-    family_id: optionalUuidSchema,
     team_id: optionalUuidSchema,
     issue_reason: nullableText(300),
     voucher_type: z.enum(["fixed_amount", "specific_product", "category", "meal_deal", "declining_balance"]),
@@ -268,7 +267,7 @@ export const POST: APIRoute = async (context) => {
       redemption_code: rawToken,
       token_hash: await hashToken(rawToken),
       beneficiary_id: data.beneficiary_id ?? null,
-      family_id: data.family_id ?? null,
+      family_id: null,
       team_id: data.team_id ?? null,
       issued_by: session.user.id,
       issue_reason: data.issue_reason ?? null,

@@ -13,11 +13,11 @@ export const prerender = true;
   <section class="section-pad bg-white">
     <div class="section-shell">
       <SectionHeading eyebrow="Gallery" title="Club photos and moments" intro="Scenes from training, match day, presentation nights, and the people who make Greenacre Eagles feel like home." />
-      <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="tile-grid mt-10">
         {
           gallery.map((item) => (
             <article class="surface overflow-hidden">
-              <img src={item.data.image} alt="" class="h-64 w-full object-cover" loading="lazy" />
+              <img src={item.data.image} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
               <div class="p-5">
                 <p class="text-sm font-black uppercase text-eagles-green">{item.data.category} / {formatDate(item.data.date)}</p>
                 <h2 class="mt-3 card-title">{item.data.title}</h2>

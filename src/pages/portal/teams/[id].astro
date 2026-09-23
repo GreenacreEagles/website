@@ -63,7 +63,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
 ---
 
 <PortalLayout title={team.name} section="Team board" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
     <section class="grid gap-5">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
@@ -72,16 +72,16 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
         <p class="eyebrow">{team.seasons?.name ?? "Season"}</p>
         <h2 class="mt-2 panel-title">{team.name}</h2>
         <p class="mt-3 text-sm leading-6 text-eagles-ink/70">
-          {team.division ?? "Club football"} {team.competitions?.name ? `in ${team.competitions.name}` : ""}. Team posts and polls are private to authorised team members, family and staff.
+          {team.division ?? "Club football"}{team.competitions?.name ? ` in ${team.competitions.name}` : ""}.
         </p>
         {teamRoles.length > 0 && <div class="mt-3 flex flex-wrap gap-2">{teamRoles.map((role) => <StatusBadge label={role} tone="ink" />)}</div>}
       </article>
 
-      <nav class="surface grid grid-cols-3 gap-1 p-1" aria-label="Team board sections">
-        {[['posts','Team Posts'],['reports','Match Reports'],['squad','Squad List']].map(([key,label]) => <a class:list={["focus-ring flex min-h-11 items-center justify-center px-2 py-2 text-center text-sm font-black", selectedTab === key ? "bg-eagles-green text-white" : "text-eagles-ink hover:bg-eagles-mist"]} style="border-radius:8px" aria-current={selectedTab === key ? "page" : undefined} href={`?tab=${key}`}>{label}</a>)}
+      <nav class="surface grid grid-cols-3 gap-1 p-1 text-xs sm:text-sm" aria-label="Team board sections">
+        {[['posts','Posts'],['reports','Reports'],['squad','Squad']].map(([key,label]) => <a class:list={["focus-ring flex min-h-11 items-center justify-center px-1 py-2 text-center text-xs font-black leading-tight sm:px-2 sm:text-sm", selectedTab === key ? "bg-eagles-green text-white" : "text-eagles-ink hover:bg-eagles-mist"]} style="border-radius:8px" aria-current={selectedTab === key ? "page" : undefined} href={`?tab=${key}`}>{label}</a>)}
       </nav>
 
-      {selectedTab === "posts" && (posts ?? []).length === 0 && <EmptyState title="No team posts yet" text="Pinned announcements and yes/no polls will appear here when team staff publish them." />}
+      {selectedTab === "posts" && (posts ?? []).length === 0 && <EmptyState title="No team posts yet" text="Posts and polls from the team will show here." />}
 
       {selectedTab === "posts" && (posts ?? []).map((post: any) => {
         const userReaction = (post.team_post_reactions ?? []).find((reaction: any) => reaction.user_id === session.user.id);
@@ -159,7 +159,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
       <article class="surface p-5">
         <h2 class="card-title">Team staff</h2>
         <div class="mt-4 grid gap-3">
-          {(staff ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Assigned coaches and managers will appear here.</p>}
+          {(staff ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Coaches and managers will show here.</p>}
           {(staff ?? []).map((item: any) => (
             <p class="border-t border-eagles-line pt-3 text-sm">
               <strong>{item.profiles?.preferred_name || item.profiles?.full_name || item.profiles?.email}</strong><br />
@@ -171,7 +171,7 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
       {selectedTab === "squad" && <article class="surface p-5">
         <h2 class="card-title">Squad list</h2>
         <div class="mt-4 grid gap-2">
-          {(squad ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">The active squad will appear here once assigned.</p>}
+          {(squad ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">The squad will show here.</p>}
           {(squad ?? []).map((item: any) => (
             <p class="flex items-center justify-between border-t border-eagles-line pt-2 text-sm">
               <span>{item.player_records?.profiles?.preferred_name || item.player_records?.profiles?.full_name || "Player"}</span>
@@ -183,11 +183,11 @@ const teamRoles = [...new Set((staff ?? []).filter((item: any) => item.user_id =
     </aside>
   </div>
 
-  {selectedTab === "reports" && <section id="match-reports" class="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+  {selectedTab === "reports" && <section id="match-reports" class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
     <article class="surface p-4 sm:p-5 md:p-6">
       <h2 class="panel-title">Match reports</h2>
       <div class="mt-5 grid gap-3">
-        {(reports ?? []).length === 0 && <EmptyState title="No match reports yet" text="Coach and manager reports will appear here after they are submitted." />}
+        {(reports ?? []).length === 0 && <EmptyState title="No match reports yet" text="Match reports will show here." />}
         {(reports ?? []).map((report: any) => (
           <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

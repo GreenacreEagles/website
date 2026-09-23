@@ -22,7 +22,7 @@
     "test:wwcc": "node --experimental-strip-types --test tests/wwcc-status.test.mjs",
     "test:portal": "node --test tests/member-portal-contract.test.mjs",
     "test:admin": "node --test tests/admin-operations-contract.test.mjs",
-    "test:hardening": "node --experimental-strip-types --test tests/production-hardening.test.mjs tests/cache-headers.test.mjs tests/role-matrix-contract.test.mjs",
+    "test:hardening": "node --experimental-strip-types --test tests/production-hardening.test.mjs tests/cache-headers.test.mjs tests/role-matrix-contract.test.mjs tests/phone-share.test.mjs",
     "test:db": "supabase test db"
   },
   "dependencies": {

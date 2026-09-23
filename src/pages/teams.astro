@@ -29,16 +29,16 @@ const { activeTeamCount, teams } = await getPublicTeams(supabase, Astro);
   <section class="section-pad bg-white">
     <div class="section-shell">
       <div>
-        <SectionHeading eyebrow="Our squads" title="Public teams" intro="Explore the Greenacre Eagles teams currently sharing their squad information with the community." />
+        <SectionHeading eyebrow="Our squads" title="Meet the teams" intro="Junior, youth and senior sides at Greenacre Eagles." />
       </div>
-      {teams.length ? <div class="mt-10 grid gap-5 lg:grid-cols-3">{teams.map((team) => <TeamCard team={team} />)}</div> :
+      {teams.length ? <div class="tile-grid mt-10">{teams.map((team) => <TeamCard team={team} />)}</div> :
         <div class="mt-10"><EmptyState title="Team profiles coming soon" text="Our active teams are being prepared for public display. Contact the club if you would like help finding the right team." /></div>}
 
       <article class="mt-10 grid gap-6 border border-eagles-green bg-eagles-ink p-6 text-white md:grid-cols-[1fr_auto] md:items-center md:p-8" style="border-radius:12px">
         <div class="min-w-0">
-          <p class="eyebrow text-eagles-lime">Club portal</p>
+          <p class="eyebrow text-eagles-lime">Members</p>
           <h2 class="mt-2 panel-title">Looking for your team?</h2>
-          <p class="mt-3 max-w-2xl leading-7 text-white/75">Log in to the Greenacre Eagles portal to view the teams you are connected to, team posts and club updates.</p>
+          <p class="mt-3 max-w-2xl leading-7 text-white/75">Sign in to see your teams, posts and club updates.</p>
         </div>
         <ButtonLink href="/login/?returnTo=%2Fportal%2Fteams%2F" variant="light">View my teams</ButtonLink>
       </article>

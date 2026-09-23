@@ -1,8 +1,10 @@
 ---
+import PhoneShare from "@components/PhoneShare.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requireUser } from "@lib/auth/guards";
 import { formatDate, formatDateTime, formatMoney, statusLabel } from "@lib/format";
+import { ticketShareMessage, voucherShareMessage } from "@lib/phone-share";
 import QRCode from "qrcode";
 
 export const prerender = false;
@@ -72,7 +74,7 @@ const walletCards = await Promise.all(
 ---
 
 <PortalLayout title="Wallet and vouchers" section="Payments" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[360px_1fr]">
+  <div class="grid gap-6 xl:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
     <aside class="grid gap-5 content-start">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
@@ -86,20 +88,21 @@ const walletCards = await Promise.all(
               <summary class="focus-ring inline-flex min-h-11 cursor-pointer items-center rounded-full bg-eagles-green px-5 py-3 text-sm font-black text-white">Show wallet QR code</summary>
               <div class="mt-4">
                 <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={wallet.qrCode} alt="Wallet QR code" loading="lazy" />
-                <p class="mt-3 text-sm font-bold text-eagles-ink/70">Present this QR code at the club or canteen for an authorised wallet payment.</p>
+                <p class="mt-3 text-sm font-bold text-eagles-ink/70">Show this at the canteen to pay.</p>
               </div>
             </details>
           )}
         </article>
       ))}
-      {(wallets ?? []).length === 0 && <article class="surface p-5"><h2 class="card-title">Wallet unavailable</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Your member wallet is created automatically with your account. Please contact the club if it is not visible here.</p></article>}
+      {(wallets ?? []).length === 0 && <article class="surface p-5"><h2 class="card-title">Wallet unavailable</h2><p class="mt-3 text-sm leading-6 text-eagles-ink/70">Contact the club if your wallet is missing.</p></article>}
       {(wallets ?? []).length > 0 && (
         <form class="surface grid gap-4 p-5" method="post" action="/api/portal/wallet-top-up">
           <input type="hidden" name="return_to" value="/portal/vouchers/" />
           <h2 class="card-title">Top up wallet</h2>
           <label><span class="label">Wallet</span><select class="field" name="wallet_id">{(wallets ?? []).map((wallet: any) => <option value={wallet.id}>{statusLabel(wallet.account_type)} - {formatMoney(wallet.wallet_balances?.[0]?.balance_cents ?? 0)}</option>)}</select></label>
           <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="1" max="1000" step="0.01" placeholder="25.00" required /></label>
-          <label><span class="label">Payment method</span><select class="field" name="provider"><option value="manual">Manual settlement</option></select></label>
+          <input type="hidden" name="provider" value="manual" />
+          <p class="text-sm leading-6 text-eagles-ink/70">Pay the club, then this amount is added to your wallet.</p>
           <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Request top-up</button>
         </form>
       )}
@@ -110,7 +113,7 @@ const walletCards = await Promise.all(
           {(payments ?? []).map((payment: any) => (
             <p class="border-t border-eagles-line pt-3 text-sm">
               <strong>{formatMoney(payment.amount_cents)}</strong> - {statusLabel(payment.status)}<br />
-              {payment.provider} - {formatDateTime(payment.updated_at ?? payment.created_at)}
+              {formatDateTime(payment.updated_at ?? payment.created_at)}
             </p>
           ))}
         </div>
@@ -120,10 +123,10 @@ const walletCards = await Promise.all(
       <article class="surface p-4 sm:p-5 md:p-6">
         <h2 class="panel-title">Event tickets</h2>
         <div class="mt-5 grid gap-4">
-          {eventTicketCards.length===0&&<p class="text-sm leading-6 text-eagles-ink/70">Your event tickets will appear here after a successful claim or purchase.</p>}
+          {eventTicketCards.length===0&&<p class="text-sm leading-6 text-eagles-ink/70">Your tickets will show here.</p>}
           {eventTicketCards.map((ticket:any)=><article class="border border-eagles-line p-4" style="border-radius:8px">
             <div class="flex flex-wrap justify-between gap-3"><div><p class="font-black">{ticket.club_events?.title??"Event ticket"}</p><p class="text-sm text-eagles-ink/70">{ticket.club_event_ticket_types?.name} · {formatDateTime(ticket.club_events?.starts_at)}</p><p class="text-sm">{ticket.club_events?.venue??"Venue TBC"}</p></div><StatusBadge label={statusLabel(ticket.status)} tone={ticket.status==="valid"?"green":"amber"}/></div>
-            {ticket.qrCode&&<div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center"><img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" src={ticket.qrCode} alt={`Entry QR code for ${ticket.club_events?.title??"event ticket"}`}/><div><p class="font-bold">Show this QR code to authorised event staff at entry.</p><p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em]">{ticket.ticket_code}</p></div></div>}
+            {ticket.qrCode&&<div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center"><img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" src={ticket.qrCode} alt={`Entry QR code for ${ticket.club_events?.title??"event ticket"}`}/><div><p class="font-bold">Show this at the gate.</p><p class="mt-3 inline-flex max-w-full break-all bg-eagles-mist px-3 py-2 font-mono text-base font-black sm:text-lg">{ticket.ticket_code}</p><PhoneShare message={ticketShareMessage({ title: ticket.club_events?.title ?? "Event ticket", typeName: ticket.club_event_ticket_types?.name, when: formatDateTime(ticket.club_events?.starts_at), venue: ticket.club_events?.venue, code: ticket.ticket_code })} /></div></div>}
             {ticket.redeemed_at&&<p class="mt-3 text-sm">Redeemed {formatDateTime(ticket.redeemed_at)}</p>}
           </article>)}
         </div>
@@ -131,7 +134,7 @@ const walletCards = await Promise.all(
       <article class="surface p-4 sm:p-5 md:p-6">
         <h2 class="panel-title">Vouchers</h2>
         <div class="mt-5 grid gap-3">
-          {voucherCards.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No active vouchers are linked to your account.</p>}
+          {voucherCards.length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">You have no vouchers yet.</p>}
           {voucherCards.map((voucher: any) => (
             <div class="border border-eagles-line bg-white p-4" style="border-radius:8px">
               <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -150,13 +153,14 @@ const walletCards = await Promise.all(
                 <div class="mt-4 grid gap-4 border-t border-eagles-line pt-4 md:grid-cols-[220px_1fr] md:items-center">
                   <img class="h-[min(220px,70vw)] w-[min(220px,70vw)] max-w-full border border-eagles-line bg-white p-2" style="border-radius:8px" src={voucher.qrCode} alt={`QR code for ${statusLabel(voucher.voucher_type)} voucher`} />
                   <div>
-                    <p class="text-sm font-bold text-eagles-ink/70">Show this QR code at the canteen. Staff scan it or enter the code below to claim the voucher.</p>
-                    <p class="mt-3 inline-flex bg-eagles-mist px-3 py-2 font-mono text-lg font-black tracking-[.16em] text-eagles-ink" style="border-radius:8px">{voucher.redemption_code}</p>
+                    <p class="text-sm font-bold text-eagles-ink/70">Show this at the canteen.</p>
+                    <p class="mt-3 inline-flex max-w-full break-all bg-eagles-mist px-3 py-2 font-mono text-base font-black text-eagles-ink sm:text-lg" style="border-radius:8px">{voucher.redemption_code}</p>
+                    <PhoneShare message={voucherShareMessage({ label: statusLabel(voucher.voucher_type), detail: voucher.issue_reason, value: formatMoney(voucher.remaining_value_cents), validUntil: formatDate(voucher.expires_at), code: voucher.redemption_code })} />
                   </div>
                 </div>
               )}
               {!voucher.qrCode && voucher.status === "active" && (
-                <p class="mt-4 border-t border-eagles-line pt-4 text-sm font-bold text-eagles-ink/70">This voucher was issued before wallet QR codes were enabled. Ask the canteen manager to reissue it if you need a scannable code.</p>
+                <p class="mt-4 border-t border-eagles-line pt-4 text-sm font-bold text-eagles-ink/70">Give this code to the canteen.</p>
               )}
             </div>
           ))}

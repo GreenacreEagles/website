@@ -125,9 +125,9 @@ export const prerender = false;
           </a>
         )}
         <p class="text-sm font-black uppercase leading-snug text-eagles-green sm:text-base">{site.association}</p>
-        <h1 class="mt-4 max-w-full font-display text-[clamp(2.65rem,12.5vw,4.5rem)] font-black uppercase leading-[.88] text-eagles-ink md:text-[clamp(3rem,6vw,4.5rem)] xl:text-[5.25rem] 2xl:text-8xl">
+        <h1 class="mt-4 max-w-full font-display text-[clamp(1.7rem,8.2vw,2.6rem)] font-black uppercase leading-[.95] text-eagles-ink sm:text-[clamp(2.35rem,5.2vw,3.25rem)] md:text-[clamp(3rem,6vw,4.5rem)] xl:text-[5.25rem] 2xl:text-8xl">
           <span class="block">Greenacre</span>
-          <span class="block whitespace-nowrap">Eagles <span class="text-eagles-green">FC</span></span>
+          <span class="block">Eagles <span class="text-eagles-green">FC</span></span>
         </h1>
         <p class="mt-6 max-w-2xl text-lg leading-8 text-eagles-ink/75 md:text-xl">
           Junior and senior football in Greenacre, competing in the Bankstown District Amateur Football Association.
@@ -160,7 +160,7 @@ export const prerender = false;
         <ButtonLink href="/news/" variant="secondary">All news</ButtonLink>
       </div>
       {news.length > 0
-        ? <div class="mt-8 grid gap-5 lg:grid-cols-3">{news.map((article) => <NewsCard article={article} />)}</div>
+        ? <div class="tile-grid mt-8">{news.map((article) => <NewsCard article={article} />)}</div>
         : <p class="surface mt-8 p-5">No club news has been published yet.</p>}
     </div>
   </section>
@@ -172,7 +172,7 @@ export const prerender = false;
           <SectionHeading eyebrow="Social Hub" title="Around the Eagles" />
           <ButtonLink href="/social/" variant="secondary">More posts</ButtonLink>
         </div>
-        <div class="mt-8 grid gap-4 sm:gap-5 lg:grid-cols-3">
+        <div class="tile-grid mt-8">
           {socialPosts.map((post) => <article class="surface overflow-hidden">
             {post.imageUrl
               ? <img src={post.imageUrl} alt={post.imageAltText ?? post.title ?? `Greenacre Eagles ${post.platform} post`} class="aspect-[16/10] w-full object-cover" loading="lazy" />

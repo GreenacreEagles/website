@@ -64,18 +64,13 @@ const productPrice = (product: any) => {
   <div class="grid gap-6 pb-20 md:pb-0">
     <PortalFeedback success={success} error={error ?? productError?.message ?? cart.error} />
 
-    <header class="surface flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
-      <div>
-        <p class="eyebrow">Greenacre Eagles</p>
-        <h1 class="mt-2 page-title">Club Store</h1>
-        <p class="mt-3 max-w-2xl text-base leading-7 text-eagles-ink/70">Shop Greenacre Eagles merchandise and collect your order from the club.</p>
-      </div>
-      <a class="inline-flex min-h-12 items-center justify-center gap-3 bg-eagles-ink px-5 py-3 font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
+    <div class="flex justify-end">
+      <a class="inline-flex min-h-11 w-full items-center justify-center gap-3 bg-eagles-ink px-5 py-3 text-sm font-black text-white hover:bg-eagles-green sm:w-auto" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
         View cart <span class="inline-flex min-w-7 justify-center bg-white px-2 py-1 text-xs text-eagles-ink" style="border-radius:999px">{cartTotals.quantity}</span>
       </a>
-    </header>
+    </div>
 
-    <form class="surface grid gap-4 p-4 lg:grid-cols-[1fr_240px_190px_auto]" method="get" role="search">
+    <form class="surface filter-bar p-4" method="get" role="search">
       <label>
         <span class="label">Search products</span>
         <input class="field" type="search" name="q" value={Astro.url.searchParams.get("q") ?? ""} placeholder="Shirts, hoodies, training gear" />
@@ -101,9 +96,9 @@ const productPrice = (product: any) => {
       </div>
     </form>
 
-    <section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-label="Merchandise products">
+    <section class="tile-grid" aria-label="Merchandise products">
       {filteredProducts.length === 0 && (
-        <div class="sm:col-span-2 xl:col-span-3">
+        <div class="col-span-full">
           <EmptyState title="No products match your search" text="Try another search, category or availability filter." href="/portal/shop/" action="View all products" />
         </div>
       )}
@@ -120,7 +115,7 @@ const productPrice = (product: any) => {
                 <p class="eyebrow">{product.category ?? "Club merchandise"}</p>
                 {soldOut && <StatusBadge label="Sold out" tone="red" />}
               </div>
-              <h2 class="mt-2 panel-title">{product.name}</h2>
+              <h2 class="mt-2 card-title">{product.name}</h2>
               <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{product.description ?? "Greenacre Eagles club merchandise."}</p>
               <p class="mt-4 text-xl font-black text-eagles-green">{productPrice(product) ?? "Unavailable"}</p>
 
@@ -145,7 +140,7 @@ const productPrice = (product: any) => {
                 <button class="min-h-12 bg-eagles-green px-5 py-3 font-black text-white enabled:hover:bg-eagles-ink disabled:cursor-not-allowed disabled:bg-eagles-ink/35" style="border-radius:8px" type="submit" disabled={soldOut}>
                   {soldOut ? "Currently sold out" : "Add to cart"}
                 </button>
-                {soldOut && <p class="text-sm text-eagles-ink/65">This product remains visible but cannot be ordered until stock is available.</p>}
+                {soldOut && <p class="text-sm text-eagles-ink/65">Sold out.</p>}
               </form>
             </div>
           </article>

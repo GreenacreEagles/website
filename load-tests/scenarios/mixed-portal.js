@@ -96,8 +96,8 @@ function canteenCheckout() {
 }
 
 function walletOrFamilyAction() {
-  const res = http.get(`${BASE_URL}/portal/family/`, { tags: { name: "wallet_or_family_action" } });
-  check(res, { "family/wallet page reachable": (r) => r.status === 200 || r.status === 303 });
+  const res = http.get(`${BASE_URL}/portal/vouchers/`, { tags: { name: "wallet_action" } });
+  check(res, { "wallet page reachable": (r) => r.status === 200 || r.status === 303 });
 }
 
 export default function () {

@@ -9,19 +9,6 @@ const boolFromCheckbox = z.preprocess((value) => value === "on" || value === "tr
 const optionalDate = z.preprocess((value) => (value === "" ? null : value), z.string().nullable().optional());
 
 const schemas = {
-  family: z.object({
-    name: z.string().trim().min(2).max(140)
-  }),
-  familyMember: z.object({
-    family_id: uuidSchema,
-    user_id: uuidSchema,
-    relationship: z.enum(["parent", "guardian", "carer", "child", "player", "dependent", "sibling", "adult_player"]),
-    is_primary_guardian: boolFromCheckbox,
-    can_manage: boolFromCheckbox,
-    can_spend: boolFromCheckbox,
-    spending_limit: z.preprocess((value) => (value === "" ? null : Math.round(Number(value || 0) * 100)), z.number().int().min(0).nullable().optional()),
-    status: z.enum(["pending", "active", "revoked"]).default("active")
-  }),
   player: z.object({
     user_id: uuidSchema,
     season_id: uuidSchema,
@@ -42,8 +29,6 @@ const schemas = {
 type Action = keyof typeof schemas;
 
 const actionPermissions: Record<Action, string[]> = {
-  family: ["families.manage"],
-  familyMember: ["families.manage"],
   player: ["players.manage"],
   teamPlayer: ["players.manage"]
 };
@@ -52,7 +37,7 @@ export const POST: APIRoute = async (context) => {
   const form = Object.fromEntries(await context.request.formData());
   const action = form.action as Action;
   const schema = schemas[action];
-  if (!schema) return context.redirect(redirectWithMessage("/admin/players/", "error", "Unknown family action."));
+  if (!schema) return context.redirect(redirectWithMessage("/admin/players/", "error", "Unknown player action."));
 
   const session = await requirePermission(context, actionPermissions[action]);
   if (!session) return context.redirect("/admin/");
@@ -66,24 +51,7 @@ export const POST: APIRoute = async (context) => {
   let error: { message: string } | null = null;
   let success = "Saved.";
 
-  if (action === "family") {
-    ({ error } = await session.supabase.from("families").insert({ name: data.name, created_by: session.user.id }));
-    success = "Family created.";
-  } else if (action === "familyMember") {
-    ({ error } = await session.supabase.from("family_members").insert({
-      family_id: data.family_id,
-      user_id: data.user_id,
-      relationship: data.relationship,
-      is_primary_guardian: data.is_primary_guardian,
-      can_manage: data.can_manage,
-      can_spend: data.can_spend,
-      spending_limit_cents: data.spending_limit,
-      status: data.status,
-      invited_by: session.user.id,
-      accepted_at: data.status === "active" ? new Date().toISOString() : null
-    }));
-    success = "Family member linked.";
-  } else if (action === "player") {
+  if (action === "player") {
     ({ error } = await session.supabase.from("player_records").insert({
       user_id: data.user_id,
       season_id: data.season_id,

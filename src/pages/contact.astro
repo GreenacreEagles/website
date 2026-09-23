@@ -21,10 +21,6 @@ const enquiryType = Astro.url.searchParams.get("type") ?? "";
             <span class="min-w-0"><span class="block text-sm font-black uppercase text-eagles-pine">Email</span><span class="block break-all font-bold sm:break-normal">{site.contactEmail}</span></span>
           </a>
           <div class="surface flex items-center gap-4 p-5">
-            <Icon name="phone" class="h-6 w-6 text-eagles-green" />
-            <span><span class="block text-sm font-black uppercase text-eagles-green">Phone</span><span class="font-bold">{site.phone}</span></span>
-          </div>
-          <div class="surface flex items-center gap-4 p-5">
             <Icon name="mapPin" class="h-6 w-6 text-eagles-green" />
             <span><span class="block text-sm font-black uppercase text-eagles-green">Home</span><span class="font-bold">{site.homeGround}</span></span>
           </div>

@@ -30,7 +30,7 @@ const items = (announcements ?? []).map((item) => ({
 
 <PortalLayout title="Club Notice Board" section="Member portal" session={session}>
   <section class="grid gap-4">
-    {items.length === 0 && <EmptyState title="No active club notices" text="Active club announcements will appear here." />}
+    {items.length === 0 && <EmptyState title="No club notices" text="Club notices will show here." />}
     {items.map((item) => (
       <article class="surface p-4 sm:p-5 md:p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

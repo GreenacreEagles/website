@@ -9,7 +9,6 @@ export const site = {
   registrationUrl: "/join/",
 
   contactEmail: "contact@greenacreeaglesfc.com.au",
-  phone: "Contact by email",
   homeGround: "Allum Park",
   socials: [
     { label: "Instagram", href: "https://www.instagram.com/greenacreeagles", platform: "Instagram" },

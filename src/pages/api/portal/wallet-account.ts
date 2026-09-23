@@ -7,8 +7,6 @@ export const prerender = false;
 
 const schema = z.object({
   owner_id: optionalUuidSchema,
-  family_id: optionalUuidSchema,
-  account_type: z.enum(["user", "family"]).default("user"),
   return_to: z.string().trim().optional()
 });
 
@@ -24,8 +22,8 @@ export const POST: APIRoute = async (context) => {
 
   const { error } = await (session.supabase as any).rpc("ensure_wallet_account", {
     target_owner_id: parsed.data.owner_id ?? null,
-    target_family_id: parsed.data.family_id ?? null,
-    target_account_type: parsed.data.account_type
+    target_family_id: null,
+    target_account_type: "user"
   });
 
   if (error) return context.redirect(redirectWithMessage(redirectTo, "error", error.message));

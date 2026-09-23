@@ -143,12 +143,19 @@ test("payment provider defaults to manual and the webhook route short-circuits a
 
 // --- portal write routes rely on atomic RPCs and rate limiting ---
 
-test("child-account.ts uses the atomic provisioning RPC with compensating auth cleanup on failure", () => {
-  const source = read("src/pages/api/portal/child-account.ts");
-  assert.match(source, /rpc\("complete_child_account_provisioning"/);
-  assert.match(source, /compensateAuthUser/);
-  assert.match(source, /auth\.admin\.deleteUser\(authUserId\)/);
-  assert.match(source, /limitClass: "child_account"/);
+test("family and child-account write routes are removed from the member portal", () => {
+  for (const path of [
+    "src/pages/api/portal/child-account.ts",
+    "src/pages/api/portal/family-invite.ts",
+    "src/pages/api/portal/family-group.ts",
+    "src/pages/api/portal/family-invitation-accept.ts",
+    "src/pages/api/portal/family-voucher-assignment.ts"
+  ]) {
+    assert.throws(() => read(path), { code: "ENOENT" }, `${path} must be removed`);
+  }
+  const familyPage = read("src/pages/portal/family.astro");
+  assert.match(familyPage, /redirect\("\/portal\/vouchers\/"\)/);
+  assert.doesNotMatch(familyPage, /create_family_group|assign_voucher_to_family_member|child-account/);
 });
 
 test("team-post.ts creates posts through the atomic poll RPC and is rate limited", () => {
@@ -171,7 +178,6 @@ test("newly hardened write endpoints consume the correct rate limit class", () =
     ["src/pages/api/admin/redeem-voucher.ts", "vouchers"],
     ["src/pages/api/portal/wwcc-submission.ts", "uploads"],
     ["src/pages/api/wwcc-document.ts", "wwcc_document"],
-    ["src/pages/api/portal/family-invite.ts", "invitations"],
     ["src/pages/api/admin/reorder.ts", "generic"]
   ];
   for (const [path, limitClass] of expectations) {

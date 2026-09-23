@@ -1,0 +1,58 @@
+---
+interface Props {
+  message: string;
+}
+
+const { message } = Astro.props;
+const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
+---
+
+<div class="mt-4 grid gap-3" data-phone-share data-message={message}>
+  <p class="text-sm leading-6 text-eagles-ink/70">Send this from your phone. Anyone with the message can use the code, and it can only be used once.</p>
+  <div class="flex flex-wrap gap-2">
+    <button class="focus-ring inline-flex min-h-11 items-center justify-center bg-eagles-green px-4 py-3 text-sm font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="button" data-share>Share</button>
+    <a class="focus-ring inline-flex min-h-11 items-center justify-center border border-eagles-line bg-white px-4 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green" style="border-radius:8px" data-sms href={`sms:?&body=${encodeURIComponent(message)}`}>Text message</a>
+    <a class="focus-ring inline-flex min-h-11 items-center justify-center border border-eagles-line bg-white px-4 py-3 text-sm font-black text-eagles-ink hover:border-eagles-green" style="border-radius:8px" href={whatsappHref} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+  </div>
+  <p class="hidden text-sm font-bold text-eagles-pine" data-share-status role="status"></p>
+</div>
+
+<script>
+  const bindPhoneShare = () => {
+    document.querySelectorAll<HTMLElement>("[data-phone-share]").forEach((root) => {
+      if (root.dataset.bound === "true") return;
+      root.dataset.bound = "true";
+      const message = root.dataset.message ?? "";
+      const sms = root.querySelector<HTMLAnchorElement>("[data-sms]");
+      const share = root.querySelector<HTMLButtonElement>("[data-share]");
+      const status = root.querySelector<HTMLElement>("[data-share-status]");
+      const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (sms) sms.href = `${ios ? "sms:&body=" : "sms:?body="}${encodeURIComponent(message)}`;
+      const showStatus = (text: string) => {
+        if (!status) return;
+        status.textContent = text;
+        status.classList.remove("hidden");
+      };
+      share?.addEventListener("click", async () => {
+        if (typeof navigator.share === "function") {
+          try {
+            await navigator.share({ title: "Greenacre Eagles FC", text: message });
+            showStatus("Choose Messages, WhatsApp or another app on your phone.");
+            return;
+          } catch (error) {
+            if (error instanceof DOMException && error.name === "AbortError") return;
+          }
+        }
+        try {
+          await navigator.clipboard.writeText(message);
+          showStatus("Copied. Paste it into a text or WhatsApp message.");
+        } catch {
+          showStatus("Use Text message or WhatsApp to send this code.");
+        }
+      });
+    });
+  };
+
+  bindPhoneShare();
+  document.addEventListener("astro:page-load", bindPhoneShare);
+</script>

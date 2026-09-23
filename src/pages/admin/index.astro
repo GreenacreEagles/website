@@ -24,7 +24,7 @@ const actions=[
  <section class="surface p-4 sm:p-5 md:p-6">
   <h2 class="panel-title">Quick actions</h2>
   <p class="mt-2 text-sm leading-6 text-eagles-ink/70">Open the admin task you need.</p>
-  <nav class="mt-5 grid min-w-0 grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4" aria-label="Admin quick actions">
+  <nav class="action-grid mt-5 min-w-0" aria-label="Admin quick actions">
    {actions.filter(([, ,permissions])=>hasAnyPermission(session.permissions,permissions)).map(([label,href])=><a class="focus-ring flex min-h-11 min-w-0 items-center rounded-lg border border-eagles-line bg-white px-3 py-2.5 text-sm font-black leading-5 text-eagles-pine hover:border-eagles-green hover:bg-eagles-mist sm:px-4" href={href}>{label}</a>)}
   </nav>
  </section>

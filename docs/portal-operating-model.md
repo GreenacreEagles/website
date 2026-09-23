@@ -2,7 +2,7 @@
 
 ## Member Portal
 
-The member portal navigation contains Dashboard, My Account, My Roles, Teams, Family, Events, Volunteers, Canteen, permission-controlled Canteen Staff, Wallet and Coaching Resources.
+The member portal navigation contains Dashboard, My Account, My Roles, Teams, Events, Volunteers, Canteen, permission-controlled Canteen Staff, Wallet and Coaching Resources. Tickets and vouchers are sent from Wallet by phone share, text message or WhatsApp.
 
 Removed from normal portal navigation: Role Requests, Fixtures and a separate Notifications page. Notifications are shown on the dashboard with action links back to the relevant area.
 
