@@ -4,9 +4,10 @@ import { site } from "@data/site";
 interface Props {
   tone?: "light" | "dark";
   href?: string;
+  mark?: boolean;
 }
 
-const { tone = "dark", href = "/" } = Astro.props;
+const { tone = "dark", href = "/", mark = false } = Astro.props;
 const nameClass = tone === "dark" ? "text-eagles-ink" : "text-white";
 const associationClass = tone === "dark" ? "text-eagles-pine" : "text-eagles-lime";
 ---
@@ -21,9 +22,11 @@ const associationClass = tone === "dark" ? "text-eagles-pine" : "text-eagles-lim
     alt=""
     class="h-11 w-11 shrink-0 rounded-full bg-white p-1 ring-1 ring-eagles-line sm:h-12 sm:w-12"
   />
+  {mark ? null : (
   <span class="min-w-0 leading-none">
     <span class={`block whitespace-nowrap font-display text-[clamp(0.8rem,3.6vw,0.95rem)] font-black uppercase sm:hidden ${nameClass}`}>Greenacre Eagles</span>
     <span class={`hidden whitespace-nowrap font-display text-lg font-black uppercase tracking-wide sm:block 2xl:text-xl ${nameClass}`}>{site.name}</span>
     <span class={`mt-1 hidden max-w-[22rem] text-[0.62rem] font-black uppercase leading-tight tracking-[.03em] sm:block ${associationClass}`}>{site.association}</span>
   </span>
+  )}
 </a>
