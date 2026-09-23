@@ -85,7 +85,6 @@ Admins can edit:
 - Weekly highlights
 - Featured social posts
 - Sponsors
-- Fundraisers
 - Events
 - Gallery items
 - Team information
@@ -103,7 +102,6 @@ Future admin work should support secure login, article publishing/unpublishing, 
 src/content/news
 Social profiles and selected posts are managed in Supabase through the admin Social Hub.
 src/content/sponsors
-src/content/fundraisers
 src/content/events
 src/content/gallery
 src/content/announcements
@@ -130,7 +128,6 @@ The v1 forms use `mailto:` so the UI is present without a paid service. Best nex
 - Confirmed team names, coaches, and training times
 - Fixture/results source
 - Sponsor logos, names, links, and tiers
-- Fundraiser links and payment/donation destination
 - Club history and committee-approved copy
 
 ## Deployment Notes

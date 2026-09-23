@@ -11,7 +11,7 @@ export const PUBLIC_MEDIA_CACHE = "public, max-age=86400, s-maxage=604800, stale
 export const ERROR_CACHE = "public, max-age=0, s-maxage=10";
 
 const privatePrefixes = ["/portal/", "/admin/", "/api/", "/login", "/signup", "/forgot-password", "/reset-password", "/auth/"];
-const publicCachePrefixes = ["/", "/news", "/events", "/sponsors", "/social", "/teams", "/merchandise", "/canteen", "/about", "/community", "/gallery", "/join", "/volunteer", "/weekly-highlights"];
+const publicCachePrefixes = ["/", "/news", "/events", "/sponsors", "/social", "/teams", "/merchandise", "/canteen", "/about", "/gallery", "/join", "/volunteer", "/weekly-highlights"];
 
 export const isPrivatePath = (pathname: string) =>
   privatePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix) || pathname.startsWith(`${prefix}/`));

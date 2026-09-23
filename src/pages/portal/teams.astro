@@ -56,7 +56,8 @@ const postsByTeam = new Map<string, any[]>();
         const teamPosts = postsByTeam.get(team.id) ?? [];
         const relationship = canViewClubTeams ? "administrator" : teamRelationship.get(team.id) ?? "member";
         return (
-          <article class="surface p-5">
+          <article class="surface overflow-hidden">
+            <a class="block p-5 hover:bg-eagles-mist" href={`/portal/teams/${team.id}/`}>
             <div class="grid gap-4 md:grid-cols-[96px_1fr_auto] md:items-start">
               <div class="flex h-24 w-24 items-center justify-center bg-eagles-green text-sm font-black text-white" style="border-radius:8px">GEFC</div>
               <div>
@@ -73,10 +74,11 @@ const postsByTeam = new Map<string, any[]>();
             </div>
             <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div><dt class="font-black">Colour</dt><dd>{team.colour ?? "Eagles green"}</dd></div>
-              <div><dt class="sr-only">Team board</dt><dd><a class="focus-ring inline-flex min-h-11 items-center justify-center rounded-full bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-pine" href={`/portal/teams/${team.id}/`}>Open team page</a></dd></div>
+              <div><dt class="sr-only">Team board</dt><dd><span class="inline-flex min-h-11 items-center justify-center rounded-full bg-eagles-green px-5 py-3 font-black text-white">Open team page</span></dd></div>
             </dl>
+            </a>
             {teamPosts.length > 0 && (
-              <div class="mt-5 grid gap-2 border-t border-eagles-line pt-4">
+              <div class="grid gap-2 border-t border-eagles-line px-5 py-4">
                 {teamPosts.slice(0, 3).map((post: any) => (
                   <a class="flex flex-col gap-1 bg-eagles-mist p-3 hover:bg-eagles-lime" style="border-radius:8px" href={`/portal/teams/${team.id}/#post-${post.id}`}>
                     <span class="font-black">{post.title}</span>

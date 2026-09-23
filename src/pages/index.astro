@@ -173,16 +173,16 @@ export const prerender = false;
           <ButtonLink href="/social/" variant="secondary">More posts</ButtonLink>
         </div>
         <div class="tile-grid mt-8">
-          {socialPosts.map((post) => <article class="surface overflow-hidden">
+          {socialPosts.map((post) => <a class="surface block overflow-hidden" href={post.postUrl} target="_blank" rel="noopener noreferrer">
             {post.imageUrl
-              ? <img src={post.imageUrl} alt={post.imageAltText ?? post.title ?? `Greenacre Eagles ${post.platform} post`} class="aspect-[16/10] w-full object-cover" loading="lazy" />
+              ? <img src={post.imageUrl} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
               : <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green font-display text-xl font-black uppercase text-white" aria-hidden="true">{post.platform}</div>}
             <div class="p-4">
               {post.title && <h3 class="card-title">{post.title}</h3>}
               {post.caption && <p class="mt-2.5 line-clamp-3 text-sm leading-6 text-eagles-ink/70">{post.caption}</p>}
-              <a class="mt-3 inline-flex font-black text-eagles-green" href={post.postUrl} target="_blank" rel="noopener noreferrer">View on {post.platform}</a>
+              <p class="mt-3 font-black text-eagles-green">View on {post.platform}</p>
             </div>
-          </article>)}
+          </a>)}
         </div>
       </div>
     </section>
@@ -196,26 +196,26 @@ export const prerender = false;
           <ButtonLink href="/events/" variant="secondary">All events</ButtonLink>
         </div>
         {events.length > 0
-          ? <div class="mt-6 grid gap-3 sm:mt-8 sm:gap-4">{events.map((event) => <article class="surface p-4 sm:p-5">
+          ? <div class="mt-6 grid gap-3 sm:mt-8 sm:gap-4">{events.map((event) => <a class="surface block p-4 sm:p-5" href={event.href}>
               <p class="eyebrow">{formatDateTime(event.startsAt)}</p>
               <h3 class="card-title mt-2">{event.title}</h3>
               <p class="mt-2 text-sm font-bold text-eagles-ink/65">{event.location}</p>
               {event.summary && <p class="mt-2.5 line-clamp-2 text-sm leading-6 text-eagles-ink/70">{event.summary}</p>}
-              <a class="mt-3 inline-flex font-black text-eagles-green" href={event.href}>View event</a>
-            </article>)}</div>
+              <p class="mt-3 font-black text-eagles-green">View event</p>
+            </a>)}</div>
           : <p class="surface mt-8 p-5">No upcoming events are listed.</p>}
       </div>
 
       {spotlightTeam && (
-        <article class="dark-surface h-fit min-w-0 overflow-hidden">
-          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt={`${spotlightTeam.name} team`} class="aspect-[16/10] max-h-64 w-full object-cover" loading="lazy" />
+        <a class="dark-surface block h-fit min-w-0 overflow-hidden hover:border-eagles-lime" href={`/teams/${spotlightTeam.slug}/`}>
+          <img src={spotlightTeam.imageUrl ?? "/media/placeholders/team-seniors.svg"} alt="" class="aspect-[16/10] max-h-64 w-full object-cover" loading="lazy" />
           <div class="p-5 sm:p-6">
             <p class="text-sm font-black uppercase text-eagles-lime">Team spotlight</p>
             <h3 class="panel-title mt-2 text-white">{spotlightTeam.name}</h3>
             <p class="mt-3 text-sm leading-6 text-white/70 sm:mt-4 sm:text-base sm:leading-7">{spotlightTeam.summary ?? "View the current squad and team information."}</p>
-            <div class="mt-5"><ButtonLink href="/teams/" variant="light">View teams</ButtonLink></div>
+            <p class="mt-5 inline-flex min-h-11 items-center border border-white bg-white px-5 py-3 text-sm font-black text-eagles-pine" style="border-radius:8px">View team</p>
           </div>
-        </article>
+        </a>
       )}
     </div>
   </section>

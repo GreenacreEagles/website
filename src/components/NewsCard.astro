@@ -11,10 +11,8 @@ const { article } = Astro.props;
 const href = `/news/${article.slug}/`;
 ---
 
-<article class="surface overflow-hidden">
-  <a href={href} class="block">
-    <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
-  </a>
+<a href={href} class="surface block overflow-hidden">
+  <img src={article.image ?? "/media/placeholders/matchday-card.svg"} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
   <div class="p-4">
     <div class="flex flex-wrap items-center gap-2 text-sm font-bold text-eagles-green sm:gap-3">
       <span>{article.category}</span>
@@ -23,9 +21,7 @@ const href = `/news/${article.slug}/`;
         {formatDate(new Date(article.date))}
       </span>
     </div>
-    <h3 class="card-title text-eagles-ink">
-      <a class="hover:text-eagles-green" href={href}>{article.title}</a>
-    </h3>
+    <h3 class="card-title mt-2 text-eagles-ink">{article.title}</h3>
     <p class="mt-2.5 line-clamp-3 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{article.summary}</p>
   </div>
-</article>
+</a>

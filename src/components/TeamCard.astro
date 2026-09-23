@@ -4,9 +4,9 @@ interface Props { team: PublicTeamSummary; }
 const { team } = Astro.props;
 const details = [team.seasonName, team.division || team.competition].filter(Boolean);
 ---
-<article class="surface group overflow-hidden">
+<a class="surface block overflow-hidden" href={`/teams/${team.slug}/`}>
   {team.imageUrl ? (
-    <img src={team.imageUrl} alt={`${team.name} team`} class="aspect-[16/10] w-full object-cover" loading="lazy" />
+    <img src={team.imageUrl} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
   ) : (
     <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green text-white">
       <span class="font-display text-4xl font-black uppercase" aria-hidden="true">GEFC</span>
@@ -16,8 +16,6 @@ const details = [team.seasonName, team.division || team.competition].filter(Bool
     <h3 class="card-title text-eagles-ink">{team.name}</h3>
     {details.length > 0 && <p class="mt-2 text-sm font-bold text-eagles-ink/60">{details.join(" · ")}</p>}
     {team.summary && <p class="mt-2.5 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{team.summary}</p>}
-    <a class="focus-ring mt-4 inline-flex font-black text-eagles-green hover:text-eagles-ink" href={`/teams/${team.slug}/`}>
-      View {team.name}<span aria-hidden="true">&nbsp;→</span>
-    </a>
+    <p class="mt-4 font-black text-eagles-green">View team</p>
   </div>
-</article>
+</a>

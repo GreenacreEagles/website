@@ -94,27 +94,6 @@ content:
       - { name: description, label: Short description, type: text }
       - { name: sortOrder, label: Sort order, type: number }
 
-  - name: fundraisers
-    label: Fundraisers
-    type: collection
-    path: src/content/fundraisers
-    filename: "{fields.slug}.md"
-    format: yaml-frontmatter
-    fields:
-      - { name: slug, label: Slug, type: string, required: true }
-      - { name: title, label: Title, type: string, required: true }
-      - { name: goalAmount, label: Goal amount, type: number }
-      - { name: currentAmount, label: Current amount, type: number }
-      - { name: description, label: Description, type: text }
-      - { name: image, label: Image, type: image }
-      - { name: ctaText, label: CTA button text, type: string }
-      - { name: ctaLink, label: CTA link, type: string }
-      - name: status
-        label: Status
-        type: select
-        options:
-          values: [active, completed, paused]
-
   - name: events
     label: Events
     type: collection
@@ -129,20 +108,6 @@ content:
       - { name: summary, label: Summary, type: text }
       - { name: ctaLink, label: CTA link, type: string }
       - { name: eventType, label: Event type, type: string }
-
-  - name: gallery
-    label: Gallery
-    type: collection
-    path: src/content/gallery
-    filename: "{fields.slug}.md"
-    format: yaml-frontmatter
-    fields:
-      - { name: slug, label: Slug, type: string, required: true }
-      - { name: title, label: Title, type: string, required: true }
-      - { name: image, label: Image, type: image, required: true }
-      - { name: date, label: Date, type: date, required: true }
-      - { name: category, label: Category, type: string }
-      - { name: description, label: Description, type: text }
 
   - name: teams
     label: Teams

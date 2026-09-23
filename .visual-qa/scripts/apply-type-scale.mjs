@@ -74,8 +74,7 @@ function transform(file) {
       "components/TeamCard.astro",
       "components/LogoLockup.astro",
       "components/Header.astro",
-      "components/FormPanel.astro",
-      "components/FundraiserCard.astro"
+      "components/FormPanel.astro"
     ].includes(rel)
   ) {
     return;

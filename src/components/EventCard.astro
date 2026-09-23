@@ -8,15 +8,27 @@ interface Props {
 }
 
 const { event } = Astro.props;
+const href = event.data.ctaLink;
 ---
 
-<article class="surface p-4 sm:p-5">
-  <p class="text-sm font-black uppercase text-eagles-green">{event.data.eventType}</p>
-  <h3 class="card-title mt-2 text-eagles-ink">{event.data.title}</h3>
-  <div class="mt-3 grid gap-2 text-sm font-bold text-eagles-ink/65">
-    <span class="inline-flex min-w-0 items-center gap-2"><Icon name="calendar" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{formatDateTime(event.data.dateTime)}</span></span>
-    <span class="inline-flex min-w-0 items-center gap-2"><Icon name="mapPin" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{event.data.location}</span></span>
-  </div>
-  <p class="mt-3 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{event.data.summary}</p>
-  {event.data.ctaLink && <a class="mt-4 inline-flex text-sm font-black text-eagles-green hover:text-eagles-ink" href={event.data.ctaLink}>View details</a>}
-</article>
+{href ? (
+  <a class="surface block p-4 sm:p-5" href={href}>
+    <p class="text-sm font-black uppercase text-eagles-green">{event.data.eventType}</p>
+    <h3 class="card-title mt-2 text-eagles-ink">{event.data.title}</h3>
+    <div class="mt-3 grid gap-2 text-sm font-bold text-eagles-ink/65">
+      <span class="inline-flex min-w-0 items-center gap-2"><Icon name="calendar" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{formatDateTime(event.data.dateTime)}</span></span>
+      <span class="inline-flex min-w-0 items-center gap-2"><Icon name="mapPin" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{event.data.location}</span></span>
+    </div>
+    <p class="mt-3 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{event.data.summary}</p>
+  </a>
+) : (
+  <article class="surface p-4 sm:p-5">
+    <p class="text-sm font-black uppercase text-eagles-green">{event.data.eventType}</p>
+    <h3 class="card-title mt-2 text-eagles-ink">{event.data.title}</h3>
+    <div class="mt-3 grid gap-2 text-sm font-bold text-eagles-ink/65">
+      <span class="inline-flex min-w-0 items-center gap-2"><Icon name="calendar" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{formatDateTime(event.data.dateTime)}</span></span>
+      <span class="inline-flex min-w-0 items-center gap-2"><Icon name="mapPin" class="h-4 w-4 shrink-0 text-eagles-green" /> <span class="min-w-0">{event.data.location}</span></span>
+    </div>
+    <p class="mt-3 text-sm leading-6 text-eagles-ink/70 sm:text-base sm:leading-7">{event.data.summary}</p>
+  </article>
+)}

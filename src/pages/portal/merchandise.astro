@@ -61,7 +61,7 @@ const orderTone = (status: string) => status === "cancelled" || status === "refu
           <div class="mt-5 grid gap-4">
             {activeOrders.length === 0 && <p class="text-sm leading-6 text-eagles-ink/65">You have no active merchandise orders.</p>}
             {activeOrders.map((order) => (
-              <article class="border border-eagles-line bg-white p-4 md:p-5" style="border-radius:8px">
+              <a class="block border border-eagles-line bg-white p-4 hover:border-eagles-green md:p-5" style="border-radius:8px" href={`/portal/merchandise/orders/${order.id}/`}>
                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p class="text-xs font-black uppercase tracking-wide text-eagles-ink/55">Order {order.order_number}</p>
@@ -83,9 +83,9 @@ const orderTone = (status: string) => status === "cancelled" || status === "refu
                 </div>
                 <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <p class="text-sm font-bold text-eagles-ink/65">{merchandisePaymentMethodLabel(order.payment_method ?? "pay_at_club")} · Collection from the club</p>
-                  <a class="font-black text-eagles-green hover:text-eagles-ink" href={`/portal/merchandise/orders/${order.id}/`}>View order</a>
+                  <p class="font-black text-eagles-green">View order</p>
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         </section>

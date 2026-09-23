@@ -4,7 +4,7 @@ import { getPublicTeams } from "@lib/public-teams";
 
 export const prerender = false;
 const staticPaths = [
-  "/", "/about/", "/canteen/", "/community/", "/contact/", "/events/", "/gallery/", "/join/",
+  "/", "/about/", "/canteen/", "/contact/", "/events/", "/gallery/", "/join/",
   "/merchandise/", "/news/", "/social/", "/sponsors/", "/teams/", "/volunteer/"
 ];
 const escapeXml = (value: string) => value.replace(/[<>&'"]/g, (character) =>

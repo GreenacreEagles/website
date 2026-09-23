@@ -116,6 +116,16 @@
     border-radius: 8px;
   }
 
+  a.surface,
+  a.click-card,
+  button.surface {
+    @apply block cursor-pointer text-left hover:border-eagles-green;
+  }
+
+  button.surface {
+    font: inherit;
+  }
+
   /* Repeating cards follow the space they are in, including the portal sidebar. */
   .tile-grid,
   .stat-grid,
@@ -210,6 +220,37 @@
 
   .focus-ring {
     @apply outline-none;
+  }
+
+  .gallery-dialog {
+    inset: 0;
+    height: fit-content;
+    @apply m-auto max-h-[calc(100dvh-1rem)] w-[min(72rem,calc(100vw-1rem))] max-w-none overflow-auto border-0 bg-eagles-ink p-0 text-white backdrop:bg-eagles-ink/70;
+    border-radius: 8px;
+  }
+
+  .gallery-dialog[open] {
+    @apply flex flex-col;
+  }
+
+  .gallery-track {
+    display: grid;
+    grid-auto-columns: 100%;
+    grid-auto-flow: column;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+  }
+
+  .gallery-track > * {
+    scroll-snap-align: center;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-track {
+    scroll-behavior: auto;
   }
 }
 

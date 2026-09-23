@@ -38,13 +38,3 @@ export const formatDateTime = (date: Date) =>
     hour: "numeric",
     minute: "2-digit"
   }).format(date);
-
-export const money = (amount: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: "AUD",
-    maximumFractionDigits: 0
-  }).format(amount);
-
-export const progressPercent = (current: number, goal: number) =>
-  Math.min(100, Math.round((current / goal) * 100));

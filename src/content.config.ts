@@ -17,21 +17,6 @@ const news = defineCollection({
   })
 });
 
-const fundraisers = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/fundraisers" }),
-  schema: z.object({
-    slug: z.string().optional(),
-    title: z.string(),
-    goalAmount: z.number(),
-    currentAmount: z.number(),
-    description: z.string(),
-    image: imageField,
-    ctaText: z.string(),
-    ctaLink: z.string(),
-    status: z.enum(["active", "completed", "paused"]).default("active")
-  })
-});
-
 const events = defineCollection({
   loader: glob({ pattern: "**/*.md", base: "./src/content/events" }),
   schema: z.object({
@@ -72,7 +57,6 @@ const announcements = defineCollection({
 
 export const collections = {
   news,
-  fundraisers,
   events,
   gallery,
   announcements

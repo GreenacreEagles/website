@@ -32,12 +32,12 @@ try {
       ) : (
         <div class="tile-grid mt-8">
           {profiles.map((profile) => (
-            <article class="surface p-4 sm:p-5">
+            <a class="surface block p-4 sm:p-5" href={profile.profileUrl} target="_blank" rel="noopener noreferrer">
               <p class="eyebrow">{platformName(profile.platform)}</p>
               <h2 class="mt-2 card-title text-eagles-ink">{profile.displayName}</h2>
               {profile.username && <p class="mt-2 break-all text-sm text-eagles-ink/65">{profile.username}</p>}
-              <a class="focus-ring mt-4 inline-flex min-h-11 items-center bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" href={profile.profileUrl} target="_blank" rel="noopener noreferrer" aria-label={`Follow ${profile.displayName} on ${platformName(profile.platform)} (opens in a new tab)`}>Follow on {platformName(profile.platform)}</a>
-            </article>
+              <p class="mt-4 font-black text-eagles-green">Follow on {platformName(profile.platform)}</p>
+            </a>
           ))}
         </div>
       )}
@@ -52,16 +52,16 @@ try {
       ) : (
         <div class="tile-grid mt-8">
           {posts.map((post) => (
-            <article class="surface overflow-hidden">
-              {post.imageUrl ? <img src={post.imageUrl} alt={post.imageAltText ?? ""} class="aspect-[16/10] w-full object-cover" loading="lazy" /> : <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green text-center panel-title text-white" aria-hidden="true">{platformName(post.platform)}</div>}
+            <a class="surface block overflow-hidden" href={post.postUrl} target="_blank" rel="noopener noreferrer">
+              {post.imageUrl ? <img src={post.imageUrl} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" /> : <div class="flex aspect-[16/10] items-center justify-center bg-eagles-green text-center panel-title text-white" aria-hidden="true">{platformName(post.platform)}</div>}
               <div class="p-4 sm:p-5">
                 <p class="eyebrow">{platformName(post.platform)}{post.featured ? " · Featured" : ""}</p>
                 {post.title && <h3 class="mt-2 card-title text-eagles-ink">{post.title}</h3>}
                 {post.caption && <p class="mt-2.5 line-clamp-4 text-sm leading-6 text-eagles-ink/70">{post.caption}</p>}
                 {post.publishedAt && <time class="mt-3 block text-sm text-eagles-ink/60" datetime={post.publishedAt}>{new Date(post.publishedAt).toLocaleDateString("en-AU", { day:"numeric", month:"long", year:"numeric" })}</time>}
-                <a class="focus-ring mt-4 inline-flex font-black text-eagles-green underline-offset-4 hover:underline" href={post.postUrl} target="_blank" rel="noopener noreferrer" aria-label={`View on ${platformName(post.platform)} (opens in a new tab)`}>View on {platformName(post.platform)}</a>
+                <p class="mt-4 font-black text-eagles-green">View on {platformName(post.platform)}</p>
               </div>
-            </article>
+            </a>
           ))}
         </div>
       )}

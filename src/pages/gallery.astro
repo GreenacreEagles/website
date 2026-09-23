@@ -2,32 +2,122 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import SectionHeading from "@components/SectionHeading.astro";
-import { formatDate, newestFirst } from "@lib/content";
+import { newestFirst } from "@lib/content";
+import { fetchPublicGallery, type PublicGalleryAlbum } from "@lib/public-gallery";
 
-const gallery = newestFirst(await getCollection("gallery"));
+export const prerender = false;
 
-export const prerender = true;
+const published = await fetchPublicGallery(Astro);
+const markdownAlbums: PublicGalleryAlbum[] = newestFirst(await getCollection("gallery"))
+  .filter((item) => item.data.image)
+  .map((item) => ({
+    id: item.data.slug ?? item.id,
+    title: item.data.title,
+    photos: [{ id: item.id, url: item.data.image, alt: item.data.title }]
+  }));
+const albums = published.length > 0 ? published : markdownAlbums;
 ---
 
-<BaseLayout title="Gallery" description="Greenacre Eagles FC photo and video gallery for matchdays, training, community events, and club life.">
+<BaseLayout title="Gallery" description="Photos from Greenacre Eagles FC match days, training and club life.">
   <section class="section-pad bg-white">
     <div class="section-shell">
-      <SectionHeading eyebrow="Gallery" title="Club photos and moments" intro="Scenes from training, match day, presentation nights, and the people who make Greenacre Eagles feel like home." />
-      <div class="tile-grid mt-10">
-        {
-          gallery.map((item) => (
-            <article class="surface overflow-hidden">
-              <img src={item.data.image} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
-              <div class="p-5">
-                <p class="text-sm font-black uppercase text-eagles-green">{item.data.category} / {formatDate(item.data.date)}</p>
-                <h2 class="mt-3 card-title">{item.data.title}</h2>
-                <p class="mt-3 text-sm leading-6 text-eagles-ink/70">{item.data.description}</p>
-              </div>
-            </article>
-          ))
-        }
-      </div>
+      <SectionHeading eyebrow="Gallery" title="Club photos" intro="Open a moment to look through the photos." />
+      {albums.length === 0 ? (
+        <p class="mt-10 text-base leading-7 text-eagles-ink/70">Club photos will appear here.</p>
+      ) : (
+        <div class="tile-grid mt-10">
+          {albums.map((album) => {
+            const cover = album.photos[0];
+            return (
+              <button class="surface block w-full overflow-hidden text-left" type="button" data-gallery-open={album.id}>
+                <img src={cover.url} alt="" class="aspect-[16/10] w-full object-cover" loading="lazy" />
+                <div class="p-5">
+                  <p class="text-sm font-black text-eagles-green">{album.photos.length === 1 ? "1 photo" : `${album.photos.length} photos`}</p>
+                  <h2 class="mt-2 card-title">{album.title}</h2>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   </section>
+  {albums.map((album) => (
+    <dialog class="gallery-dialog" id={album.id} aria-labelledby={`${album.id}-title`} data-gallery-dialog>
+      <div class="flex min-h-0 flex-1 flex-col">
+        <div class="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-white/15 bg-eagles-ink p-3 sm:p-4">
+          <h2 id={`${album.id}-title`} class="min-w-0 text-lg font-black leading-6 text-white">{album.title}</h2>
+          <button class="focus-ring inline-flex min-h-11 shrink-0 items-center justify-center bg-white px-4 text-sm font-black text-eagles-ink" style="border-radius:8px" type="button" data-gallery-close>Close</button>
+        </div>
+        <div class="gallery-track min-h-0" tabindex="0" aria-label={`${album.title} photos`} data-gallery-track>
+          {album.photos.map((photo) => (
+            <figure class="flex items-center justify-center p-3 sm:p-5">
+              <img src={photo.url} alt={photo.alt} class="max-h-[min(68dvh,40rem)] w-full object-contain" />
+            </figure>
+          ))}
+        </div>
+        {album.photos.length > 1 && (
+          <div class="flex items-center justify-between gap-3 border-t border-white/15 p-3 sm:p-4">
+            <button class="focus-ring inline-flex min-h-11 items-center justify-center border border-white/30 px-4 text-sm font-black text-white" style="border-radius:8px" type="button" data-gallery-step="prev">Previous</button>
+            <p class="text-sm font-bold text-white" data-gallery-count>1 of {album.photos.length}</p>
+            <button class="focus-ring inline-flex min-h-11 items-center justify-center border border-white/30 px-4 text-sm font-black text-white" style="border-radius:8px" type="button" data-gallery-step="next">Next</button>
+          </div>
+        )}
+      </div>
+    </dialog>
+  ))}
 </BaseLayout>
 
+<script is:inline>
+  (() => {
+    if (window.__greenacreGalleryBound) return;
+    window.__greenacreGalleryBound = true;
+    const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const stepTrack = (track, direction) => {
+      if (!track) return;
+      track.scrollBy({ left: direction * track.clientWidth, behavior: reduced() ? "auto" : "smooth" });
+    };
+    const updateCount = (track) => {
+      const dialog = track.closest("[data-gallery-dialog]");
+      const label = dialog?.querySelector("[data-gallery-count]");
+      if (!label || !track.clientWidth) return;
+      const index = Math.min(track.children.length, Math.max(1, Math.round(track.scrollLeft / track.clientWidth) + 1));
+      label.textContent = `${index} of ${track.children.length}`;
+    };
+    document.addEventListener("click", (event) => {
+      const open = event.target.closest("[data-gallery-open]");
+      if (open) {
+        const dialog = document.getElementById(open.getAttribute("data-gallery-open"));
+        if (dialog instanceof HTMLDialogElement && !dialog.open) {
+          const track = dialog.querySelector("[data-gallery-track]");
+          if (track) track.scrollLeft = 0;
+          dialog.showModal();
+          updateCount(track);
+        }
+        return;
+      }
+      const close = event.target.closest("[data-gallery-close]");
+      if (close) {
+        close.closest("[data-gallery-dialog]")?.close();
+        return;
+      }
+      const step = event.target.closest("[data-gallery-step]");
+      if (step) {
+        stepTrack(step.closest("[data-gallery-dialog]")?.querySelector("[data-gallery-track]"), step.getAttribute("data-gallery-step") === "next" ? 1 : -1);
+        return;
+      }
+      if (event.target instanceof HTMLDialogElement && event.target.matches("[data-gallery-dialog]")) event.target.close();
+    });
+    document.addEventListener("scroll", (event) => {
+      const track = event.target;
+      if (track instanceof Element && track.matches("[data-gallery-track]")) updateCount(track);
+    }, true);
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const dialog = document.querySelector("[data-gallery-dialog][open]");
+      if (!dialog) return;
+      event.preventDefault();
+      stepTrack(dialog.querySelector("[data-gallery-track]"), event.key === "ArrowRight" ? 1 : -1);
+    });
+  })();
+</script>

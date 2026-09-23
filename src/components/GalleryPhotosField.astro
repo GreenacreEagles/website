@@ -1,0 +1,69 @@
+---
+interface Props {
+  required?: boolean;
+  maxPhotos?: number;
+}
+
+const { required = false, maxPhotos = 12 } = Astro.props;
+---
+
+<div class="grid gap-3" data-gallery-upload data-max-photos={maxPhotos}>
+  <label>
+    <span class="label">{required ? "Photos" : "Add photos"}</span>
+    <input class="field min-h-12 cursor-pointer file:mr-3 file:border-0 file:bg-eagles-green file:px-3 file:py-2 file:font-bold file:text-white" name="photos" type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple required={required} data-gallery-files />
+  </label>
+  <p class="text-xs leading-5 text-eagles-ink/60">JPEG, PNG, WebP or AVIF. Up to {maxPhotos} photos, 8 MB each. The first photo is the one shown on the gallery page until you choose another cover.</p>
+  <p class="hidden text-sm font-bold text-red-700" data-gallery-upload-error></p>
+  <div class="grid grid-cols-3 gap-2 sm:grid-cols-4" data-gallery-previews></div>
+</div>
+
+<script is:inline>
+  (() => {
+    if (window.__greenacreGalleryUploadBound) return;
+    window.__greenacreGalleryUploadBound = true;
+    const clear = (root) => {
+      root.querySelectorAll("[data-gallery-preview]").forEach((node) => {
+        if (node.dataset.objectUrl) URL.revokeObjectURL(node.dataset.objectUrl);
+      });
+      const previews = root.querySelector("[data-gallery-previews]");
+      if (previews) previews.replaceChildren();
+      const error = root.querySelector("[data-gallery-upload-error]");
+      if (error) {
+        error.textContent = "";
+        error.classList.add("hidden");
+      }
+    };
+    document.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-gallery-files]");
+      if (!input) return;
+      const root = input.closest("[data-gallery-upload]");
+      clear(root);
+      const max = Number(root.dataset.maxPhotos || 12);
+      const files = [...(input.files || [])];
+      const error = root.querySelector("[data-gallery-upload-error]");
+      if (files.length > max) {
+        input.value = "";
+        if (error) {
+          error.textContent = `Choose ${max} photos or fewer.`;
+          error.classList.remove("hidden");
+        }
+        return;
+      }
+      const previews = root.querySelector("[data-gallery-previews]");
+      files.forEach((file, index) => {
+        const figure = document.createElement("figure");
+        figure.className = "overflow-hidden border border-eagles-line bg-eagles-mist";
+        figure.style.borderRadius = "8px";
+        figure.dataset.galleryPreview = "true";
+        const image = document.createElement("img");
+        image.className = "aspect-square w-full object-cover";
+        image.alt = index === 0 ? "Cover photo preview" : `Photo ${index + 1} preview`;
+        const objectUrl = URL.createObjectURL(file);
+        image.src = objectUrl;
+        figure.dataset.objectUrl = objectUrl;
+        figure.append(image);
+        previews?.append(figure);
+      });
+    });
+  })();
+</script>

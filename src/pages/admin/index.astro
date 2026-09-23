@@ -6,6 +6,7 @@ export const prerender=false;
 const session=await requireAdmin(Astro);if(!session)return Astro.redirect("/login/");
 const actions=[
  ["Add news article","/admin/news/#add-news",["content.manage"]],
+ ["Add gallery album","/admin/gallery/#new-album",["content.manage"]],
  ["Add event","/admin/events/#add-event",["events.manage"]],
  ["Add social post","/admin/highlights/?section=posts#new-post",["social_posts.manage"]],
  ["Manage social profiles","/admin/highlights/?section=profiles",["social_profiles.manage"]],

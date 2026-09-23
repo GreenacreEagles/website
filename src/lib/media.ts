@@ -237,6 +237,7 @@ export const articleImageObjectKey = (id: string, mimeType: string) => generated
 export const merchandiseImageObjectKey = (id: string, mimeType: string) => generatedKey("merchandise",id,mimeType);
 export const canteenImageObjectKey = (id: string, mimeType: string) => generatedKey("canteen",id,mimeType);
 export const teamImageObjectKey = (id: string, mimeType: string) => generatedKey("teams",id,mimeType);
+export const galleryImageObjectKey = (albumId: string, mimeType: string) => generatedKey("gallery", albumId, mimeType);
 export const coachingAttachmentObjectKey = (id: string, mimeType: string) => generatedKey("coaching-resources",id,mimeType);
 export const wwccDocumentObjectKey = (userId: string, submissionId: string, mimeType: string) =>
   generatedKey("wwcc/"+userId,submissionId,mimeType);

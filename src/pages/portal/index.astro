@@ -206,10 +206,10 @@ const attentionItems = [
         <div class="mt-4 grid gap-3">
           {(announcements ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">No current member notices.</p>}
           {(announcements ?? []).map((notice: any) => (
-            <div class="border-t border-eagles-line pt-3">
+            <a class="block border-t border-eagles-line pt-3 hover:text-eagles-green" href="/portal/notice-board/">
               <p class="font-bold text-eagles-ink">{notice.title}</p>
               <p class="mt-1 text-sm leading-6 text-eagles-ink/70">{notice.message}</p>
-            </div>
+            </a>
           ))}
         </div>
       </article>

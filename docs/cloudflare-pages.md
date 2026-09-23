@@ -123,7 +123,6 @@ The public website uses a hybrid content model. Published Supabase rows are used
 - `weekly-highlights`
 - `social-posts`
 - `sponsors`
-- `fundraisers`
 - `events`
 - `gallery`
 - `teams`
@@ -141,7 +140,7 @@ The public foundation now supports database-backed publishing for selected edita
 - Public article, announcement and sponsor publishing is available through `/admin/content/` and `/admin/sponsors/`.
 - Notification preferences and the communication outbox are database-backed; an external provider worker should use `/api/workers/communication-outbox/` to claim and complete email/SMS jobs.
 - Login, signup and password reset forms render Cloudflare Turnstile when `PUBLIC_TURNSTILE_SITE_KEY` is set and enforce server-side Siteverify validation when `TURNSTILE_SECRET_KEY` is set.
-- Markdown remains available for seeded or static sections such as teams, galleries, events, weekly highlights and fundraisers.
+- Markdown remains available for seeded or static sections such as teams, galleries, events and weekly highlights.
 
 Do not add GitHub Pages, Jekyll, or GitHub Pages-specific build steps.
 

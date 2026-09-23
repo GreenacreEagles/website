@@ -1,0 +1,130 @@
+---
+import AdminDialog from "@components/AdminDialog.astro";
+import AdminFeedback from "@components/AdminFeedback.astro";
+import AdminPageHeader from "@components/AdminPageHeader.astro";
+import EmptyState from "@components/EmptyState.astro";
+import FormActions from "@components/FormActions.astro";
+import GalleryPhotosField from "@components/GalleryPhotosField.astro";
+import PortalLayout from "@layouts/PortalLayout.astro";
+import StatusBadge from "@components/StatusBadge.astro";
+import { requirePermission } from "@lib/auth/guards";
+import { formatDateTime } from "@lib/format";
+import { getMediaCapabilities, getPublicMediaUrl } from "@lib/media";
+
+export const prerender = false;
+const session = await requirePermission(Astro, ["content.manage"]);
+if (!session) return Astro.redirect("/login/");
+const media = getMediaCapabilities(Astro);
+const uploadsReady = media.publicMediaConfigured && media.publicMediaDeliveryConfigured;
+const { data, error } = await (session.supabase as any)
+  .from("gallery_albums")
+  .select("id,title,published,created_at,updated_at,gallery_photos(id,object_key,sort_order,created_at)")
+  .order("created_at", { ascending: false })
+  .limit(100);
+if (error) console.error("Unable to load gallery albums for admin", error);
+const albums = ((data ?? []) as any[]).map((album) => ({
+  ...album,
+  photos: [...(album.gallery_photos ?? [])].sort((a, b) => a.sort_order - b.sort_order || String(a.created_at).localeCompare(String(b.created_at)))
+}));
+---
+
+<PortalLayout title="Gallery" section="Administration" session={session}>
+  <div class="grid gap-6">
+    <AdminFeedback success={Astro.url.searchParams.get("success")} error={Astro.url.searchParams.get("error")} />
+    <AdminPageHeader title="Gallery" intro="Add a heading and the photos for that moment. People see the cover photo, then can look through the rest.">
+      <Fragment slot="actions">
+        <AdminDialog id="new-album" title="New album" actionLabel="New album" size="xl">
+          <form class="grid gap-4" method="post" action="/api/admin/gallery" enctype="multipart/form-data">
+            <label>
+              <span class="label">Heading</span>
+              <input class="field" name="title" maxlength="120" required placeholder="Match U12, what a win" />
+            </label>
+            {uploadsReady ? <GalleryPhotosField required /> : <p class="border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Photo upload is unavailable in this environment.</p>}
+            <label class="flex min-h-11 items-center gap-3">
+              <input name="published" type="checkbox" checked />
+              <span class="font-bold">Show on the gallery page</span>
+            </label>
+            <FormActions submitLabel="Add album" />
+          </form>
+        </AdminDialog>
+      </Fragment>
+    </AdminPageHeader>
+
+    <section class="surface p-4 sm:p-5 md:p-6">
+      <div class="grid gap-3">
+        {error && <EmptyState title="Gallery is not ready yet" text="Apply the latest database migration, then refresh this page to add albums." />}
+        {!error && albums.length === 0 && <EmptyState title="No albums yet" text="Add a heading and photos to publish the first gallery album." />}
+        {albums.map((album) => {
+          const cover = album.photos[0];
+          const coverUrl = cover ? getPublicMediaUrl(cover.object_key, Astro) : null;
+          return (
+            <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-center gap-4">
+                  {coverUrl ? <img src={coverUrl} alt="" class="h-16 w-24 shrink-0 object-cover" style="border-radius:8px" /> : <div class="flex h-16 w-24 shrink-0 items-center justify-center bg-eagles-mist text-xs font-black text-eagles-ink/50" style="border-radius:8px">No photo</div>}
+                  <div class="min-w-0">
+                    <h2 class="card-title">{album.title}</h2>
+                    <p class="mt-1 text-sm text-eagles-ink/65">{album.photos.length === 1 ? "1 photo" : `${album.photos.length} photos`} · Updated {formatDateTime(album.updated_at)}</p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <StatusBadge label={album.published ? "On the gallery" : "Hidden"} tone={album.published ? "green" : "amber"} />
+                  <AdminDialog id={`edit-${album.id}`} title={`Edit ${album.title}`} actionLabel="Edit" tone="secondary" size="xl">
+                    <form class="grid gap-4" method="post" action="/api/admin/gallery" enctype="multipart/form-data">
+                      <input type="hidden" name="album_id" value={album.id} />
+                      <label>
+                        <span class="label">Heading</span>
+                        <input class="field" name="title" maxlength="120" required value={album.title} />
+                      </label>
+                      <label class="flex min-h-11 items-center gap-3">
+                        <input name="published" type="checkbox" checked={album.published} />
+                        <span class="font-bold">Show on the gallery page</span>
+                      </label>
+                      {uploadsReady && album.photos.length < 12 && <GalleryPhotosField />}
+                      <FormActions submitLabel="Save album" />
+                    </form>
+                    {album.photos.length > 0 && (
+                      <div class="mt-6 grid gap-3 border-t border-eagles-line pt-5">
+                        <h3 class="card-title">Photos</h3>
+                        {album.photos.map((photo: any, index: number) => {
+                          const url = getPublicMediaUrl(photo.object_key, Astro);
+                          return (
+                            <div class="flex flex-col gap-3 border border-eagles-line p-3 sm:flex-row sm:items-center sm:justify-between" style="border-radius:8px">
+                              <div class="flex min-w-0 items-center gap-3">
+                                {url ? <img src={url} alt="" class="h-16 w-16 object-cover" style="border-radius:8px" /> : <div class="h-16 w-16 bg-eagles-mist" style="border-radius:8px"></div>}
+                                <p class="text-sm font-bold">{index === 0 ? "Cover photo" : `Photo ${index + 1}`}</p>
+                              </div>
+                              <div class="flex flex-wrap gap-2">
+                                {index > 0 && (
+                                  <form method="post" action="/api/admin/gallery">
+                                    <input type="hidden" name="intent" value="cover" />
+                                    <input type="hidden" name="photo_id" value={photo.id} />
+                                    <button class="focus-ring inline-flex min-h-11 items-center justify-center border border-eagles-line px-3 text-sm font-black" style="border-radius:8px" type="submit">Use as cover</button>
+                                  </form>
+                                )}
+                                <form method="post" action="/api/admin/gallery">
+                                  <input type="hidden" name="intent" value="delete-photo" />
+                                  <input type="hidden" name="photo_id" value={photo.id} />
+                                  <button class="focus-ring inline-flex min-h-11 items-center justify-center px-3 text-sm font-black text-red-700" type="submit" onclick="return confirm('Remove this photo?')">Remove</button>
+                                </form>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <form class="mt-6 border-t border-red-200 pt-5" method="post" action="/api/admin/gallery">
+                      <input type="hidden" name="intent" value="delete-album" />
+                      <input type="hidden" name="album_id" value={album.id} />
+                      <button class="font-black text-red-700" type="submit" onclick="return confirm('Delete this album and its photos?')">Delete album</button>
+                    </form>
+                  </AdminDialog>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  </div>
+</PortalLayout>
