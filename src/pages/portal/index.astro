@@ -78,19 +78,15 @@ const actionUrl = (notification: any) => {
 };
 
 const tiles = [
-  ["My Teams", "Posts, polls and team updates.", "/portal/teams/", "TEAM", []],
-  ["Wallet", "Balance, tickets and vouchers.", "/portal/vouchers/", "PAY", []],
-  ["Canteen", "Order food for match day.", "/portal/canteen/", "FOOD", []],
-  ["Merchandise", "Club gear and your orders.", "/portal/merchandise/", "SHOP", []],
-  ["Coaching Resources", "Session plans and drills.", "/portal/coaching/", "GUIDE", ["coaching_resources.read", "teams.manage"]],
-  ["Club Notice Board", "Club announcements.", "/portal/notice-board/", "NEWS", []],
-  ["My Account", "Your contact details.", "/portal/account/", "ME", []],
-  ["Admin", "Club administration.", "/admin/", "ADMIN", []]
-].filter((tile) => {
-  if (tile[0] === "Admin") return isAdmin;
-  const required = tile[4] as string[];
-  return required.length === 0 || hasAnyPermission(session.permissions, required);
-});
+  { title: "My Teams", text: "Posts, polls and team updates.", href: "/portal/teams/" },
+  { title: "Wallet", text: "Balance, tickets and vouchers.", href: "/portal/vouchers/" },
+  { title: "Canteen", text: "Order food for match day.", href: "/portal/canteen/" },
+  { title: "Merchandise", text: "Club gear and your orders.", href: "/portal/merchandise/" },
+  { title: "Coaching Resources", text: "Session plans and drills.", href: "/portal/coaching/", permissions: ["coaching_resources.read", "teams.manage"] },
+  { title: "Club Notice Board", text: "Club announcements.", href: "/portal/notice-board/" },
+  { title: "My Account", text: "Your contact details.", href: "/portal/account/" },
+  ...(isAdmin ? [{ title: "Admin", text: "Club administration.", href: "/admin/" }] : [])
+].filter((tile) => !tile.permissions || hasAnyPermission(session.permissions, tile.permissions));
 
 const walletBalance = (wallets ?? []).reduce((total: number, wallet: any) => total + (wallet.wallet_balances?.[0]?.balance_cents ?? 0), 0);
 
@@ -140,13 +136,10 @@ const attentionItems = [
       </article>
 
       <div class="tile-grid">
-        {tiles.map(([title, text, href, code]) => (
-          <a class="surface grid min-h-0 content-between gap-4 p-4 hover:border-eagles-green focus-ring sm:p-5" href={href as string}>
-            <span class="inline-flex h-10 w-10 items-center justify-center bg-eagles-green text-xs font-black text-white" style="border-radius:8px">{code}</span>
-            <span>
-              <h2 class="card-title">{title}</h2>
-              <p class="mt-2 text-sm leading-6 text-eagles-ink/70">{text}</p>
-            </span>
+        {tiles.map((tile) => (
+          <a class="surface p-4 focus-ring" href={tile.href}>
+            <h2 class="card-title">{tile.title}</h2>
+            <p class="mt-1 text-sm leading-6 text-eagles-ink/70">{tile.text}</p>
           </a>
         ))}
       </div>
