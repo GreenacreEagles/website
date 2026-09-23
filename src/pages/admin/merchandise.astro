@@ -32,42 +32,22 @@ const productSummaries = (products ?? []).map((product: any) => ({
   }))
 }));
 const merchOrders = (orders ?? []) as any[];
-const orderActions: Record<string, { label: string; value: string; tone?: "green" | "red" | "ink" }[]> = {
-  awaiting_payment: [
-    { label: "Mark payment received", value: "paid", tone: "green" },
-    { label: "Cancel", value: "cancelled", tone: "red" }
-  ],
-  paid: [
-    { label: "Processing", value: "processing", tone: "green" },
-    { label: "Awaiting stock", value: "awaiting_stock", tone: "ink" },
-    { label: "Ready", value: "ready_for_pickup", tone: "green" },
-    { label: "Shipped", value: "shipped", tone: "green" },
-    { label: "Cancel", value: "cancelled", tone: "red" }
-  ],
-  processing: [
-    { label: "Ready", value: "ready_for_pickup", tone: "green" },
-    { label: "Shipped", value: "shipped", tone: "green" },
-    { label: "Awaiting stock", value: "awaiting_stock", tone: "ink" },
-    { label: "Cancel", value: "cancelled", tone: "red" }
-  ],
-  awaiting_stock: [
-    { label: "Processing", value: "processing", tone: "green" },
-    { label: "Ready", value: "ready_for_pickup", tone: "green" },
-    { label: "Cancel", value: "cancelled", tone: "red" }
-  ],
-  ready_for_pickup: [
-    { label: "Collected", value: "collected", tone: "green" },
-    { label: "Cancel", value: "cancelled", tone: "red" }
-  ],
-  shipped: [{ label: "Complete", value: "completed", tone: "green" }],
-  collected: [{ label: "Complete", value: "completed", tone: "green" }]
+const orderActions: Record<string, { label: string; value: string }> = {
+  awaiting_payment: { label: "Payment received", value: "paid" },
+  paid: { label: "Ready for collection", value: "ready_for_pickup" },
+  processing: { label: "Ready for collection", value: "ready_for_pickup" },
+  awaiting_stock: { label: "Ready for collection", value: "ready_for_pickup" },
+  ready_for_pickup: { label: "Collected", value: "collected" },
+  shipped: { label: "Complete", value: "completed" },
+  collected: { label: "Complete", value: "completed" }
 };
+const canCancelOrder = new Set(["awaiting_payment", "paid", "processing", "awaiting_stock", "ready_for_pickup"]);
 ---
 
 <PortalLayout title="Merchandise management" section="Administration" session={session}>
   <div class="grid gap-6">
     <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Merchandise management" intro="Manage shop products, variants, stock and order status with creation flows tucked behind clear actions.">
+    <AdminPageHeader title="Merchandise" intro="Add products, update how many are in stock, and mark orders when they are collected.">
       <Fragment slot="actions">
         <AdminDialog id="add-merch-product" title="Add product" actionLabel="Add product" intro="Create the product listing before adding size, colour and stock variants." size="lg">
           <form class="grid gap-4" method="post" action="/api/admin/merchandise-entry">
@@ -117,7 +97,7 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
               <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p class="font-black">{product.name}</p>
-                  <p class="text-sm text-eagles-ink/70">{product.category ?? "Club shop"} - {product.merchandise_variants?.length ?? 0} variants</p>
+                  <p class="text-sm text-eagles-ink/70">{product.category ?? "Club shop"} · {product.merchandise_variants?.length ?? 0} {product.merchandise_variants?.length === 1 ? "option" : "options"}</p>
                 </div>
                 <div class="flex gap-2"><StatusBadge label={statusLabel(product.status)} tone={product.status === "active" ? "green" : "amber"} />{product.featured && <StatusBadge label="Featured" tone="ink" />}
                   <AdminDialog id={"edit-merch-product-"+product.id} title={"Edit "+product.name} actionLabel="Edit" tone="secondary" size="lg"><form class="grid gap-4" method="post" action="/api/admin/merchandise-entry" enctype="multipart/form-data"><input type="hidden" name="entity" value="product"/><input type="hidden" name="id" value={product.id}/><label><span class="label">Name</span><input class="field" name="name" value={product.name} required/></label><label><span class="label">Description</span><textarea class="field min-h-20" name="description">{product.description??""}</textarea></label><label><span class="label">Category</span><input class="field" name="category" value={product.category??""}/></label><ImageUploadField name="image" label="Upload product image" currentUrl={getPublicMediaUrl(product.image_object_key,Astro)??getSafeExternalImageUrl(product.image_url)} currentAlt={product.name} hasCurrent={Boolean(product.image_object_key||product.image_url)} removeName="remove_image" maxSizeMb={8} configured={publicMediaConfigured}/><label><span class="label">Status</span><select class="field" name="status"><option value="active" selected={product.status==="active"}>Active</option><option value="inactive" selected={product.status==="inactive"}>Inactive</option></select></label><div class="grid gap-3 md:grid-cols-2"><label><span class="label">Display order</span><input class="field" name="sort_order" type="number" min="0" value={product.sort_order??100}/></label><label class="flex items-center gap-2 pt-7"><input name="featured" type="checkbox" checked={product.featured}/> Featured</label></div><div class="grid gap-3 md:grid-cols-2"><label><span class="label">Available from</span><input class="field" name="available_from" type="datetime-local" value={product.available_from?.slice(0,16)??""}/></label><label><span class="label">Available until</span><input class="field" name="available_until" type="datetime-local" value={product.available_until?.slice(0,16)??""}/></label></div><FormActions submitLabel="Save product"/><button class="text-sm font-black text-red-700" name="intent" value="delete" formnovalidate onclick="return confirm('Delete this product and all its variants?')">Delete product</button></form></AdminDialog>
@@ -158,15 +138,23 @@ const orderActions: Record<string, { label: string; value: string; tone?: "green
                 ))}
               </div>
               {order.notes && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold text-eagles-ink whitespace-pre-line" style="border-radius:8px">{order.notes}</p>}
-              <div class="mt-4 flex flex-wrap gap-2">
-                {(orderActions[order.status] ?? []).map((action) => (
+              <div class="mt-4 flex flex-wrap items-center gap-3">
+                {orderActions[order.status] && (
                   <form method="post" action="/api/admin/merchandise-order-status">
                     <input type="hidden" name="order_id" value={order.id} />
-                    <input type="hidden" name="status" value={action.value} />
+                    <input type="hidden" name="status" value={orderActions[order.status].value} />
                     <input type="hidden" name="return_to" value="/admin/merchandise/" />
-                    <button class:list={["px-3 py-2 text-xs font-black", action.tone === "red" ? "bg-red-50 text-red-700" : action.tone === "ink" ? "bg-eagles-ink text-white" : "bg-eagles-green text-white"]} style="border-radius:8px" type="submit">{action.label}</button>
+                    <button class="min-h-11 bg-eagles-green px-4 py-2 text-sm font-black text-white" style="border-radius:8px" type="submit">{orderActions[order.status].label}</button>
                   </form>
-                ))}
+                )}
+                {canCancelOrder.has(order.status) && (
+                  <form method="post" action="/api/admin/merchandise-order-status">
+                    <input type="hidden" name="order_id" value={order.id} />
+                    <input type="hidden" name="status" value="cancelled" />
+                    <input type="hidden" name="return_to" value="/admin/merchandise/" />
+                    <button class="min-h-11 px-3 text-sm font-black text-red-700" type="submit">Cancel order</button>
+                  </form>
+                )}
               </div>
             </article>
           ))}

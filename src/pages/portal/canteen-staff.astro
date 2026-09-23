@@ -3,6 +3,7 @@ import EmptyState from "@components/EmptyState.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import { requirePermission } from "@lib/auth/guards";
+import { canteenOrderLabel, canteenPaymentLabel } from "@lib/canteen-store";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
 
 export const prerender = false;
@@ -32,19 +33,14 @@ const [{ data: orders }, { data: redemptions }] = await Promise.all([
 const staffOrders = (orders ?? []) as any[];
 
 const nextActions: Record<string, { label: string; value: string }[]> = {
-  accepted: [
-    { label: "Start preparing", value: "preparing" },
-    { label: "Ready now", value: "ready_for_pickup" }
-  ],
-  preparing: [
-    { label: "Ready for pickup", value: "ready_for_pickup" }
-  ],
+  accepted: [{ label: "Start preparing", value: "preparing" }],
+  preparing: [{ label: "Ready for collection", value: "ready_for_pickup" }],
   ready_for_pickup: [{ label: "Collected", value: "collected" }]
 };
 ---
 
 <PortalLayout title="Canteen staff" section="Match day" session={session}>
-  <div class="grid gap-6 xl:grid-cols-[1fr_380px]">
+  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
     <section class="grid gap-4">
       {success && <p class="border border-eagles-green bg-green-50 p-4 text-sm font-bold text-eagles-green" style="border-radius:8px">{success}</p>}
       {error && <p class="border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700" style="border-radius:8px">{error}</p>}
@@ -52,8 +48,7 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
       <article class="surface p-4 sm:p-5 md:p-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p class="eyebrow">Live queue</p>
-            <h2 class="mt-2 panel-title">Orders to prepare</h2>
+            <h2 class="panel-title">Orders to prepare</h2>
           </div>
           <p class="text-sm font-bold text-eagles-ink/70">{staffOrders.length} open orders</p>
         </div>
@@ -64,15 +59,15 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
             <article class="border border-eagles-line bg-white p-4" style="border-radius:8px">
               <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p class="text-xs font-black uppercase tracking-[.16em] text-eagles-green">Order {order.order_number}</p>
-                  <h3 class="mt-1 text-xl font-black text-eagles-ink">{order.profiles?.full_name ?? order.profiles?.email ?? "Member"}</h3>
-                  <p class="mt-1 text-sm text-eagles-ink/70">{formatDateTime(order.created_at)} · Club canteen</p>
+                  <p class="text-sm font-black text-eagles-green">Order {order.order_number}</p>
+                  <h3 class="mt-1 card-title">{order.profiles?.full_name ?? order.profiles?.email ?? "Member"}</h3>
+                  <p class="mt-1 text-sm text-eagles-ink/70">{formatDateTime(order.created_at)}</p>
                   {order.recipient?.full_name && order.recipient?.full_name !== order.profiles?.full_name && <p class="mt-1 text-sm font-bold text-eagles-ink/70">For {order.recipient.full_name}</p>}
                   {order.pickup_code && <p class="mt-2 inline-flex bg-eagles-mist px-3 py-1 font-mono text-xs font-black text-eagles-ink" style="border-radius:8px">{order.pickup_code}</p>}
                 </div>
                 <div class="flex flex-wrap gap-2 md:justify-end">
-                  <StatusBadge label={statusLabel(order.order_status)} tone="green" />
-                  <StatusBadge label={statusLabel(order.payment_status)} tone="ink" />
+                  <StatusBadge label={canteenOrderLabel(order.order_status)} tone="green" />
+                  <StatusBadge label={canteenPaymentLabel(order.payment_status)} tone="ink" />
                 </div>
               </div>
 
@@ -80,9 +75,8 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
                 {(order.canteen_order_items ?? []).map((item: any) => (
                   <p class="flex justify-between gap-3 border-t border-eagles-line pt-2 text-sm">
                     <span>
-                      <strong>{item.quantity}x</strong> {item.product_name_snapshot}
-                      <span class="ml-2 text-xs font-bold uppercase text-eagles-ink/50">{statusLabel(item.fulfilment_type_snapshot)}</span>
-                      {item.voucher_issuance_id && <span class="ml-2 text-xs font-black text-eagles-green">Voucher issued</span>}
+                      <strong>{item.quantity}×</strong> {item.product_name_snapshot}
+                      {item.voucher_issuance_id && <span class="ml-2 text-xs font-black text-eagles-green">Voucher</span>}
                     </span>
                     <span class="font-bold">{formatMoney(item.line_total_cents)}</span>
                   </p>
@@ -112,28 +106,26 @@ const nextActions: Record<string, { label: string; value: string }[]> = {
       {canRedeemVouchers && (
         <form class="surface grid gap-4 p-5" method="post" action="/api/admin/redeem-voucher">
           <input type="hidden" name="return_to" value="/portal/canteen-staff/" />
-          <h2 class="card-title">Claim voucher</h2>
+          <h2 class="card-title">Use a voucher</h2>
           <label>
-            <span class="label">Scan or enter code</span>
-            <input id="voucher-code" class="field font-mono text-lg font-black uppercase tracking-[.12em]" name="redemption_code" autocomplete="off" placeholder="GEVOUCHER:ABC123" required />
+            <span class="label">Voucher code</span>
+            <input id="voucher-code" class="field font-mono text-lg font-black uppercase" name="redemption_code" autocomplete="off" placeholder="Scan or type the code" required />
           </label>
           <div class="grid gap-3">
-            <button id="scan-voucher" class="border border-eagles-green px-4 py-3 text-sm font-black text-eagles-green" style="border-radius:8px" type="button">Scan QR</button>
+            <button id="scan-voucher" class="min-h-11 border border-eagles-green px-4 py-3 text-sm font-black text-eagles-green" style="border-radius:8px" type="button">Scan QR</button>
             <video id="voucher-scanner" class="hidden w-full border border-eagles-line bg-black" style="border-radius:8px" playsinline></video>
             <p id="scanner-message" class="hidden text-sm font-bold text-eagles-ink/70"></p>
           </div>
-          <p class="text-sm font-bold text-eagles-ink/70">Location: Club canteen</p>
-          <label><span class="label">Amount to claim</span><input class="field" name="amount" type="number" min="0.01" step="0.01" placeholder="5.00" required /></label>
-          <label><span class="label">Link to order</span><select class="field" name="order_id"><option value="">No order</option>{staffOrders.map((order) => <option value={order.id}>{order.order_number}</option>)}</select></label>
-          <label><span class="label">Device label</span><input class="field" name="device_label" placeholder="Canteen iPad" /></label>
-          <button class="bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Claim voucher</button>
+          <label><span class="label">Amount</span><input class="field" name="amount" type="number" min="0.01" step="0.01" placeholder="5.00" required /></label>
+          <input type="hidden" name="device_label" value="Canteen" />
+          <button class="min-h-11 bg-eagles-green px-4 py-3 text-sm font-black text-white" style="border-radius:8px" type="submit">Use voucher</button>
         </form>
       )}
 
       <article class="surface p-5">
         <h2 class="card-title">Recent claims</h2>
         <div class="mt-4 grid gap-3">
-          {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Voucher claims will appear here after staff scan a wallet QR code.</p>}
+          {(redemptions ?? []).length === 0 && <p class="text-sm leading-6 text-eagles-ink/70">Used vouchers will show here.</p>}
           {(redemptions ?? []).map((redemption: any) => (
             <div class="border-t border-eagles-line pt-3">
               <div class="flex flex-wrap items-start justify-between gap-3">

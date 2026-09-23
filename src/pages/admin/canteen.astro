@@ -10,6 +10,7 @@ import FormActions from "@components/FormActions.astro";
 import StatusBadge from "@components/StatusBadge.astro";
 import PortalLayout from "@layouts/PortalLayout.astro";
 import { requirePermission } from "@lib/auth/guards";
+import { canteenPaymentLabel } from "@lib/canteen-store";
 import { formatDateTime, formatMoney, statusLabel } from "@lib/format";
 import { getMediaCapabilities, getPublicMediaUrl, getSafeExternalImageUrl } from "@lib/media";
 
@@ -47,12 +48,19 @@ const availabilityFilter = Astro.url.searchParams.get("availability") ?? "";
 const voucherFilter = Astro.url.searchParams.get("voucher") ?? "";
 const filteredProducts = ((products ?? []) as any[]).filter((product) => { const haystack=[product.name,product.description,product.canteen_categories?.name].filter(Boolean).join(" ").toLowerCase(); return (!productQ||haystack.includes(productQ))&&(!categoryFilter||product.category_id===categoryFilter)&&(!activeFilter||(activeFilter==="active"?product.is_active:!product.is_active))&&(!availabilityFilter||(availabilityFilter==="sold_out"?product.is_sold_out:!product.is_sold_out))&&(!voucherFilter||(voucherFilter==="eligible"?product.fulfilment_type==="item_voucher":product.fulfilment_type!=="item_voucher")); });
 const fulfilmentLabel=(value:string)=>({accepted:"New",preparing:"Preparing",ready_for_pickup:"Ready for collection",collected:"Collected",cancelled:"Cancelled",awaiting_payment:"New",paid:"New"} as Record<string,string>)[value]??statusLabel(value);
+const nextCanteenAction = (order: any) => {
+  if (order.payment_status !== "paid") return canChangePayments ? { field: "payment_status", value: "paid", label: "Payment received" } : null;
+  if (["awaiting_payment", "paid", "accepted"].includes(order.order_status)) return { field: "order_status", value: "preparing", label: "Start preparing" };
+  if (order.order_status === "preparing") return { field: "order_status", value: "ready_for_pickup", label: "Ready for collection" };
+  if (order.order_status === "ready_for_pickup") return { field: "order_status", value: "collected", label: "Collected" };
+  return null;
+};
 ---
 
 <PortalLayout title="Canteen operations" section="Administration" session={session}>
   <div class="grid gap-6">
     <AdminFeedback success={success} error={error} />
-    <AdminPageHeader title="Canteen operations" intro="Manage live orders and the canteen product catalogue.">
+    <AdminPageHeader title="Canteen" intro="Move orders along, and keep the menu and stock up to date.">
       <Fragment slot="actions">
         {canRedeem && (
           <AdminDialog id="scan-canteen-code" title="Scan canteen code" actionLabel="Scan code" intro="Scan or enter an order, wallet or voucher code. Every redemption is confirmed before it is saved." size="xl">
@@ -165,12 +173,15 @@ const fulfilmentLabel=(value:string)=>({accepted:"New",preparing:"Preparing",rea
                 <p class="font-black">Order {order.order_number} · {formatMoney(order.total_cents)}</p>
                 <p class="text-sm text-eagles-ink/65">{order.profiles?.full_name ?? order.profiles?.email ?? "Customer"} · {formatDateTime(order.created_at)}</p>
               </div>
-              <div class="flex gap-2"><StatusBadge label={fulfilmentLabel(order.order_status)} tone="green" /><StatusBadge label={statusLabel(order.payment_status)} tone="ink" /></div>
+              <div class="flex gap-2"><StatusBadge label={fulfilmentLabel(order.order_status)} tone="green" /><StatusBadge label={canteenPaymentLabel(order.payment_status)} tone="ink" /></div>
             </div>
             <div class="mt-3 grid gap-1">{(order.canteen_order_items ?? []).map((item: any) => <p class="text-sm"><strong>{item.quantity}×</strong> {item.product_name_snapshot}</p>)}</div>
-            <p class="mt-3 text-sm font-bold text-eagles-muted">{order.payment_method === "pay_at_club" ? `Pay at club · $${((order.amount_due_cents ?? 0) / 100).toFixed(2)} due` : "Paid with member benefits"}</p>
+            <p class="mt-3 text-sm font-bold text-eagles-ink/70">{order.payment_status === "paid" ? "Paid" : `${formatMoney(order.amount_due_cents ?? order.total_cents)} to pay at the canteen`}</p>
             {order.special_instructions && <p class="mt-3 bg-eagles-mist p-3 text-sm font-bold" style="border-radius:8px">{order.special_instructions}</p>}
-            {canManageOrders && <div class="mt-4 flex flex-wrap gap-2">{canChangePayments && order.payment_status !== "paid" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="payment_status" value="paid"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="Payment received at club"/><button class="min-h-11 rounded-lg bg-eagles-ink px-4 py-2 text-sm font-black text-white">Mark as paid</button></form>}{order.payment_status === "paid" && order.order_status === "accepted" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="preparing"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><button class="min-h-11 rounded-lg bg-eagles-pine px-4 py-2 text-sm font-black text-white">Start preparing</button></form>}{order.payment_status === "paid" && order.order_status === "preparing" && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="ready_for_pickup"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><button class="min-h-11 rounded-lg bg-eagles-pine px-4 py-2 text-sm font-black text-white">Mark ready for collection</button></form>}{order.payment_status === "paid" && ["accepted","preparing","ready_for_pickup"].includes(order.order_status) && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="collected"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="One-tap authorised collection"/><button class="min-h-11 rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white">Mark collected</button></form>}{canChangePayments && !["collected","cancelled"].includes(order.order_status) && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="cancelled"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="Cancelled by authorised canteen administrator"/><button class="min-h-11 rounded-lg border border-red-200 px-4 py-2 text-sm font-black text-red-700">Cancel</button></form>}</div>}
+            {canManageOrders && (() => {
+              const next = nextCanteenAction(order);
+              return <div class="mt-4 flex flex-wrap items-center gap-3">{next && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name={next.field} value={next.value}/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value={next.label}/><button class="min-h-11 rounded-lg bg-eagles-green px-4 py-2 text-sm font-black text-white" type="submit">{next.label}</button></form>}{canChangePayments && !["collected","cancelled"].includes(order.order_status) && <form method="post" action="/api/admin/canteen-order-status"><input type="hidden" name="order_id" value={order.id}/><input type="hidden" name="order_status" value="cancelled"/><input type="hidden" name="return_to" value="/admin/canteen/?section=orders"/><input type="hidden" name="reason" value="Cancelled from the canteen desk"/><button class="min-h-11 px-3 text-sm font-black text-red-700" type="submit">Cancel order</button></form>}</div>;
+            })()}
           </article>
         ))}
       </div>

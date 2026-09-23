@@ -104,7 +104,7 @@ const totals = merchandiseCartTotals(cart.items);
           </dl>
           <p class="mt-4 text-sm leading-6 text-eagles-ink/65">Collection is from the club. Product prices and stock are checked again when you place the order.</p>
           {totals.canCheckout
-            ? <a class="mt-5 flex min-h-12 items-center justify-center bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href="/portal/shop/checkout/">Proceed to checkout</a>
+            ? <a class="mt-5 flex min-h-12 items-center justify-center bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" href="/portal/shop/checkout/">Checkout</a>
             : <p class="mt-5 border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900" style="border-radius:8px">Update or remove unavailable items before checkout.</p>}
           <a class="mt-3 flex min-h-11 items-center justify-center font-black text-eagles-green" href="/portal/shop/">Continue shopping</a>
           <form class="mt-3 border-t border-eagles-line pt-3" method="post" action="/api/portal/merchandise-cart">

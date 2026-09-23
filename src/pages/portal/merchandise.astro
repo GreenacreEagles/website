@@ -41,11 +41,13 @@ const orderTone = (status: string) => status === "cancelled" || status === "refu
   <div class="grid gap-6">
     <PortalFeedback success={success} error={error ?? orderError?.message} />
 
-    <div class="flex justify-end">
-      <a class="inline-flex min-h-11 w-full items-center justify-center bg-eagles-green px-5 py-3 text-sm font-black text-white hover:bg-eagles-ink sm:w-auto" style="border-radius:8px" href="/portal/shop/">
-        Club shop
-      </a>
-    </div>
+    <a class="surface flex flex-col gap-3 p-4 hover:border-eagles-green sm:flex-row sm:items-center sm:justify-between sm:p-5" href="/portal/shop/">
+      <span>
+        <span class="card-title">Shop club gear</span>
+        <span class="mt-1 block text-sm leading-6 text-eagles-ink/70">Choose a size, then pay when you collect it from the club.</span>
+      </span>
+      <span class="inline-flex min-h-11 items-center justify-center bg-eagles-green px-5 text-sm font-black text-white" style="border-radius:8px">Open the shop</span>
+    </a>
 
     {orders.length === 0 ? (
       <EmptyState

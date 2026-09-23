@@ -16,7 +16,6 @@ if (session.isChildAccount) return Astro.redirect("/portal/teams/");
 
 const query = Astro.url.searchParams.get("q")?.trim().toLowerCase() ?? "";
 const categoryFilter = Astro.url.searchParams.get("category") ?? "";
-const stockFilter = Astro.url.searchParams.get("stock") ?? "all";
 const success = Astro.url.searchParams.get("success");
 const error = Astro.url.searchParams.get("error");
 const now = Date.now();
@@ -43,10 +42,8 @@ const products = ((productData ?? []) as any[])
 const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean) as string[])).sort();
 const filteredProducts = products.filter((product) => {
   const searchText = [product.name, product.description, product.category].filter(Boolean).join(" ").toLowerCase();
-  const inStock = product.variants.some((variant: any) => variant.stock_quantity > 0);
   return (!query || searchText.includes(query))
-    && (!categoryFilter || product.category === categoryFilter)
-    && (stockFilter === "all" || (stockFilter === "in_stock" ? inStock : !inStock));
+    && (!categoryFilter || product.category === categoryFilter);
 });
 
 const cartTotals = merchandiseCartTotals(cart.items);
@@ -64,42 +61,34 @@ const productPrice = (product: any) => {
   <div class="grid gap-6 pb-20 md:pb-0">
     <PortalFeedback success={success} error={error ?? productError?.message ?? cart.error} />
 
-    <div class="flex justify-end">
-      <a class="inline-flex min-h-11 w-full items-center justify-center gap-3 bg-eagles-ink px-5 py-3 text-sm font-black text-white hover:bg-eagles-green sm:w-auto" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
+    <div class="hidden justify-end md:flex">
+      <a class="inline-flex min-h-11 items-center justify-center gap-3 bg-eagles-ink px-5 py-3 text-sm font-black text-white hover:bg-eagles-green" style="border-radius:8px" href="/portal/shop/cart/" aria-label={`View cart with ${cartTotals.quantity} items`}>
         View cart <span class="inline-flex min-w-7 justify-center bg-white px-2 py-1 text-xs text-eagles-ink" style="border-radius:999px">{cartTotals.quantity}</span>
       </a>
     </div>
 
-    <form class="surface filter-bar p-4" method="get" role="search">
+    <form class="surface grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)_auto]" method="get" role="search">
       <label>
-        <span class="label">Search products</span>
+        <span class="label">Search</span>
         <input class="field" type="search" name="q" value={Astro.url.searchParams.get("q") ?? ""} placeholder="Shirts, hoodies, training gear" />
       </label>
       <label>
         <span class="label">Category</span>
-        <select class="field" name="category">
-          <option value="">All products</option>
+        <select class="field" name="category" onchange="this.form.requestSubmit()">
+          <option value="">All</option>
           {categories.map((category) => <option value={category} selected={categoryFilter === category}>{category}</option>)}
         </select>
       </label>
-      <label>
-        <span class="label">Availability</span>
-        <select class="field" name="stock">
-          <option value="all" selected={stockFilter === "all"}>All availability</option>
-          <option value="in_stock" selected={stockFilter === "in_stock"}>In stock</option>
-          <option value="sold_out" selected={stockFilter === "sold_out"}>Sold out</option>
-        </select>
-      </label>
       <div class="flex items-end gap-2">
-        <button class="min-h-12 flex-1 bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">Apply</button>
-        {(query || categoryFilter || stockFilter !== "all") && <a class="inline-flex min-h-12 items-center px-3 font-black text-eagles-green" href="/portal/shop/">Reset</a>}
+        <button class="min-h-12 bg-eagles-green px-5 py-3 font-black text-white hover:bg-eagles-ink" style="border-radius:8px" type="submit">Search</button>
+        {(query || categoryFilter) && <a class="inline-flex min-h-12 items-center px-3 font-black text-eagles-green" href="/portal/shop/">Clear</a>}
       </div>
     </form>
 
     <section class="tile-grid" aria-label="Merchandise products">
       {filteredProducts.length === 0 && (
         <div class="col-span-full">
-          <EmptyState title="No products match your search" text="Try another search, category or availability filter." href="/portal/shop/" action="View all products" />
+          <EmptyState title="No products match" text="Try another search or category." href="/portal/shop/" action="View all products" />
         </div>
       )}
       {filteredProducts.map((product) => {
@@ -125,22 +114,18 @@ const productPrice = (product: any) => {
                 <label>
                   <span class="label">Choose option</span>
                   <select class="field" name="variant_id" required disabled={soldOut}>
-                    <option value="">Select size or colour</option>
+                    <option value="">Choose a size or colour</option>
                     {product.variants.map((variant: any) => (
                       <option value={variant.id} disabled={variant.stock_quantity < 1}>
-                        {[variant.size, variant.colour].filter(Boolean).join(" / ") || "Standard"} · {formatMoney(variantPrice(variant))} · {variant.stock_quantity > 0 ? `${variant.stock_quantity} available` : "Sold out"}
+                        {[variant.size, variant.colour].filter(Boolean).join(" / ") || "One size"}{variant.stock_quantity < 1 ? " — sold out" : ` — ${formatMoney(variantPrice(variant))}`}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label>
-                  <span class="label">Quantity</span>
-                  <input class="field" name="quantity" type="number" inputmode="numeric" min="1" max="50" value="1" required disabled={soldOut} />
-                </label>
+                <input type="hidden" name="quantity" value="1" />
                 <button class="min-h-12 bg-eagles-green px-5 py-3 font-black text-white enabled:hover:bg-eagles-ink disabled:cursor-not-allowed disabled:bg-eagles-ink/35" style="border-radius:8px" type="submit" disabled={soldOut}>
-                  {soldOut ? "Currently sold out" : "Add to cart"}
+                  {soldOut ? "Sold out" : "Add to cart"}
                 </button>
-                {soldOut && <p class="text-sm text-eagles-ink/65">Sold out.</p>}
               </form>
             </div>
           </article>

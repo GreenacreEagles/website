@@ -1,6 +1,18 @@
 ---
 import BaseLayout from "@layouts/BaseLayout.astro";
 import ButtonLink from "@components/ButtonLink.astro";
-export const prerender=true;
+export const prerender = true;
 ---
-<BaseLayout title="Canteen" description="Order match-day food from the Greenacre Eagles FC canteen."><section class="section-pad bg-eagles-mist"><div class="section-shell grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center"><div><p class="eyebrow">Canteen</p><h1 class="mt-3 page-title">Match-day food at the Eagles</h1><p class="mt-5 text-lg leading-8 text-eagles-ink/70">Hot food, cold drinks and snacks on match day. Sign in to order ahead and collect from the canteen.</p><div class="mt-7 flex flex-col gap-3 sm:flex-row"><ButtonLink href="/portal/canteen/" variant="primary">Order from the canteen</ButtonLink><ButtonLink href="/contact/" variant="secondary">Contact the club</ButtonLink></div></div><article class="surface p-6"><h2 class="panel-title">Made for match day</h2><p class="mt-4 leading-7 text-eagles-ink/70">The canteen is there for players, families and visitors on club match days.</p></article></div></section></BaseLayout>
+
+<BaseLayout title="Canteen" description="Order match-day food from the Greenacre Eagles FC canteen.">
+  <section class="section-pad bg-eagles-mist">
+    <div class="section-shell max-w-3xl">
+      <p class="eyebrow">Canteen</p>
+      <h1 class="mt-3 page-title">Order match-day food</h1>
+      <p class="mt-5 text-lg leading-8 text-eagles-ink/70">Choose what you want, then pay when you collect it from the canteen.</p>
+      <div class="mt-7">
+        <ButtonLink href="/portal/canteen/shop/" variant="primary">Order from the canteen</ButtonLink>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
