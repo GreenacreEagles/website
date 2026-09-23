@@ -65,7 +65,13 @@ alter table public.gallery_photos enable row level security;
 create policy gallery_albums_public_read
 on public.gallery_albums
 for select
-to anon, authenticated
+to anon
+using (published);
+
+create policy gallery_albums_member_read
+on public.gallery_albums
+for select
+to authenticated
 using (published or app_private.has_permission('content.manage'));
 
 create policy gallery_albums_manage
@@ -78,13 +84,27 @@ with check (app_private.has_permission('content.manage'));
 create policy gallery_photos_public_read
 on public.gallery_photos
 for select
-to anon, authenticated
+to anon
 using (
   exists (
     select 1
     from public.gallery_albums album
-    where album.id = album_id
-      and (album.published or app_private.has_permission('content.manage'))
+    where album.id = gallery_photos.album_id
+      and album.published
+  )
+);
+
+create policy gallery_photos_member_read
+on public.gallery_photos
+for select
+to authenticated
+using (
+  app_private.has_permission('content.manage')
+  or exists (
+    select 1
+    from public.gallery_albums album
+    where album.id = gallery_photos.album_id
+      and album.published
   )
 );
 
